@@ -9,6 +9,7 @@
 #include <QPushButton>
 #include <QScrollArea>
 #include <QVBoxLayout>
+#include <QStackedWidget>
 #include <QMap>
 #include <opencv2/core.hpp>
 
@@ -63,14 +64,22 @@ private:
     QTextEdit *m_codeEdit = nullptr;
     QPushButton *m_copyCodeBtn = nullptr;
 
-    // 动态参数容器
+    // 中下部视窗堆叠：分为「视觉实时算法对比页」与「深度架构与使用时机指南页」
+    QStackedWidget *m_contentStack = nullptr;
+
+    // 页面 A：视觉交互视窗 (Visual Runner)
+    QWidget *m_visualViewWidget = nullptr;
     QWidget *m_paramContainer = nullptr;
     QVBoxLayout *m_paramLayout = nullptr;
-
-    // 图像数据源与视窗
     cv::Mat m_sourceMat;
     cv::Mat m_resultMat;
     QLabel *m_srcPreviewLabel = nullptr;
     QLabel *m_dstPreviewLabel = nullptr;
     QLabel *m_perfBadgeLabel = nullptr;
+
+    // 页面 B：非视觉机制与架构指南页 (Non-visual Guide)
+    QWidget *m_guideViewWidget = nullptr;
+    QLabel *m_timingLabel = nullptr;
+    QLabel *m_pitfallsLabel = nullptr;
+    QTextEdit *m_fullCodeEdit = nullptr;
 };

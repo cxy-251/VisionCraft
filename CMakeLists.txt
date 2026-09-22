@@ -37,12 +37,16 @@ set(SOURCES
     src/core/KnowledgeModel.h
     src/core/KnowledgeRegistry.h
     src/core/KnowledgeRegistry.cpp
+    src/ui/ThemeManager.h
+    src/ui/ThemeManager.cpp
     src/ui/HomePage.h
     src/ui/HomePage.cpp
     src/ui/MainWindow.h
     src/ui/MainWindow.cpp
     src/ui/KnowledgeExplorerPage.h
     src/ui/KnowledgeExplorerPage.cpp
+    src/modules/IntegratedToolboxPage.h
+    src/modules/IntegratedToolboxPage.cpp
     src/modules/vision_matcher/VisionMatcherPage.h
     src/modules/vision_matcher/VisionMatcherPage.cpp
     src/modules/image_processor/ImageProcessorPage.h

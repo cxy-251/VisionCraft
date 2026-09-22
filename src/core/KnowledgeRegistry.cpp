@@ -35,57 +35,35 @@ QMap<QString, QList<KnowledgeTopic>> KnowledgeRegistry::topicsByCategory() const
 
 void KnowledgeRegistry::initOpenCVTopics() {
     // ==========================================
-    // 1. 图像平滑与滤波 (Smoothing & Filtering)
+    // 1. OpenCV: 图像平滑与滤波 (实操交互)
     // ==========================================
-
-    // 1.1 高斯滤波 GaussianBlur
     {
         KnowledgeTopic t;
         t.id = "cv_gaussian_blur";
-        t.category = "1. OpenCV 图像平滑滤波";
-        t.subCategory = "空间卷积滤波";
+        t.framework = "OpenCV";
+        t.category = "OpenCV 01. 滤波平滑与降噪";
         t.name = "高斯滤波 (GaussianBlur)";
-        t.tag = "正态分布平滑降噪";
+        t.tag = "正态加权平滑";
+        t.isVisualInteractive = true;
         t.apiSignature = "void cv::GaussianBlur(InputArray src, OutputArray dst, Size ksize, double sigmaX, double sigmaY = 0, int borderType = BORDER_DEFAULT);";
-        t.docSummary = "<b>原理：</b>利用二维高斯正态分布核对邻域像素进行距离加权平均。越靠近中心权值越高，越远离中心权值越低。<br>"
-                       "<b>场景：</b>抑制高频随机噪点（如高斯白噪声），是 Canny 边缘检测和阈值分割前最标准的预处理手段。";
-        t.docParams = "<b>ksize:</b> 高斯卷积核大小 (宽 x 高)，两个维度必须都是<b>正奇数</b> (如 3x3, 5x5, 7x7)。<br>"
-                      "<b>sigmaX / sigmaY:</b> X 与 Y 方向的高斯标准差。若传 0，OpenCV 会自动根据核大小计算：<code>0.3*((ksize-1)*0.5 - 1) + 0.8</code>。";
+        t.docSummary = "利用二维高斯正态分布核对邻域像素进行距离加权平均。越靠近中心权值越高，越远离中心权值越低。";
+        t.docParams = "• <b>ksize:</b> 卷积核大小 (宽 x 高)，两个维度必须都是<b>正奇数</b> (如 3x3, 5x5, 7x7)。<br>"
+                      "• <b>sigmaX:</b> X 方向高斯标准差。设为 0 时系统自动根据公式 <code>0.3*((ksize-1)*0.5 - 1) + 0.8</code> 计算。";
+        t.usageTiming = "几乎是所有计算机视觉处理（Canny 边缘检测、二值化、霍夫变换）前的<b>第一道标准工序</b>，用于消除高频随机高斯白噪点。";
+        t.bestPractices = "① 卷积核不能过大（一般 3x3 或 5x5），否则图像会严重变钝并损失边缘定位精度。<br>② 工业实时处理优先选择小核（耗时通常 < 1ms）。";
 
-        ParamDescriptor p1;
-        p1.key = "ksize";
-        p1.label = "卷积核大小 (ksize)";
-        p1.type = ParamType::SliderInt;
-        p1.minVal = 1;
-        p1.maxVal = 31;
-        p1.step = 2; // 只能是奇数
-        p1.defaultVal = 7;
-        p1.tooltip = "卷积核尺寸，必须为正奇数。值越大模糊范围越广。";
-        t.params.append(p1);
-
-        ParamDescriptor p2;
-        p2.key = "sigmaX";
-        p2.label = "高斯标准差 (sigmaX)";
-        p2.type = ParamType::SliderDouble;
-        p2.minVal = 0.0;
-        p2.maxVal = 10.0;
-        p2.step = 0.1;
-        p2.defaultVal = 1.5;
-        p2.tooltip = "正态分布标准差。设为 0 时系统自动计算。";
-        t.params.append(p2);
+        ParamDescriptor p1{"ksize", "核尺寸 (ksize)", ParamType::SliderInt, 1, 31, 2, 7, {}, {}, "核尺寸，必须为正奇数"};
+        ParamDescriptor p2{"sigmaX", "高斯标准差 (sigmaX)", ParamType::SliderDouble, 0.0, 10.0, 0.1, 1.5, {}, {}, "标准差"};
+        t.params << p1 << p2;
 
         t.codeGenerator = [](const QMap<QString, QVariant>& p) -> QString {
             int k = p.value("ksize", 7).toInt();
             if (k % 2 == 0) k += 1;
             double s = p.value("sigmaX", 1.5).toDouble();
             return QString::fromStdString(fmt::format(
-                "// 1. 高斯滤波 C++ 调用范式\n"
                 "cv::Mat dst;\n"
-                "cv::GaussianBlur(src, dst, cv::Size({}, {}), {:.1f});",
-                k, k, s
-            ));
+                "cv::GaussianBlur(src, dst, cv::Size({}, {}), {:.1f});", k, k, s));
         };
-
         t.cvRunner = [](const cv::Mat &src, cv::Mat &dst, const QMap<QString, QVariant>& p, QString &note) {
             int k = p.value("ksize", 7).toInt();
             if (k % 2 == 0) k += 1;
@@ -93,622 +71,466 @@ void KnowledgeRegistry::initOpenCVTopics() {
             cv::GaussianBlur(src, dst, cv::Size(k, k), s);
             note = QString("执行成功：Size(%1, %1), sigmaX=%2").arg(k).arg(s);
         };
-
         m_topics.append(t);
         m_topicMap[t.id] = t;
     }
 
-    // 1.2 均值滤波 blur
-    {
-        KnowledgeTopic t;
-        t.id = "cv_blur";
-        t.category = "1. OpenCV 图像平滑滤波";
-        t.subCategory = "线性滤波";
-        t.name = "均值滤波 (blur)";
-        t.tag = "等权重快速平滑";
-        t.apiSignature = "void cv::blur(InputArray src, OutputArray dst, Size ksize, Point anchor = Point(-1,-1), int borderType = BORDER_DEFAULT);";
-        t.docSummary = "<b>原理：</b>将卷积核覆盖的矩形区域内所有像素点的值相加，然后除以像素总数（即求算术平均值）。<br>"
-                       "<b>场景：</b>计算速度极快（可用积分图优化），适合要求不高但追求超高帧率的快速平滑。缺点是容易模糊边缘细节。";
-        t.docParams = "<b>ksize:</b> 滤波核大小，通常取奇数 (如 3x3, 5x5)。<br>"
-                      "<b>anchor:</b> 锚点位置，默认 Point(-1,-1) 代表卷积核几何中心。";
-
-        ParamDescriptor p1;
-        p1.key = "ksize";
-        p1.label = "核大小 (ksize)";
-        p1.type = ParamType::SliderInt;
-        p1.minVal = 1;
-        p1.maxVal = 31;
-        p1.step = 2;
-        p1.defaultVal = 5;
-        t.params.append(p1);
-
-        t.codeGenerator = [](const QMap<QString, QVariant>& p) -> QString {
-            int k = p.value("ksize", 5).toInt();
-            return QString::fromStdString(fmt::format(
-                "// 均值滤波 C++ 调用\n"
-                "cv::Mat dst;\n"
-                "cv::blur(src, dst, cv::Size({}, {}));",
-                k, k
-            ));
-        };
-
-        t.cvRunner = [](const cv::Mat &src, cv::Mat &dst, const QMap<QString, QVariant>& p, QString &note) {
-            int k = p.value("ksize", 5).toInt();
-            if (k % 2 == 0) k += 1;
-            cv::blur(src, dst, cv::Size(k, k));
-            note = QString("均值平滑完成：核大小 %1x%1").arg(k);
-        };
-
-        m_topics.append(t);
-        m_topicMap[t.id] = t;
-    }
-
-    // 1.3 中值滤波 medianBlur
     {
         KnowledgeTopic t;
         t.id = "cv_median_blur";
-        t.category = "1. OpenCV 图像平滑滤波";
-        t.subCategory = "非线性统计滤波";
+        t.framework = "OpenCV";
+        t.category = "OpenCV 01. 滤波平滑与降噪";
         t.name = "中值滤波 (medianBlur)";
-        t.tag = "椒盐噪声克星 / 保持边缘";
+        t.tag = "椒盐噪声克星";
+        t.isVisualInteractive = true;
         t.apiSignature = "void cv::medianBlur(InputArray src, OutputArray dst, int ksize);";
-        t.docSummary = "<b>原理：</b>将卷积核邻域内的所有像素灰度值由小到大排序，取正中间的那个值作为输出像素值。<br>"
-                       "<b>场景：</b>对图像中的<b>“黑白噪点 / 坏点 / 椒盐噪声”</b>具有神级清除效果，且相比均值滤波能更好地保护图像轮廓不被过度虚化。";
-        t.docParams = "<b>ksize:</b> 滤波孔径的线性尺寸，<b>必须是大于 1 的奇数</b> (如 3, 5, 7)。";
+        t.docSummary = "非线性滤波算法。将窗口内所有像素排序，取中位数值替代中心像素。";
+        t.docParams = "• <b>ksize:</b> 滤波孔径尺寸，必须是<b>大于 1 的奇数</b> (如 3, 5, 7)。";
+        t.usageTiming = "图像存在<b>传感器噪点、孤立黑白杂点（椒盐噪声）</b>时使用。相比均值滤波，它在消除孤立噪点的同时几乎不破坏物体的直线边缘！";
+        t.bestPractices = "排序算法在大核时计算量较大。若图像噪点并非孤立椒盐噪点，优先使用高斯滤波。";
 
-        ParamDescriptor p1;
-        p1.key = "ksize";
-        p1.label = "孔径大小 (ksize)";
-        p1.type = ParamType::SliderInt;
-        p1.minVal = 3;
-        p1.maxVal = 21;
-        p1.step = 2;
-        p1.defaultVal = 5;
-        t.params.append(p1);
+        ParamDescriptor p1{"ksize", "孔径尺寸 (ksize)", ParamType::SliderInt, 3, 21, 2, 5, {}, {}, "孔径大小"};
+        t.params << p1;
 
         t.codeGenerator = [](const QMap<QString, QVariant>& p) -> QString {
             int k = p.value("ksize", 5).toInt();
-            return QString::fromStdString(fmt::format(
-                "// 中值滤波调用\n"
-                "cv::Mat dst;\n"
-                "cv::medianBlur(src, dst, {});",
-                k
-            ));
+            if (k % 2 == 0) k += 1;
+            return QString::fromStdString(fmt::format("cv::Mat dst;\ncv::medianBlur(src, dst, {});", k));
         };
-
         t.cvRunner = [](const cv::Mat &src, cv::Mat &dst, const QMap<QString, QVariant>& p, QString &note) {
             int k = p.value("ksize", 5).toInt();
             if (k % 2 == 0) k += 1;
             cv::medianBlur(src, dst, k);
-            note = QString("中值滤波完成：窗口尺寸 %1").arg(k);
+            note = QString("中值滤波完成：窗口 %1").arg(k);
         };
-
         m_topics.append(t);
         m_topicMap[t.id] = t;
     }
 
-    // 1.4 双边滤波 bilateralFilter
     {
         KnowledgeTopic t;
         t.id = "cv_bilateral_filter";
-        t.category = "1. OpenCV 图像平滑滤波";
-        t.subCategory = "保边滤波";
+        t.framework = "OpenCV";
+        t.category = "OpenCV 01. 滤波平滑与降噪";
         t.name = "双边滤波 (bilateralFilter)";
-        t.tag = "经典人脸磨皮 / 保持锐利边缘";
+        t.tag = "磨皮保边神器";
+        t.isVisualInteractive = true;
         t.apiSignature = "void cv::bilateralFilter(InputArray src, OutputArray dst, int d, double sigmaColor, double sigmaSpace, int borderType = BORDER_DEFAULT);";
-        t.docSummary = "<b>原理：</b>结合了空间距离高斯权重与色彩相似度高斯权重。只有当邻域像素既在空间上距离近、且颜色差异小的时候才会被平滑；如果颜色差异极大（即物体边缘），权值骤降为0。<br>"
-                       "<b>场景：</b>在平坦区域平滑噪点（例如人脸皮肤），但完美保留眉毛、眼睛和物体轮廓的绝对锐利！";
-        t.docParams = "<b>d:</b> 过滤期间使用的各像素邻域的直径。设为负数或 5~9 是兼顾性能与效果的推荐区间。<br>"
-                      "<b>sigmaColor:</b> 颜色空间标准差。数值越大，更大色彩差异的像素会混合在一起。<br>"
-                      "<b>sigmaSpace:</b> 坐标空间标准差。数值越大，更远的像素会相互影响。";
+        t.docSummary = "同时结合空间临近度高斯权重与色彩相似度高斯权重。平坦区域平滑噪点，剧烈色差边缘停止融合。";
+        t.docParams = "• <b>d:</b> 滤波邻域直径 (通常 5~9)。<br>• <b>sigmaColor:</b> 颜色差容忍度。<br>• <b>sigmaSpace:</b> 空间距离衰减。";
+        t.usageTiming = "人脸美颜磨皮、工业高反光表面缺陷检测前平滑、动漫卡通化预处理。";
+        t.bestPractices = "计算复杂度远高于常规卷积。在 1080P 以上全图慎用大直径（d>11），实时视频流建议先降采样处理。";
 
-        ParamDescriptor p1;
-        p1.key = "d";
-        p1.label = "邻域直径 (d)";
-        p1.type = ParamType::SliderInt;
-        p1.minVal = 1;
-        p1.maxVal = 15;
-        p1.step = 2;
-        p1.defaultVal = 9;
-        t.params.append(p1);
-
-        ParamDescriptor p2;
-        p2.key = "sigmaColor";
-        p2.label = "颜色标准差 (sigmaColor)";
-        p2.type = ParamType::SliderDouble;
-        p2.minVal = 10.0;
-        p2.maxVal = 150.0;
-        p2.step = 5.0;
-        p2.defaultVal = 75.0;
-        t.params.append(p2);
-
-        ParamDescriptor p3;
-        p3.key = "sigmaSpace";
-        p3.label = "空间标准差 (sigmaSpace)";
-        p3.type = ParamType::SliderDouble;
-        p3.minVal = 10.0;
-        p3.maxVal = 150.0;
-        p3.step = 5.0;
-        p3.defaultVal = 75.0;
-        t.params.append(p3);
+        ParamDescriptor p1{"d", "邻域直径 (d)", ParamType::SliderInt, 1, 15, 2, 9, {}, {}, "滤波直径"};
+        ParamDescriptor p2{"sigmaColor", "颜色差容忍 (sigmaColor)", ParamType::SliderDouble, 10.0, 150.0, 5.0, 75.0, {}, {}, "颜色差"};
+        t.params << p1 << p2;
 
         t.codeGenerator = [](const QMap<QString, QVariant>& p) -> QString {
             int d = p.value("d", 9).toInt();
             double sc = p.value("sigmaColor", 75.0).toDouble();
-            double ss = p.value("sigmaSpace", 75.0).toDouble();
-            return QString::fromStdString(fmt::format(
-                "// 双边滤波（磨皮保边）\n"
-                "cv::Mat dst;\n"
-                "cv::bilateralFilter(src, dst, {}, {:.1f}, {:.1f});",
-                d, sc, ss
-            ));
+            return QString::fromStdString(fmt::format("cv::Mat dst;\ncv::bilateralFilter(src, dst, {}, {:.1f}, 75.0);", d, sc));
         };
-
         t.cvRunner = [](const cv::Mat &src, cv::Mat &dst, const QMap<QString, QVariant>& p, QString &note) {
             int d = p.value("d", 9).toInt();
             double sc = p.value("sigmaColor", 75.0).toDouble();
-            double ss = p.value("sigmaSpace", 75.0).toDouble();
-            cv::bilateralFilter(src, dst, d, sc, ss);
-            note = QString("双边滤波完成：d=%1, 颜色差=%2, 空间差=%3").arg(d).arg(sc).arg(ss);
+            cv::bilateralFilter(src, dst, d, sc, 75.0);
+            note = QString("双边滤波完成：直径 %1, 颜色标准差 %2").arg(d).arg(sc);
         };
-
         m_topics.append(t);
         m_topicMap[t.id] = t;
     }
 
     // ==========================================
-    // 2. 图像形态学 (Morphological Operations)
+    // 2. OpenCV: 形态学与边缘 (实操交互)
     // ==========================================
-
-    // 2.1 腐蚀与膨胀
-    {
-        KnowledgeTopic t;
-        t.id = "cv_erode_dilate";
-        t.category = "2. OpenCV 形态学操作";
-        t.subCategory = "基础形态学";
-        t.name = "腐蚀与膨胀 (erode / dilate)";
-        t.tag = "高亮区域收缩与扩张";
-        t.apiSignature = "void cv::erode(InputArray src, OutputArray dst, InputArray kernel, ...);\nvoid cv::dilate(InputArray src, OutputArray dst, InputArray kernel, ...);";
-        t.docSummary = "<b>腐蚀 (erode)：</b>取卷积核邻域内的最小值。在二值图里会使白色前景收缩，切断细小的连通，消除孤立毛刺噪点。<br>"
-                       "<b>膨胀 (dilate)：</b>取卷积核邻域内的最大值。在二值图里使白色前景扩张，连通相近的物体，填补微小孔洞与断裂。";
-        t.docParams = "<b>kernel:</b> 结构元。通常使用 <code>cv::getStructuringElement(shape, ksize)</code> 生成。<br>"
-                      "<b>iterations:</b> 腐蚀/膨胀的应用次数。";
-
-        ParamDescriptor p1;
-        p1.key = "opType";
-        p1.label = "操作类型";
-        p1.type = ParamType::ComboBox;
-        p1.options = {"腐蚀 (erode - 侵蚀缩小)", "膨胀 (dilate - 扩张填补)"};
-        p1.optionValues = {0, 1};
-        p1.defaultVal = 0;
-        t.params.append(p1);
-
-        ParamDescriptor p2;
-        p2.key = "ksize";
-        p2.label = "结构元尺寸 (ksize)";
-        p2.type = ParamType::SliderInt;
-        p2.minVal = 1;
-        p2.maxVal = 15;
-        p2.step = 2;
-        p2.defaultVal = 3;
-        t.params.append(p2);
-
-        ParamDescriptor p3;
-        p3.key = "iterations";
-        p3.label = "迭代次数 (iterations)";
-        p3.type = ParamType::SliderInt;
-        p3.minVal = 1;
-        p3.maxVal = 5;
-        p3.step = 1;
-        p3.defaultVal = 1;
-        t.params.append(p3);
-
-        t.codeGenerator = [](const QMap<QString, QVariant>& p) -> QString {
-            int op = p.value("opType", 0).toInt();
-            int k = p.value("ksize", 3).toInt();
-            int iter = p.value("iterations", 1).toInt();
-            std::string opName = (op == 0) ? "erode" : "dilate";
-            return QString::fromStdString(fmt::format(
-                "// 1. 生成结构元\n"
-                "cv::Mat kernel = cv::getStructuringElement(cv::MORPH_RECT, cv::Size({}, {}));\n"
-                "// 2. 执行{}\n"
-                "cv::Mat dst;\n"
-                "cv::{}(src, dst, kernel, cv::Point(-1, -1), {});",
-                k, k, (op == 0 ? "腐蚀" : "膨胀"), opName, iter
-            ));
-        };
-
-        t.cvRunner = [](const cv::Mat &src, cv::Mat &dst, const QMap<QString, QVariant>& p, QString &note) {
-            int op = p.value("opType", 0).toInt();
-            int k = p.value("ksize", 3).toInt();
-            int iter = p.value("iterations", 1).toInt();
-            cv::Mat kernel = cv::getStructuringElement(cv::MORPH_RECT, cv::Size(k, k));
-            if (op == 0) {
-                cv::erode(src, dst, kernel, cv::Point(-1, -1), iter);
-                note = QString("执行腐蚀：尺寸 %1x%1，迭代 %2 次").arg(k).arg(iter);
-            } else {
-                cv::dilate(src, dst, kernel, cv::Point(-1, -1), iter);
-                note = QString("执行膨胀：尺寸 %1x%1，迭代 %2 次").arg(k).arg(iter);
-            }
-        };
-
-        m_topics.append(t);
-        m_topicMap[t.id] = t;
-    }
-
-    // 2.2 高级形态学 morphologyEx (开运算/闭运算/形态学梯度)
-    {
-        KnowledgeTopic t;
-        t.id = "cv_morphology_ex";
-        t.category = "2. OpenCV 形态学操作";
-        t.subCategory = "复合形态学";
-        t.name = "复合形态学 (morphologyEx)";
-        t.tag = "开运算/闭运算/形态学梯度/顶帽黑帽";
-        t.apiSignature = "void cv::morphologyEx(InputArray src, OutputArray dst, int op, InputArray kernel, ...);";
-        t.docSummary = "<b>开运算 (OPEN)：</b>先腐蚀后膨胀。消除微小细碎噪点，平滑大物体边缘，且<b>不会改变物体原有总体面积大小</b>！<br>"
-                       "<b>闭运算 (CLOSE)：</b>先膨胀后腐蚀。连接断开的缝隙，闭合狭长空洞，且同样不改变物体总体轮廓。<br>"
-                       "<b>形态学梯度 (GRADIENT)：</b>膨胀图减去腐蚀图。能直接提取出物体的内外边界线轮廓！";
-        t.docParams = "<b>op:</b> 形态学操作类型（MORPH_OPEN, MORPH_CLOSE, MORPH_GRADIENT, MORPH_TOPHAT, MORPH_BLACKHAT）。";
-
-        ParamDescriptor p1;
-        p1.key = "op";
-        p1.label = "复合操作类型";
-        p1.type = ParamType::ComboBox;
-        p1.options = {"开运算 (MORPH_OPEN - 消除噪点)", 
-                      "闭运算 (MORPH_CLOSE - 填补孔洞)", 
-                      "形态学梯度 (MORPH_GRADIENT - 边界轮廓)",
-                      "顶帽 (MORPH_TOPHAT - 提取高亮斑点)",
-                      "黑帽 (MORPH_BLACKHAT - 提取暗色斑点)"};
-        p1.optionValues = {cv::MORPH_OPEN, cv::MORPH_CLOSE, cv::MORPH_GRADIENT, cv::MORPH_TOPHAT, cv::MORPH_BLACKHAT};
-        p1.defaultVal = cv::MORPH_OPEN;
-        t.params.append(p1);
-
-        ParamDescriptor p2;
-        p2.key = "ksize";
-        p2.label = "核尺寸 (ksize)";
-        p2.type = ParamType::SliderInt;
-        p2.minVal = 3;
-        p2.maxVal = 25;
-        p2.step = 2;
-        p2.defaultVal = 5;
-        t.params.append(p2);
-
-        t.codeGenerator = [](const QMap<QString, QVariant>& p) -> QString {
-            int op = p.value("op", cv::MORPH_OPEN).toInt();
-            int k = p.value("ksize", 5).toInt();
-            return QString::fromStdString(fmt::format(
-                "// 复合形态学运算\n"
-                "cv::Mat kernel = cv::getStructuringElement(cv::MORPH_RECT, cv::Size({}, {}));\n"
-                "cv::Mat dst;\n"
-                "cv::morphologyEx(src, dst, {}, kernel);",
-                k, k, op
-            ));
-        };
-
-        t.cvRunner = [](const cv::Mat &src, cv::Mat &dst, const QMap<QString, QVariant>& p, QString &note) {
-            int op = p.value("op", cv::MORPH_OPEN).toInt();
-            int k = p.value("ksize", 5).toInt();
-            cv::Mat kernel = cv::getStructuringElement(cv::MORPH_RECT, cv::Size(k, k));
-            cv::morphologyEx(src, dst, op, kernel);
-            note = QString("复合形态学执行完成：op=%1, 核大小=%2").arg(op).arg(k);
-        };
-
-        m_topics.append(t);
-        m_topicMap[t.id] = t;
-    }
-
-    // ==========================================
-    // 3. 边缘与梯度 (Edge & Gradients)
-    // ==========================================
-
-    // 3.1 Canny 边缘检测
     {
         KnowledgeTopic t;
         t.id = "cv_canny";
-        t.category = "3. OpenCV 边缘与特征提取";
-        t.subCategory = "梯度边缘检测";
+        t.framework = "OpenCV";
+        t.category = "OpenCV 02. 边缘与几何特征";
         t.name = "Canny 边缘检测 (Canny)";
-        t.tag = "双阈值迟滞跟踪最优边缘算子";
+        t.tag = "双阈值迟滞跟踪最优边缘";
+        t.isVisualInteractive = true;
         t.apiSignature = "void cv::Canny(InputArray image, OutputArray edges, double threshold1, double threshold2, int apertureSize = 3, bool L2gradient = false);";
-        t.docSummary = "<b>原理：</b>Canny 算子是计算机视觉界公认最强典范。包含4大经典步骤：<br>"
-                       "1. 高斯滤波平滑降噪；2. 计算 Sobel 梯度幅值与方向；3. 非极大值抑制（NMS）细化边缘；4. 双阈值迟滞（Hysteresis）连接弱边缘。<br>"
-                       "<b>场景：</b>提取清晰的单像素精细边缘线条。";
-        t.docParams = "<b>threshold1 (低阈值):</b> 梯度低于此值的像素直接丢弃。<br>"
-                      "<b>threshold2 (高阈值):</b> 梯度高于此值的像素必为边缘；介于高低阈值之间的像素，仅在与强边缘相连通时才被保留！通常推荐高低阈值比为 <code>2:1</code> 或 <code>3:1</code>。";
+        t.docSummary = "计算机视觉边缘提取标准。包含高斯平滑、Sobel 梯度计算、非极大值抑制（NMS 细化）与双阈值迟滞追踪。";
+        t.docParams = "• <b>threshold1 (低阈值):</b> 梯度低于此值的连通直接丢弃。<br>• <b>threshold2 (高阈值):</b> 确定强边缘；介于两者之间的弱边缘只有在连接强边缘时才保留。";
+        t.usageTiming = "物体轮廓描绘、尺寸测量、车道线检测、字符 OCR 轮廓定位。";
+        t.bestPractices = "官方推荐高低阈值比为 <code>2:1</code> 或 <code>3:1</code>。输入图像必须先转灰度图，通常配合前置高斯滤波使用。";
 
-        ParamDescriptor p1;
-        p1.key = "threshold1";
-        p1.label = "低阈值 (Threshold 1)";
-        p1.type = ParamType::SliderInt;
-        p1.minVal = 1;
-        p1.maxVal = 255;
-        p1.step = 1;
-        p1.defaultVal = 50;
-        t.params.append(p1);
-
-        ParamDescriptor p2;
-        p2.key = "threshold2";
-        p2.label = "高阈值 (Threshold 2)";
-        p2.type = ParamType::SliderInt;
-        p2.minVal = 1;
-        p2.maxVal = 255;
-        p2.step = 1;
-        p2.defaultVal = 150;
-        t.params.append(p2);
+        ParamDescriptor p1{"t1", "低阈值 (Threshold 1)", ParamType::SliderInt, 1, 255, 1, 50, {}, {}, "低阈值"};
+        ParamDescriptor p2{"t2", "高阈值 (Threshold 2)", ParamType::SliderInt, 1, 255, 1, 150, {}, {}, "高阈值"};
+        t.params << p1 << p2;
 
         t.codeGenerator = [](const QMap<QString, QVariant>& p) -> QString {
-            int t1 = p.value("threshold1", 50).toInt();
-            int t2 = p.value("threshold2", 150).toInt();
+            int t1 = p.value("t1", 50).toInt();
+            int t2 = p.value("t2", 150).toInt();
             return QString::fromStdString(fmt::format(
-                "// Canny 边缘检测调用\n"
                 "cv::Mat gray, edges;\n"
-                "if (src.channels() > 1) cv::cvtColor(src, gray, cv::COLOR_BGR2GRAY);\n"
-                "else gray = src;\n"
-                "cv::Canny(gray, edges, {}, {});",
-                t1, t2
-            ));
+                "cv::cvtColor(src, gray, cv::COLOR_BGR2GRAY);\n"
+                "cv::Canny(gray, edges, {}, {});", t1, t2));
         };
-
         t.cvRunner = [](const cv::Mat &src, cv::Mat &dst, const QMap<QString, QVariant>& p, QString &note) {
-            int t1 = p.value("threshold1", 50).toInt();
-            int t2 = p.value("threshold2", 150).toInt();
+            int t1 = p.value("t1", 50).toInt();
+            int t2 = p.value("t2", 150).toInt();
             cv::Mat gray;
             if (src.channels() > 1) cv::cvtColor(src, gray, cv::COLOR_BGR2GRAY);
             else gray = src;
             cv::Canny(gray, dst, t1, t2);
-            note = QString("Canny 完成：低阈值=%1, 高阈值=%2").arg(t1).arg(t2);
+            note = QString("Canny 边缘提取完成：低阈值=%1, 高阈值=%2").arg(t1).arg(t2);
         };
-
         m_topics.append(t);
         m_topicMap[t.id] = t;
     }
 
-    // 3.2 轮廓发现与多边形拟合 (findContours)
-    {
-        KnowledgeTopic t;
-        t.id = "cv_find_contours";
-        t.category = "3. OpenCV 边缘与特征提取";
-        t.subCategory = "几何轮廓与拓扑";
-        t.name = "轮廓发现与测量 (findContours)";
-        t.tag = "提取物体外框与几何面积/周长";
-        t.apiSignature = "void cv::findContours(InputArray image, OutputArrayOfArrays contours, OutputArray hierarchy, int mode, int method, Point offset = Point());";
-        t.docSummary = "<b>原理：</b>在二值图（黑白图）中追踪连续相同强度的边界点序列，构建多边形轮廓树。<br>"
-                       "<b>场景：</b>工业视觉定位、物体计数、测量面积周长、计算物体重心、提取最小外接矩形或旋转框。";
-        t.docParams = "<b>mode:</b> 轮廓检索模式 (RETR_EXTERNAL: 只检测最外层轮廓; RETR_TREE: 建立完整的嵌套父子层级关系)。<br>"
-                      "<b>method:</b> 近似方法 (CHAIN_APPROX_SIMPLE: 压缩水平/垂直/对角线段，只保留端点点坐标，大幅节省内存)。";
-
-        ParamDescriptor p1;
-        p1.key = "minArea";
-        p1.label = "过滤最小面积 (像素)";
-        p1.type = ParamType::SliderInt;
-        p1.minVal = 10;
-        p1.maxVal = 2000;
-        p1.step = 20;
-        p1.defaultVal = 100;
-        t.params.append(p1);
-
-        ParamDescriptor p2;
-        p2.key = "drawBoxes";
-        p2.label = "绘制外接矩形框";
-        p2.type = ParamType::CheckBox;
-        p2.defaultVal = 1;
-        t.params.append(p2);
-
-        t.codeGenerator = [](const QMap<QString, QVariant>& p) -> QString {
-            int minA = p.value("minArea", 100).toInt();
-            return QString::fromStdString(fmt::format(
-                "// 1. 转灰度并二值化\n"
-                "cv::Mat gray, binary;\n"
-                "cv::cvtColor(src, gray, cv::COLOR_BGR2GRAY);\n"
-                "cv::threshold(gray, binary, 128, 255, cv::THRESH_BINARY);\n"
-                "// 2. 查找轮廓\n"
-                "std::vector<std::vector<cv::Point>> contours;\n"
-                "std::vector<cv::Vec4i> hierarchy;\n"
-                "cv::findContours(binary, contours, hierarchy, cv::RETR_EXTERNAL, cv::CHAIN_APPROX_SIMPLE);\n"
-                "// 3. 过滤面积并绘制\n"
-                "for (const auto &c : contours) {{\n"
-                "    if (cv::contourArea(c) >= {}) {{\n"
-                "        cv::Rect box = cv::boundingRect(c);\n"
-                "        cv::rectangle(src, box, cv::Scalar(0, 255, 0), 2);\n"
-                "    }}\n"
-                "}}",
-                minA
-            ));
-        };
-
-        t.cvRunner = [](const cv::Mat &src, cv::Mat &dst, const QMap<QString, QVariant>& p, QString &note) {
-            int minA = p.value("minArea", 100).toInt();
-            bool drawBox = p.value("drawBoxes", 1).toBool();
-
-            cv::Mat gray, binary;
-            if (src.channels() > 1) cv::cvtColor(src, gray, cv::COLOR_BGR2GRAY);
-            else gray = src.clone();
-
-            cv::Canny(gray, binary, 60, 150);
-
-            std::vector<std::vector<cv::Point>> contours;
-            std::vector<cv::Vec4i> hierarchy;
-            cv::findContours(binary, contours, hierarchy, cv::RETR_EXTERNAL, cv::CHAIN_APPROX_SIMPLE);
-
-            dst = src.clone();
-            int count = 0;
-            for (size_t i = 0; i < contours.size(); ++i) {
-                double area = cv::contourArea(contours[i]);
-                if (area >= minA) {
-                    count++;
-                    cv::drawContours(dst, contours, static_cast<int>(i), cv::Scalar(0, 0, 255), 2);
-                    if (drawBox) {
-                        cv::Rect box = cv::boundingRect(contours[i]);
-                        cv::rectangle(dst, box, cv::Scalar(0, 255, 0), 2);
-                    }
-                }
-            }
-            note = QString("检测到有效轮廓: %1 个 (总检出: %2, 面积阈值: %3)").arg(count).arg(contours.size()).arg(minA);
-        };
-
-        m_topics.append(t);
-        m_topicMap[t.id] = t;
-    }
-
-    // ==========================================
-    // 4. 色彩空间与阈值 (Color & Thresholds)
-    // ==========================================
-
-    // 4.1 二值化分割 threshold
-    {
-        KnowledgeTopic t;
-        t.id = "cv_threshold";
-        t.category = "4. OpenCV 色彩与阈值分割";
-        t.subCategory = "二值化处理";
-        t.name = "固定二值化 (threshold)";
-        t.tag = "黑白二值分割基石";
-        t.apiSignature = "double cv::threshold(InputArray src, OutputArray dst, double thresh, double maxval, int type);";
-        t.docSummary = "<b>原理：</b>遍历像素，按设定的阈值 thresh 将灰度图二分为 0（纯黑）或 maxval（纯白）。<br>"
-                       "<b>场景：</b>文档扫描漂白、OCR 字符预处理、前景目标快速抠出。";
-        t.docParams = "<b>thresh:</b> 分割阈值 (0~255)。<br>"
-                      "<b>maxval:</b> 大于阈值时赋予的新值 (通常是 255)。<br>"
-                      "<b>type:</b> 规则（THRESH_BINARY: 超过变白否则变黑；THRESH_BINARY_INV: 反向黑白颠倒；THRESH_TRUNC: 截断）。";
-
-        ParamDescriptor p1;
-        p1.key = "thresh";
-        p1.label = "分割阈值 (thresh)";
-        p1.type = ParamType::SliderInt;
-        p1.minVal = 0;
-        p1.maxVal = 255;
-        p1.step = 1;
-        p1.defaultVal = 128;
-        t.params.append(p1);
-
-        ParamDescriptor p2;
-        p2.key = "type";
-        p2.label = "阈值规则类型";
-        p2.type = ParamType::ComboBox;
-        p2.options = {"THRESH_BINARY (正向二值化)", "THRESH_BINARY_INV (反向颠倒)", "THRESH_TRUNC (上限截断)", "THRESH_TOZERO (低于置零)"};
-        p2.optionValues = {cv::THRESH_BINARY, cv::THRESH_BINARY_INV, cv::THRESH_TRUNC, cv::THRESH_TOZERO};
-        p2.defaultVal = cv::THRESH_BINARY;
-        t.params.append(p2);
-
-        t.codeGenerator = [](const QMap<QString, QVariant>& p) -> QString {
-            int th = p.value("thresh", 128).toInt();
-            int type = p.value("type", cv::THRESH_BINARY).toInt();
-            return QString::fromStdString(fmt::format(
-                "// 灰度二值化\n"
-                "cv::Mat gray, dst;\n"
-                "if (src.channels() > 1) cv::cvtColor(src, gray, cv::COLOR_BGR2GRAY);\n"
-                "else gray = src;\n"
-                "cv::threshold(gray, dst, {}, 255, {});",
-                th, type
-            ));
-        };
-
-        t.cvRunner = [](const cv::Mat &src, cv::Mat &dst, const QMap<QString, QVariant>& p, QString &note) {
-            int th = p.value("thresh", 128).toInt();
-            int type = p.value("type", cv::THRESH_BINARY).toInt();
-            cv::Mat gray;
-            if (src.channels() > 1) cv::cvtColor(src, gray, cv::COLOR_BGR2GRAY);
-            else gray = src;
-            cv::threshold(gray, dst, th, 255, type);
-            note = QString("二值化完成：阈值=%1, 类型代码=%2").arg(th).arg(type);
-        };
-
-        m_topics.append(t);
-        m_topicMap[t.id] = t;
-    }
-
-    // 4.2 HSV 范围分割 inRange (色彩提取神器)
     {
         KnowledgeTopic t;
         t.id = "cv_inrange_hsv";
-        t.category = "4. OpenCV 色彩与阈值分割";
-        t.subCategory = "色彩空间分割";
-        t.name = "HSV 颜色提取 (inRange)";
-        t.tag = "精准按色系扣取物体 (如血条/按钮)";
+        t.framework = "OpenCV";
+        t.category = "OpenCV 03. 色彩空间与分割";
+        t.name = "HSV 颜色区间提取 (inRange)";
+        t.tag = "精准色彩抠取神器";
+        t.isVisualInteractive = true;
         t.apiSignature = "void cv::inRange(InputArray src, InputArray lowerb, InputArray upperb, OutputArray dst);";
-        t.docSummary = "<b>原理：</b>RGB 会受光线明暗严重干扰。HSV 空间将色彩分为色相（H: 颜色类型）、饱和度（S: 浓淡）、明度（V: 亮度）。<br>"
-                       "<code>cv::inRange</code> 检查每个像素是否落在 [lowerb, upperb] 范围内，是则输出 255，否则 0。<br>"
-                       "<b>场景：</b>精准提取红黄绿蓝等特定色彩的物体（如游戏血条、绿幕背景抠像、红绿灯识别）。";
-        t.docParams = "<b>H 色调 (0~180):</b> 红色~0/180, 橙色~15, 黄色~30, 绿色~60, 青色~90, 蓝色~120, 紫色~150。<br>"
-                      "<b>S 饱和度 (0~255):</b> 越大颜色越浓。<br>"
-                      "<b>V 明度 (0~255):</b> 越大越亮。";
+        t.docSummary = "将图像转为 HSV 空间，按色相（H）、饱和度（S）、明度（V）划定闭区间，匹配的像素置 255，否则置 0。";
+        t.docParams = "• <b>H 色调 (0~180):</b> 红(~0/180), 橙(~15), 黄(~30), 绿(~60), 蓝(~120)。<br>• <b>S (0~255):</b> 鲜艳度。<br>• <b>V (0~255):</b> 亮度。";
+        t.usageTiming = "游戏血条识别（绿/红）、交通信号灯识别、工业流水线特定颜色工件识别、绿幕抠像。";
+        t.bestPractices = "红色在 HSV 空间跨越 0 度线（0~10 与 170~180），提取红色需要调用两次 `inRange` 并用 `bitwise_or` 合并。";
 
-        ParamDescriptor p1;
-        p1.key = "hMin";
-        p1.label = "色相下限 (H Min)";
-        p1.type = ParamType::SliderInt;
-        p1.minVal = 0;
-        p1.maxVal = 180;
-        p1.step = 1;
-        p1.defaultVal = 35; // 默认提取绿色系
-        t.params.append(p1);
-
-        ParamDescriptor p2;
-        p2.key = "hMax";
-        p2.label = "色相上限 (H Max)";
-        p2.type = ParamType::SliderInt;
-        p2.minVal = 0;
-        p2.maxVal = 180;
-        p2.step = 1;
-        p2.defaultVal = 85;
-        t.params.append(p2);
-
-        ParamDescriptor p3;
-        p3.key = "sMin";
-        p3.label = "饱和度下限 (S Min)";
-        p3.type = ParamType::SliderInt;
-        p3.minVal = 0;
-        p3.maxVal = 255;
-        p3.step = 1;
-        p3.defaultVal = 43;
-        t.params.append(p3);
-
-        ParamDescriptor p4;
-        p4.key = "vMin";
-        p4.label = "明度下限 (V Min)";
-        p4.type = ParamType::SliderInt;
-        p4.minVal = 0;
-        p4.maxVal = 255;
-        p4.step = 1;
-        p4.defaultVal = 46;
-        t.params.append(p4);
+        ParamDescriptor p1{"hMin", "色调下限 (H Min)", ParamType::SliderInt, 0, 180, 1, 35, {}, {}, "色相下限"};
+        ParamDescriptor p2{"hMax", "色调上限 (H Max)", ParamType::SliderInt, 0, 180, 1, 85, {}, {}, "色相上限"};
+        t.params << p1 << p2;
 
         t.codeGenerator = [](const QMap<QString, QVariant>& p) -> QString {
             int h1 = p.value("hMin", 35).toInt();
             int h2 = p.value("hMax", 85).toInt();
-            int s1 = p.value("sMin", 43).toInt();
-            int v1 = p.value("vMin", 46).toInt();
             return QString::fromStdString(fmt::format(
-                "// 1. 转为 HSV 空间\n"
                 "cv::Mat hsv, mask;\n"
                 "cv::cvtColor(src, hsv, cv::COLOR_BGR2HSV);\n"
-                "// 2. 多通道范围过滤\n"
-                "cv::Scalar lowerb({}, {}, {});\n"
-                "cv::Scalar upperb({}, 255, 255);\n"
-                "cv::inRange(hsv, lowerb, upperb, mask);",
-                h1, s1, v1, h2
-            ));
+                "cv::inRange(hsv, cv::Scalar({}, 50, 50), cv::Scalar({}, 255, 255), mask);", h1, h2));
         };
-
         t.cvRunner = [](const cv::Mat &src, cv::Mat &dst, const QMap<QString, QVariant>& p, QString &note) {
             int h1 = p.value("hMin", 35).toInt();
             int h2 = p.value("hMax", 85).toInt();
-            int s1 = p.value("sMin", 43).toInt();
-            int v1 = p.value("vMin", 46).toInt();
-
             cv::Mat hsv, mask;
             cv::cvtColor(src, hsv, cv::COLOR_BGR2HSV);
-            cv::inRange(hsv, cv::Scalar(h1, s1, v1), cv::Scalar(h2, 255, 255), mask);
-
-            // 将抠出的颜色部分绘制出来
+            cv::inRange(hsv, cv::Scalar(h1, 40, 40), cv::Scalar(h2, 255, 255), mask);
             dst = cv::Mat::zeros(src.size(), src.type());
             src.copyTo(dst, mask);
-            note = QString("HSV 扣取范围：H[%1..%2], S[%3..255], V[%4..255]").arg(h1).arg(h2).arg(s1).arg(v1);
+            note = QString("HSV 提取：色调区间 [%1..%2]").arg(h1).arg(h2);
         };
+        m_topics.append(t);
+        m_topicMap[t.id] = t;
+    }
 
+    // ==========================================
+    // 3. OpenCV: 工程 I/O、内存与高级体系 (深度机制与场景文本)
+    // ==========================================
+    {
+        KnowledgeTopic t;
+        t.id = "cv_mat_memory";
+        t.framework = "OpenCV";
+        t.category = "OpenCV 04. 核心工程架构与机制";
+        t.name = "cv::Mat 内存模型与深浅拷贝";
+        t.tag = "工业 C++ 避坑核心";
+        t.isVisualInteractive = false;
+        t.apiSignature = "cv::Mat B = A; // 浅拷贝 (共享内存)\ncv::Mat C = A.clone(); // 深拷贝 (独立内存)\nA.copyTo(D); // 深拷贝";
+        t.docSummary = "<b>cv::Mat 由两部分组成：</b>矩阵头（尺寸、步长、数据指针）和指向像素数据的指针。<br>"
+                       "执行 <code>B = A</code> 或将 Mat 作为函数值传递时，<b>只复制矩阵头，不复制数据本身</b>，两者引用计数加 1，底层共享同一块堆内存！";
+        t.docParams = "• <b>A.clone():</b> 完全在堆上分配新内存并完整复制像素，与原矩阵彻底脱钩。<br>"
+                      "• <b>ROI 裁剪 (A(Rect)):</b> 裁剪出的小矩阵头依然直接指向原图内存！修改 ROI 像素会<b>直接污染破坏原图</b>！";
+        t.usageTiming = "多线程传递图像、跨函数处理、子区域截取时，必须时刻警惕共享内存竞争与脏数据。";
+        t.bestPractices = "① 在子线程处理图像前，若主线程可能修改原图，务必使用 <code>.clone()</code> 创建独立副本。<br>"
+                          "② 裁剪 ROI 若需持久独立保存，必须 <code>cv::Mat sub = A(rect).clone();</code> 否则原大图无法被析构释放（产生隐式内存悬挂）。";
+        t.codeSnippet = 
+            "// 工业场景防踩坑范式：\n"
+            "cv::Mat src = cv::imread(\"test.png\");\n\n"
+            "// 1. 错误示例：以为裁剪出了独立新图\n"
+            "cv::Rect roi(100, 100, 200, 200);\n"
+            "cv::Mat dangerousSub = src(roi);\n"
+            "dangerousSub.setTo(0); // 致命！原图 src 对应的矩形区域也会瞬间变黑！\n\n"
+            "// 2. 正确范式：使用 .clone() 切断引用\n"
+            "cv::Mat safeSub = src(roi).clone();\n"
+            "safeSub.setTo(0); // 安全，原图完好无损";
+        m_topics.append(t);
+        m_topicMap[t.id] = t;
+    }
+
+    {
+        KnowledgeTopic t;
+        t.id = "cv_videocapture";
+        t.framework = "OpenCV";
+        t.category = "OpenCV 04. 核心工程架构与机制";
+        t.name = "视频与摄像头流采集 (VideoCapture)";
+        t.tag = "实时视频流工程中枢";
+        t.isVisualInteractive = false;
+        t.apiSignature = "cv::VideoCapture cap(0, cv::CAP_DSHOW); // 打开默认相机\ncap >> frame; // 抓取一帧";
+        t.docSummary = "OpenCV 统一封装的视频与硬件相机采集类。支持本地 MP4/AVI 文件读取、RTSP/RTMP 网络流接收、USB/工业相机实时捕获。";
+        t.docParams = "• <b>deviceIndex:</b> 0 代表系统默认摄像头。<br>• <b>apiPreference:</b> Windows 推荐强制指定 <code>cv::CAP_DSHOW</code>（DirectShow，秒级打开相机，彻底解决 MSMF 缓慢卡死的问题）。";
+        t.usageTiming = "无人机图传、工业机器视觉检测工位、人脸闸机识别、USB 显微镜实时图像输入。";
+        t.bestPractices = "① 在 Windows 上打开摄像头务必写 <code>cv::VideoCapture(0, cv::CAP_DSHOW)</code>，避免系统默认 MSMF 后端卡顿 5~10 秒。<br>"
+                          "② 工业高帧率采集时，<code>cap >> frame</code> 会阻塞等待曝光；应在独立子线程中持续取帧，UI 线程只负责拿最新一帧渲染，防止界面假死。";
+        t.codeSnippet = 
+            "// 生产级高帧率摄像头拉流模板：\n"
+            "#include <opencv2/videoio.hpp>\n"
+            "#include <iostream>\n\n"
+            "void runCamera() {\n"
+            "    // 强制使用 DirectShow 后端秒开相机\n"
+            "    cv::VideoCapture cap(0, cv::CAP_DSHOW);\n"
+            "    if (!cap.isOpened()) return;\n\n"
+            "    // 显式指定分辨率与帧率\n"
+            "    cap.set(cv::CAP_PROP_FRAME_WIDTH, 1920);\n"
+            "    cap.set(cv::CAP_PROP_FRAME_HEIGHT, 1080);\n"
+            "    cap.set(cv::CAP_PROP_FPS, 30);\n\n"
+            "    cv::Mat frame;\n"
+            "    while (true) {\n"
+            "        if (!cap.read(frame)) break;\n"
+            "        // 送入 Qt UI 显示或算法分析\n"
+            "    }\n"
+            "}";
+        m_topics.append(t);
+        m_topicMap[t.id] = t;
+    }
+
+    {
+        KnowledgeTopic t;
+        t.id = "cv_filestorage";
+        t.framework = "OpenCV";
+        t.category = "OpenCV 04. 核心工程架构与机制";
+        t.name = "参数与矩阵持久化 (FileStorage)";
+        t.tag = "XML/YAML 标定参数序列化";
+        t.isVisualInteractive = false;
+        t.apiSignature = "cv::FileStorage fs(\"config.yaml\", cv::FileStorage::WRITE);\nfs << \"threshold\" << 128 << \"cameraMatrix\" << mat;\nfs.release();";
+        t.docSummary = "OpenCV 原生自带的结构化持久化工具。支持将标定矩阵、浮点浮标、超参数直接存入或读取出 XML / YAML / JSON 文件。";
+        t.docParams = "• <b>Mode:</b> <code>cv::FileStorage::WRITE</code> 或 <code>READ</code>。<br>• 重载了流操作符 <code><<</code> 与 <code>>></code>，像写 `cout` 一样简单。";
+        t.usageTiming = "保存相机内参矩阵、保存视觉算法参数配置文件、跨机器同步标定结果。";
+        t.bestPractices = "由于很多自制 JSON 库无法直接序列化多维 `cv::Mat` 浮点数据，保存矩阵数据时优先使用 `cv::FileStorage` 生成 YAML 格式，兼容性最稳。";
+        t.codeSnippet = 
+            "// 保存标定数据：\n"
+            "cv::FileStorage fs(\"camera_calib.yaml\", cv::FileStorage::WRITE);\n"
+            "fs << \"image_width\" << 1920;\n"
+            "fs << \"image_height\" << 1080;\n"
+            "fs << \"camera_matrix\" << cameraMatrix;\n"
+            "fs << \"dist_coeffs\" << distCoeffs;\n"
+            "fs.release();\n\n"
+            "// 恢复加载标定数据：\n"
+            "cv::FileStorage fsIn(\"camera_calib.yaml\", cv::FileStorage::READ);\n"
+            "cv::Mat loadedMatrix;\n"
+            "fsIn[\"camera_matrix\"] >> loadedMatrix;\n"
+            "fsIn.release();";
+        m_topics.append(t);
+        m_topicMap[t.id] = t;
+    }
+
+    {
+        KnowledgeTopic t;
+        t.id = "cv_dnn_onnx";
+        t.framework = "OpenCV";
+        t.category = "OpenCV 04. 核心工程架构与机制";
+        t.name = "OpenCV DNN 深度学习推理管线";
+        t.tag = "免 Python 部署 YOLO AI 模型";
+        t.isVisualInteractive = false;
+        t.apiSignature = "cv::dnn::Net net = cv::dnn::readNetFromONNX(\"yolov8n.onnx\");\nauto blob = cv::dnn::blobFromImage(frame, 1/255.0, Size(640,640));\nnet.setInput(blob);\ncv::Mat out = net.forward();";
+        t.docSummary = "OpenCV 官方深度神经网络推理引擎。<b>完全不需要安装 Python、CUDA SDK 或 PyTorch</b>，直接载入标准 ONNX 格式模型，纯 C++ 毫秒级推理！";
+        t.docParams = "• <b>blobFromImage:</b> 自动化图像预处理：减均值、缩放归一化、通道由 HWC 转为网络需要的 NCHW 格式。<br>• <b>forward():</b> 执行神经网络前向推理。";
+        t.usageTiming = "复杂多变场景（如在复杂游戏背景中识别怪物、人脸识别、手势识别、多类别目标分类）。";
+        t.bestPractices = "① 优先使用 ONNX 格式，兼容性最广；<br>② 若有 NVIDIA 显卡，只需 `net.setPreferableBackend(cv::dnn::DNN_BACKEND_CUDA);` 即可直接激活 GPU 加速！";
+        t.codeSnippet = 
+            "// C++ 调用 YOLO ONNX 推理全流程：\n"
+            "#include <opencv2/dnn.hpp>\n\n"
+            "void runInference(const cv::Mat &frame) {\n"
+            "    // 1. 载入 ONNX 模型\n"
+            "    static cv::dnn::Net net = cv::dnn::readNetFromONNX(\"yolov8n.onnx\");\n\n"
+            "    // 2. 图像预处理（尺寸 640x640，归一化到 0~1）\n"
+            "    cv::Mat blob = cv::dnn::blobFromImage(frame, 1.0/255.0, cv::Size(640, 640), cv::Scalar(), true, false);\n"
+            "    net.setInput(blob);\n\n"
+            "    // 3. 前向推理输出\n"
+            "    cv::Mat output = net.forward();\n"
+            "    // 4. 后处理（解析检测框坐标、置信度，NMS 极大值抑制去重）\n"
+            "}";
+        m_topics.append(t);
+        m_topicMap[t.id] = t;
+    }
+
+    // ==========================================
+    // 4. Qt 核心机制与界面开发体系 (深度架构与场景文本)
+    // ==========================================
+    {
+        KnowledgeTopic t;
+        t.id = "qt_signals_slots";
+        t.framework = "Qt";
+        t.category = "Qt 01. 核心机制与底层哲学";
+        t.name = "信号与槽机制 (Signals & Slots)";
+        t.tag = "现代 C++ 观察者模式典范";
+        t.isVisualInteractive = false;
+        t.apiSignature = "connect(sender, &Sender::valueChanged, receiver, &Receiver::onValueChanged, Qt::ConnectionType);";
+        t.docSummary = "Qt 最灵魂的对象间通信机制。彻底解除了调用者与接收者的强耦合。<br>"
+                       "支持<b>编译期类型检查</b>、支持 Lambda 表达式、支持<b>自动跨线程安全投递</b>！";
+        t.docParams = "• <b>Qt::AutoConnection (默认):</b> 同线程直接同步调用，跨线程自动转为异步队列投递。<br>"
+                      "• <b>Qt::DirectConnection:</b> 无论在哪个线程，直接在发送者线程同步执行槽函数。<br>"
+                      "• <b>Qt::QueuedConnection:</b> 跨线程安全投递（将事件推入接收者线程事件循环），必须保证参数类型已注册元类型。";
+        t.usageTiming = "所有 UI 事件响应（按钮点击、滑块拖动）、异步后台线程向 UI 线程安全通知进度、组件间松耦合通信。";
+        t.bestPractices = "① <b>绝对不要使用已淘汰的 `SIGNAL(...)` 和 `SLOT(...)` 宏语法</b>！必须使用 C++11 函数指针语法，若拼写错误在编译期就能直接报错。<br>"
+                          "② 接收者销毁时，Qt 会自动断开所有关联的连接，无需手动 `disconnect`。";
+        t.codeSnippet = 
+            "// 1. 现代函数指针连接（带编译期检查）\n"
+            "connect(slider, &QSlider::valueChanged, this, &MyClass::handleValChanged);\n\n"
+            "// 2. 现代 Lambda 优雅连接（支持捕获局部变量）\n"
+            "connect(button, &QPushButton::clicked, this, [this]() {\n"
+            "    qDebug() << \"按钮被点击，当前状态:\" << m_status;\n"
+            "});\n\n"
+            "// 3. 跨线程异步安全投递（从算法子线程把 Mat 送回 UI 渲染）\n"
+            "connect(worker, &WorkerThread::frameReady, uiWindow, &MainWindow::updateView,\n"
+            "        Qt::QueuedConnection);";
+        m_topics.append(t);
+        m_topicMap[t.id] = t;
+    }
+
+    {
+        KnowledgeTopic t;
+        t.id = "qt_object_tree";
+        t.framework = "Qt";
+        t.category = "Qt 01. 核心机制与底层哲学";
+        t.name = "QObject 对象树与自动内存管理";
+        t.tag = "零内存泄漏的核心法则";
+        t.isVisualInteractive = false;
+        t.apiSignature = "QWidget *child = new QWidget(parent); // 声明父子所有权\n// 当 parent 析构时，child 会被全自动逐层释放！";
+        t.docSummary = "Qt 构建了一套层级式的父子对象所有权树。当任何一个 `QObject` 被 `delete` 析构时，它的析构函数会自动遍历并递归 `delete` 它的所有子对象！";
+        t.docParams = "• <b>parent 指针:</b> 指定父亲。在 GUI 体系中，挂载布局管理器（`layout->addWidget(child)`）也会自动将 child 的父对象设为该窗口。";
+        t.usageTiming = "所有 UI 控件生命周期维护、插件化生命周期托管、防止 C++ 内存泄漏。";
+        t.bestPractices = "① <b>黄金法则：</b>只要继承自 `QObject` 的类通过 `new` 在堆上创建，并传了 `parent`，就<b>绝对不需要手动写 `delete`</b>！<br>"
+                          "② <b>绝命陷阱：</b>千万不要把局部栈对象（`QWidget child;`）传给已有的堆父对象，当栈对象提前析构时会导致父对象析构时发生<b>二次释放崩溃（Double Free）</b>！";
+        t.codeSnippet = 
+            "// 正确典范：无需任何手动 delete\n"
+            "void setupWindow() {\n"
+            "    QWidget *window = new QWidget(); // 顶层窗口\n"
+            "    QVBoxLayout *layout = new QVBoxLayout(window); // layout 父为 window\n"
+            "    QPushButton *btn = new QPushButton(\"提交\", window); // btn 父为 window\n"
+            "    layout->addWidget(btn);\n"
+            "    \n"
+            "    delete window; // 一键递归安全销毁 window、layout、btn！\n"
+            "}";
+        m_topics.append(t);
+        m_topicMap[t.id] = t;
+    }
+
+    {
+        KnowledgeTopic t;
+        t.id = "qt_threading_worker";
+        t.framework = "Qt";
+        t.category = "Qt 01. 核心机制与底层哲学";
+        t.name = "QThread 生产级多线程架构";
+        t.tag = "告别重写 run，使用 moveToThread";
+        t.isVisualInteractive = false;
+        t.apiSignature = "worker->moveToThread(thread);\nthread->start();";
+        t.docSummary = "官方强烈推崇的<b>“工作者对象（Worker）+ moveToThread”</b>范式。让工作者对象活着在子线程的事件循环里，彻底解决跨线程资源竞争与死锁。";
+        t.docParams = "• <b>moveToThread:</b> 将该对象的所有槽函数、定时器的执行上下文转移到指定的子线程中执行。";
+        t.usageTiming = "执行耗时的 OpenCV 图像识别算法、海量文件解析、TCP 持续收发数据，<b>严禁在 UI 线程执行耗时超过 16ms 的代码</b>（否则界面必卡死掉帧）。";
+        t.bestPractices = "① <b>绝对不要在子线程中直接调用任何 QWidget 界面组件</b>！Qt 明确规定 GUI 必须在主线程操作；子线程只能通过 `emit signal()` 异步把数据送回主线程！<br>"
+                          "② 释放线程的标准三部曲：`thread->quit(); thread->wait();`。";
+        t.codeSnippet = 
+            "// 工业级 Worker 多线程范式：\n"
+            "class VisionWorker : public QObject {\n"
+            "    Q_OBJECT\n"
+            "public slots:\n"
+            "    void doHeavyMatching(const cv::Mat &screen) {\n"
+            "        // 在子线程跑耗时 200ms 的算法\n"
+            "        cv::Mat result = runAlgorithm(screen);\n"
+            "        emit matchFinished(result); // 信号安全送回主线程\n"
+            "    }\n"
+            "signals:\n"
+            "    void matchFinished(const cv::Mat &result);\n"
+            "};\n\n"
+            "// 在主线程调度：\n"
+            "QThread *thread = new QThread();\n"
+            "VisionWorker *worker = new VisionWorker();\n"
+            "worker->moveToThread(thread);\n"
+            "connect(this, &MainWindow::requestMatch, worker, &VisionWorker::doHeavyMatching);\n"
+            "connect(worker, &VisionWorker::matchFinished, this, &MainWindow::onResultReady);\n"
+            "thread->start();";
+        m_topics.append(t);
+        m_topicMap[t.id] = t;
+    }
+
+    {
+        KnowledgeTopic t;
+        t.id = "qt_qss_engine";
+        t.framework = "Qt";
+        t.category = "Qt 02. 现代界面开发与渲染";
+        t.name = "QSS 样式表引擎与暗黑模式换肤";
+        t.tag = "高颜值现代桌面 UI 核心";
+        t.isVisualInteractive = false;
+        t.apiSignature = "qApp->setStyleSheet(\"QWidget { background: #0f172a; color: #f8fafc; }\");";
+        t.docSummary = "Qt 封装的类似于 Web CSS 的界面描述语言。支持盒模型（Margin、Border、Padding、Content）、伪类选择器（`:hover`, `:pressed`, `:disabled`）、对象名选择器（`#MyCard`）。";
+        t.docParams = "• <b>全局注入 vs 局部注入:</b> `qApp->setStyleSheet(...)` 全局继承生效；`widget->setStyleSheet(...)` 局部高优先级覆盖。";
+        t.usageTiming = "系统夜间/白天模式动态跟随切换、现代扁平卡片风格定制、高质感按钮悬浮态设计。";
+        t.bestPractices = "① 避免频繁调用 `setStyleSheet`，每次解析字符串样式会有重绘性能开销。推荐在启动时加载全套样式变量。<br>"
+                          "② 必须为高精细度组件配置动态属性：`widget->setProperty(\"state\", \"danger\"); widget->style()->polish(widget);`。";
+        t.codeSnippet = 
+            "// 极高质感的现代卡片样式表 QSS 范式：\n"
+            "QString modernDarkCardQss = R\"(\n"
+            "    #ToolCard {\n"
+            "        background-color: #1e293b;\n"
+            "        border: 1px solid #334155;\n"
+            "        border-radius: 12px;\n"
+            "        padding: 16px;\n"
+            "    }\n"
+            "    #ToolCard:hover {\n"
+            "        background-color: #273549;\n"
+            "        border: 1px solid #38bdf8;\n"
+            "    }\n"
+            "    QPushButton {\n"
+            "        background-color: #2563eb;\n"
+            "        color: #ffffff;\n"
+            "        border-radius: 6px;\n"
+            "        padding: 8px 16px;\n"
+            "        font-weight: bold;\n"
+            "    }\n"
+            "    QPushButton:hover {\n"
+            "        background-color: #1d4ed8;\n"
+            "    }\n"
+            "    QPushButton:pressed {\n"
+            "        background-color: #1e40af;\n"
+            "    }\n"
+            ")\";\n"
+            "qApp->setStyleSheet(modernDarkCardQss);";
+        m_topics.append(t);
+        m_topicMap[t.id] = t;
+    }
+
+    {
+        KnowledgeTopic t;
+        t.id = "qt_qpainter_graphics";
+        t.framework = "Qt";
+        t.category = "Qt 02. 现代界面开发与渲染";
+        t.name = "QPainter 2D 绘图与双缓冲技术";
+        t.tag = "自定义高帧率控件与视窗";
+        t.isVisualInteractive = false;
+        t.apiSignature = "void paintEvent(QPaintEvent *event) override {\n    QPainter p(this);\n    p.setRenderHint(QPainter::Antialiasing);\n    // 绘制几何图形或图像\n}";
+        t.docSummary = "Qt 底层 2D 绘图引擎。支持矢量几何图形、渐变渐变填充、文字排版、以及离屏双缓冲机制（消灭画面撕裂与闪烁）。";
+        t.docParams = "• <b>QPainter::Antialiasing:</b> 强制开启抗锯齿，使边缘极其丝滑平顺。<br>• <b>坐标变换:</b> `p.translate()`, `p.scale()`, `p.rotate()` 轻松实现几何缩放旋转。";
+        t.usageTiming = "工业仪器仪表盘、动态曲线图表、视频播放器画面首帧渲染、截屏选区矩形拖拽绘制。";
+        t.bestPractices = "① `QPainter` 只能在 `paintEvent(QPaintEvent*)` 生命周期内创建，在其他成员函数中实例化会报错失效。<br>"
+                          "② 触发重绘必须调用 `this->update()`，它会智能合并多次无效重绘请求，千万不要手动直接调 `paintEvent`！";
+        t.codeSnippet = 
+            "// 工业仪表盘圆形进度条自定义绘制：\n"
+            "void GaugeWidget::paintEvent(QPaintEvent *) {\n"
+            "    QPainter painter(this);\n"
+            "    painter.setRenderHint(QPainter::Antialiasing); // 开启抗锯齿\n\n"
+            "    int side = qMin(width(), height());\n"
+            "    painter.setViewport((width() - side)/2, (height() - side)/2, side, side);\n"
+            "    painter.setWindow(-100, -100, 200, 200); // 映射为中心对称坐标系\n\n"
+            "    // 绘制背景底环\n"
+            "    painter.setPen(QPen(QColor(\"#334155\"), 10));\n"
+            "    painter.drawArc(-80, -80, 160, 160, 0, 360 * 16);\n\n"
+            "    // 绘制彩色动态进度环\n"
+            "    painter.setPen(QPen(QColor(\"#38bdf8\"), 10, Qt::SolidLine, Qt::RoundCap));\n"
+            "    painter.drawArc(-80, -80, 160, 160, 90 * 16, -m_progressAngle * 16);\n"
+            "}";
         m_topics.append(t);
         m_topicMap[t.id] = t;
     }
 }
 
 void KnowledgeRegistry::initQtTopics() {
-    // 预留 Qt 体系专属的渲染与原理节点（信号槽、动画、QPainter 画布）
+    // 已在上面将核心机制与界面开发整合注册
 }

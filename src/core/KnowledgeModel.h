@@ -27,7 +27,7 @@ struct ParamDescriptor {
     double maxVal = 100.0;
     double step = 1.0;
     double defaultVal = 0.0;
-    QStringList options;        // ComboBox 的候选列表（如枚举名称）
+    QStringList options;        // ComboBox 的候选列表
     QList<int> optionValues;    // ComboBox 候选对应的整数值
     QString tooltip;            // 悬停提示解释
 };
@@ -35,24 +35,25 @@ struct ParamDescriptor {
 // 知识点与方法元数据（数据驱动的核心单元）
 struct KnowledgeTopic {
     QString id;                 // 唯一标识 (如 "cv_gaussian_blur")
-    QString category;           // 所属主分类 (如 "OpenCV / 滤波与平滑")
-    QString subCategory;        // 子分类 (如 "空间域滤波")
-    QString name;               // 方法名 (如 "高斯滤波 (GaussianBlur)")
-    QString tag;                // 特性简标 (如 "正态分布降噪")
-    QString apiSignature;       // C++ 标准 API 函数签名
-    QString docSummary;         // 核心算法原理与功能简述
-    QString docParams;          // 核心参数深入剖析
+    QString framework;          // "OpenCV" 或 "Qt"
+    QString category;           // 所属主分类 (如 "OpenCV / 图像滤波")
+    QString name;               // 方法/机制名称 (如 "高斯滤波 (GaussianBlur)")
+    QString tag;                // 特性标签 (如 "正态分布降噪")
+    QString apiSignature;       // C++ 标准 API 函数声明或核心语法
+    
+    // 是否为图像实时交互类（true: 双屏视窗+滑块实时演算；false: 无法/无需图像可视化的核心机制，以架构原理、时机与工程代码深度剖析为主）
+    bool isVisualInteractive = true;
 
-    QList<ParamDescriptor> params; // 该方法需要的可调参数清单
+    QString docSummary;         // 核心算法/机制原理简述
+    QString docParams;          // 核心参数/关键要素剖析
+    QString usageTiming;        // 什么时候用？最佳应用场景剖析
+    QString bestPractices;      // 工程避坑指南与性能注意事项
+    QString codeSnippet;        // 完整工程级 C++ 代码示例
 
-    // 动态生成可复制的 C++ 调用代码
+    // 参数交互与动态代码生成（当 isVisualInteractive == true 时）
+    QList<ParamDescriptor> params;
     std::function<QString(const QMap<QString, QVariant>& currentParams)> codeGenerator;
-
-    // OpenCV 算法执行体
     std::function<void(const cv::Mat &src, cv::Mat &dst, 
                        const QMap<QString, QVariant>& params, 
                        QString &execNote)> cvRunner;
-
-    // Qt 原生组件演示执行体（仅当该知识点为 Qt 专属时使用）
-    std::function<QWidget*(QWidget *parent, const QMap<QString, QVariant>& params)> qtRunner = nullptr;
 };

@@ -1,4 +1,5 @@
 #include "MainWindow.h"
+#include "ThemeManager.h"
 #include "core/ToolManager.h"
 #include <QVBoxLayout>
 #include <QHBoxLayout>
@@ -6,13 +7,15 @@
 
 MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent) {
     setupUI();
-    setupGlobalStyle();
+    applyTheme(ThemeManager::instance().isDarkMode());
+
+    connect(&ThemeManager::instance(), &ThemeManager::themeChanged, this, &MainWindow::applyTheme);
 }
 
 void MainWindow::setupUI() {
-    setWindowTitle("VisionCraft 现代化跨平台视觉工作台");
-    resize(1180, 760);
-    setMinimumSize(960, 600);
+    setWindowTitle("VisionCraft - Qt 6 & OpenCV 4 全景交互实验室");
+    resize(1220, 800);
+    setMinimumSize(980, 640);
 
     auto *centralWidget = new QWidget(this);
     auto *rootLayout = new QVBoxLayout(centralWidget);
@@ -21,43 +24,34 @@ void MainWindow::setupUI() {
 
     // 1. 顶部全局导航栏
     m_topBar = new QWidget(centralWidget);
-    m_topBar->setFixedHeight(56);
-    m_topBar->setStyleSheet(
-        "background-color: #ffffff; border-bottom: 1px solid #e2e8f0;"
-    );
+    m_topBar->setFixedHeight(58);
+    m_topBar->setObjectName("TopBar");
 
     auto *topLayout = new QHBoxLayout(m_topBar);
     topLayout->setContentsMargins(24, 0, 24, 0);
     topLayout->setSpacing(16);
 
     auto *logoLabel = new QLabel("✨ <b>VisionCraft</b>", m_topBar);
-    logoLabel->setStyleSheet("font-size: 18px; color: #1e293b; border: none;");
+    logoLabel->setStyleSheet("font-size: 18px; font-weight: 800; border: none;");
     topLayout->addWidget(logoLabel);
 
     m_breadcrumbLabel = new QLabel(" | 🏠 首页仪表盘", m_topBar);
-    m_breadcrumbLabel->setStyleSheet("font-size: 14px; color: #64748b; border: none;");
+    m_breadcrumbLabel->setStyleSheet("font-size: 14px; border: none;");
     topLayout->addWidget(m_breadcrumbLabel);
 
     topLayout->addStretch();
+
+    // 主题切换按钮
+    m_themeToggleBtn = new QPushButton(m_topBar);
+    m_themeToggleBtn->setCursor(Qt::PointingHandCursor);
+    m_themeToggleBtn->setStyleSheet("QPushButton { font-size: 12px; padding: 6px 12px; }");
+    connect(m_themeToggleBtn, &QPushButton::clicked, this, &MainWindow::toggleTheme);
+    topLayout->addWidget(m_themeToggleBtn);
 
     // “返回首页”按钮（处于首页时隐藏）
     m_backHomeBtn = new QPushButton("⬅ 返回功能首页", m_topBar);
     m_backHomeBtn->setCursor(Qt::PointingHandCursor);
     m_backHomeBtn->setVisible(false);
-    m_backHomeBtn->setStyleSheet(
-        "QPushButton {"
-        "   background-color: #f1f5f9;"
-        "   color: #1e293b;"
-        "   border: 1px solid #cbd5e1;"
-        "   border-radius: 6px;"
-        "   padding: 6px 14px;"
-        "   font-weight: 500;"
-        "   font-size: 13px;"
-        "}"
-        "QPushButton:hover {"
-        "   background-color: #e2e8f0;"
-        "}"
-    );
     connect(m_backHomeBtn, &QPushButton::clicked, this, &MainWindow::navigateToHome);
     topLayout->addWidget(m_backHomeBtn);
 
@@ -68,7 +62,7 @@ void MainWindow::setupUI() {
     m_homePage = new HomePage(m_stackWidget);
     m_stackWidget->addWidget(m_homePage);
 
-    // 监听首页的卡片点击
+    // 监听首页卡片点击
     connect(m_homePage, &HomePage::toolSelected, this, &MainWindow::navigateToTool);
 
     // 将注册中心中的所有工具页面挂载到 Stack 中
@@ -81,16 +75,32 @@ void MainWindow::setupUI() {
     setCentralWidget(centralWidget);
 }
 
-void MainWindow::setupGlobalStyle() {
-    // 现代浅灰主背景
-    setStyleSheet(
-        "QMainWindow { background-color: #f8fafc; }"
-        "QWidget { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Microsoft YaHei', sans-serif; }"
-    );
+void MainWindow::applyTheme(bool isDark) {
+    qApp->setStyleSheet(ThemeManager::instance().currentGlobalStyleSheet());
+
+    if (isDark) {
+        m_topBar->setStyleSheet("background-color: #1e293b; border-bottom: 1px solid #334155;");
+        m_breadcrumbLabel->setStyleSheet("font-size: 14px; color: #94a3b8; border: none;");
+        m_themeToggleBtn->setText("🌙 深色 (系统) ➔ 切浅色");
+    } else {
+        m_topBar->setStyleSheet("background-color: #ffffff; border-bottom: 1px solid #e2e8f0;");
+        m_breadcrumbLabel->setStyleSheet("font-size: 14px; color: #64748b; border: none;");
+        m_themeToggleBtn->setText("☀️ 浅色 (系统) ➔ 切深色");
+    }
+
+    m_homePage->reloadTools();
+}
+
+void MainWindow::toggleTheme() {
+    auto &tm = ThemeManager::instance();
+    if (tm.isDarkMode()) {
+        tm.setThemeMode(ThemeManager::Light);
+    } else {
+        tm.setThemeMode(ThemeManager::Dark);
+    }
 }
 
 void MainWindow::navigateToHome() {
-    // 触发当前正在离开的工具的 onDeactivated
     auto *currentTool = qobject_cast<IToolPage*>(m_stackWidget->currentWidget());
     if (currentTool) {
         currentTool->onDeactivated();

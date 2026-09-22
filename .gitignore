@@ -1,0 +1,20 @@
+# Build directories
+build/
+bin/
+out/
+
+# Visual Studio files
+.vs/
+*.sln.docstates
+*.user
+*.suo
+
+# CMake generated files
+CMakeUserPresets.json
+CMakeCache.txt
+CMakeFiles/
+
+# Temporary files
+*.log
+*.tmp
+*.bak

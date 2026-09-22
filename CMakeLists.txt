@@ -8,15 +8,15 @@ set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTORCC ON)
 set(CMAKE_AUTOUIC ON)
 
-# 1. Qt 6 跨平台 GUI
+# 1. Qt 6
 list(APPEND CMAKE_PREFIX_PATH "C:/02Programmer/Qt/6.7.3/msvc2019_64")
 find_package(Qt6 REQUIRED COMPONENTS Core Gui Widgets)
 
-# 2. OpenCV 4 计算机视觉
+# 2. OpenCV 4
 set(OpenCV_DIR "C:/02Programmer/opencv/build")
 find_package(OpenCV REQUIRED)
 
-# 3. vcpkg 依赖库：fmt & nlohmann_json
+# 3. vcpkg: fmt & nlohmann_json
 find_package(fmt CONFIG REQUIRED)
 find_package(nlohmann_json CONFIG REQUIRED)
 
@@ -34,10 +34,15 @@ set(SOURCES
     src/core/ToolManager.cpp
     src/core/ScreenCapture.h
     src/core/ScreenCapture.cpp
+    src/core/KnowledgeModel.h
+    src/core/KnowledgeRegistry.h
+    src/core/KnowledgeRegistry.cpp
     src/ui/HomePage.h
     src/ui/HomePage.cpp
     src/ui/MainWindow.h
     src/ui/MainWindow.cpp
+    src/ui/KnowledgeExplorerPage.h
+    src/ui/KnowledgeExplorerPage.cpp
     src/modules/vision_matcher/VisionMatcherPage.h
     src/modules/vision_matcher/VisionMatcherPage.cpp
     src/modules/image_processor/ImageProcessorPage.h

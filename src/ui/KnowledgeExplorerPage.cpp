@@ -281,6 +281,11 @@ void KnowledgeExplorerPage::setupUI() {
     pitfallLay->addWidget(m_pitfallsLabel);
     gLayout->addWidget(pitfallCard);
 
+    auto *codeFullCard = new QFrame(m_guideViewWidget);
+    codeFullCard->setObjectName("PanelCard");
+    auto *codeFullLay = new QVBoxLayout(codeFullCard);
+    codeFullLay->setContentsMargins(14, 12, 14, 12);
+
     auto *codeFullHeader = new QHBoxLayout();
     auto *codeFullTitle = new QLabel("📖 生产级完整 C++ 工程代码范式", codeFullCard);
     codeFullTitle->setStyleSheet("font-size: 14px; font-weight: 700; color: #10b981;");

@@ -1,4 +1,5 @@
 #include "KnowledgeExplorerPage.h"
+#include "ThemeManager.h"
 #include "core/KnowledgeRegistry.h"
 #include "core/ScreenCapture.h"
 #include <QVBoxLayout>
@@ -106,7 +107,13 @@ void KnowledgeExplorerPage::setupUI() {
 
     m_docParamsLabel = new QLabel(docCard);
     m_docParamsLabel->setWordWrap(true);
-    m_docParamsLabel->setStyleSheet("font-size: 12px; line-height: 1.5; color: #94a3b8;");
+    auto updateDocParamsColor = [this](bool isDark) {
+        if (m_docParamsLabel) {
+            m_docParamsLabel->setStyleSheet(QString("font-size: 12px; line-height: 1.5; color: %1;").arg(isDark ? "#94a3b8" : "#475569"));
+        }
+    };
+    updateDocParamsColor(ThemeManager::instance().isDarkMode());
+    connect(&ThemeManager::instance(), &ThemeManager::themeChanged, this, updateDocParamsColor);
     docLayout->addWidget(m_docParamsLabel);
 
     wbLayout->addWidget(docCard);
@@ -274,19 +281,30 @@ void KnowledgeExplorerPage::setupUI() {
     pitfallLay->addWidget(m_pitfallsLabel);
     gLayout->addWidget(pitfallCard);
 
-    auto *codeFullCard = new QFrame(m_guideViewWidget);
-    codeFullCard->setObjectName("PanelCard");
-    auto *codeFullLay = new QVBoxLayout(codeFullCard);
-    codeFullLay->setContentsMargins(14, 12, 14, 12);
+    auto *codeFullHeader = new QHBoxLayout();
     auto *codeFullTitle = new QLabel("📖 生产级完整 C++ 工程代码范式", codeFullCard);
     codeFullTitle->setStyleSheet("font-size: 14px; font-weight: 700; color: #10b981;");
+    auto *copyFullBtn = new QPushButton("📋 复制范式代码", codeFullCard);
+    copyFullBtn->setCursor(Qt::PointingHandCursor);
+    connect(copyFullBtn, &QPushButton::clicked, this, [this, copyFullBtn]() {
+        QClipboard *clipboard = QGuiApplication::clipboard();
+        clipboard->setText(m_fullCodeEdit->toPlainText());
+        copyFullBtn->setText("✅ 已复制！");
+        QTimer::singleShot(1500, this, [copyFullBtn]() {
+            copyFullBtn->setText("📋 复制范式代码");
+        });
+    });
+    codeFullHeader->addWidget(codeFullTitle);
+    codeFullHeader->addStretch();
+    codeFullHeader->addWidget(copyFullBtn);
+    codeFullLay->addLayout(codeFullHeader);
+
     m_fullCodeEdit = new QTextEdit(codeFullCard);
     m_fullCodeEdit->setReadOnly(true);
-    m_fullCodeEdit->setFixedHeight(160);
+    m_fullCodeEdit->setMinimumHeight(240);
     m_fullCodeEdit->setStyleSheet(
         "QTextEdit { font-family: 'Consolas', 'Courier New', monospace; font-size: 12px; background: #0b1329; color: #a5f3fc; border: 1px solid #334155; border-radius: 6px; padding: 6px; }"
     );
-    codeFullLay->addWidget(codeFullTitle);
     codeFullLay->addWidget(m_fullCodeEdit);
     gLayout->addWidget(codeFullCard);
 

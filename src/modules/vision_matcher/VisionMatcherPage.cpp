@@ -1,4 +1,5 @@
 #include "VisionMatcherPage.h"
+#include "ThemeManager.h"
 #include "core/ScreenCapture.h"
 #include <QVBoxLayout>
 #include <QHBoxLayout>
@@ -18,23 +19,17 @@ void VisionMatcherPage::setupUI() {
     mainLayout->setContentsMargins(25, 20, 25, 20);
     mainLayout->setSpacing(20);
 
-    // 左侧：控制面板与小样预览 (固定宽度 320)
+    // 左侧：控制面板与小样预览 (固定宽度 330)
     auto *leftPanel = new QFrame(this);
+    leftPanel->setObjectName("PanelCard");
     leftPanel->setFixedWidth(330);
-    leftPanel->setStyleSheet(
-        "QFrame {"
-        "   background-color: #ffffff;"
-        "   border: 1px solid #e2e8f0;"
-        "   border-radius: 10px;"
-        "}"
-    );
 
     auto *leftLayout = new QVBoxLayout(leftPanel);
     leftLayout->setContentsMargins(18, 18, 18, 18);
     leftLayout->setSpacing(14);
 
     auto *panelTitle = new QLabel("⚙️ 自动化匹配控制台", leftPanel);
-    panelTitle->setStyleSheet("font-size: 16px; font-weight: 700; color: #0f172a; border: none;");
+    panelTitle->setObjectName("CardTitle");
     leftLayout->addWidget(panelTitle);
 
     // 按钮 1：截取当前屏幕
@@ -56,32 +51,35 @@ void VisionMatcherPage::setupUI() {
     leftLayout->addWidget(sampleBtn);
 
     auto *loadCustomBtn = new QPushButton("📂 或加载本地小样图片...", leftPanel);
-    loadCustomBtn->setStyleSheet(
-        "QPushButton { background-color: #f1f5f9; color: #334155; border: 1px solid #cbd5e1; border-radius: 6px; padding: 7px; font-size: 12px; }"
-        "QPushButton:hover { background-color: #e2e8f0; }"
-    );
+    loadCustomBtn->setObjectName("SecondaryBtn");
     connect(loadCustomBtn, &QPushButton::clicked, this, &VisionMatcherPage::loadCustomTemplate);
     leftLayout->addWidget(loadCustomBtn);
 
     // 小样预览区域
     auto *tplLabel = new QLabel("当前目标小样 (Template):", leftPanel);
-    tplLabel->setStyleSheet("font-size: 13px; font-weight: 600; color: #475569; border: none;");
+    tplLabel->setObjectName("CardSubTitle");
     leftLayout->addWidget(tplLabel);
 
     m_templatePreviewLabel = new QLabel("暂无小样", leftPanel);
     m_templatePreviewLabel->setAlignment(Qt::AlignCenter);
     m_templatePreviewLabel->setFixedHeight(90);
-    m_templatePreviewLabel->setStyleSheet(
-        "background-color: #f8fafc; border: 1px dashed #cbd5e1; border-radius: 6px; color: #94a3b8; font-size: 12px;"
-    );
+    auto updatePreviewStyle = [this](bool isDark) {
+        if (isDark) {
+            m_templatePreviewLabel->setStyleSheet("background-color: #0f172a; border: 1px dashed #334155; border-radius: 6px; color: #64748b; font-size: 12px;");
+        } else {
+            m_templatePreviewLabel->setStyleSheet("background-color: #f8fafc; border: 1px dashed #cbd5e1; border-radius: 6px; color: #94a3b8; font-size: 12px;");
+        }
+    };
+    updatePreviewStyle(ThemeManager::instance().isDarkMode());
+    connect(&ThemeManager::instance(), &ThemeManager::themeChanged, this, updatePreviewStyle);
     leftLayout->addWidget(m_templatePreviewLabel);
 
     // 阈值滑块
     auto *threshRow = new QHBoxLayout();
     auto *threshTitle = new QLabel("匹配置信度阈值:", leftPanel);
-    threshTitle->setStyleSheet("font-size: 12px; color: #475569; border: none;");
+    threshTitle->setObjectName("CardSubTitle");
     m_thresholdValueLabel = new QLabel("85%", leftPanel);
-    m_thresholdValueLabel->setStyleSheet("font-size: 12px; font-weight: bold; color: #2563eb; border: none;");
+    m_thresholdValueLabel->setStyleSheet("font-size: 12px; font-weight: bold; color: #38bdf8; border: none;");
     threshRow->addWidget(threshTitle);
     threshRow->addStretch();
     threshRow->addWidget(m_thresholdValueLabel);
@@ -106,10 +104,8 @@ void VisionMatcherPage::setupUI() {
 
     // 统计结果文本框
     m_statsLabel = new QLabel("就绪。请先抓取屏幕，设置小样后点击找图。", leftPanel);
+    m_statsLabel->setObjectName("StatusBox");
     m_statsLabel->setWordWrap(true);
-    m_statsLabel->setStyleSheet(
-        "background-color: #f1f5f9; border-radius: 6px; padding: 10px; font-size: 12px; color: #334155; line-height: 1.4; border: none;"
-    );
     leftLayout->addWidget(m_statsLabel);
 
     leftLayout->addStretch();
@@ -117,19 +113,13 @@ void VisionMatcherPage::setupUI() {
 
     // 右侧：大图实时结果画廊
     auto *rightPanel = new QFrame(this);
-    rightPanel->setStyleSheet(
-        "QFrame {"
-        "   background-color: #ffffff;"
-        "   border: 1px solid #e2e8f0;"
-        "   border-radius: 10px;"
-        "}"
-    );
+    rightPanel->setObjectName("PanelCard");
     auto *rightLayout = new QVBoxLayout(rightPanel);
     rightLayout->setContentsMargins(15, 15, 15, 15);
 
     auto *rightHeader = new QHBoxLayout();
     auto *rightTitle = new QLabel("🖥️ 屏幕与匹配标注视图", rightPanel);
-    rightTitle->setStyleSheet("font-size: 15px; font-weight: 600; color: #0f172a; border: none;");
+    rightTitle->setObjectName("CardTitle");
     rightHeader->addWidget(rightTitle);
     rightHeader->addStretch();
     rightLayout->addLayout(rightHeader);

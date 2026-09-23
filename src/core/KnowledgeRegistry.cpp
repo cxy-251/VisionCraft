@@ -1,6 +1,7 @@
 #include "KnowledgeRegistry.h"
 #include <opencv2/imgproc.hpp>
 #include <opencv2/core.hpp>
+#include <opencv2/features2d.hpp>
 #include <fmt/format.h>
 #include <vector>
 #include <cmath>
@@ -1100,6 +1101,327 @@ void KnowledgeRegistry::initOpenCVTopics() {
         m_topics.append(t);
         m_topicMap[t.id] = t;
     }
+
+    // ========================================================
+    // 9. OpenCV 09. 特征检测与多尺度分析 (视觉实操)
+    // ========================================================
+    {
+        KnowledgeTopic t;
+        t.id = "cv_orb_features";
+        t.framework = "OpenCV";
+        t.category = "OpenCV 09. 特征检测与多尺度分析";
+        t.name = "ORB 特征提取与关键点可视化 (cv::ORB)";
+        t.tag = "旋转与尺度不变性的极速特征点";
+        t.isVisualInteractive = true;
+        t.apiSignature = "cv::Ptr<cv::ORB> orb = cv::ORB::create(int nfeatures = 500, float scaleFactor = 1.2f, int nlevels = 8);\norb->detectAndCompute(src, cv::noArray(), keypoints, descriptors);\ncv::drawKeypoints(src, keypoints, dst, cv::Scalar(0,255,0), cv::DrawMatchesFlags::DRAW_RICH_KEYPOINTS);";
+        t.docSummary = "ORB (Oriented FAST and Rotated BRIEF) 是计算机视觉中最具工程实用价值的免费开源特征检测器（完全免除了 SIFT/SURF 的专利限制）。它结合了 FAST 算法的超高特征点检测速度，以及 BRIEF 描述子的二进制高速匹配优势，同时具备优秀的旋转不变性与尺度缩放鲁棒性。";
+        t.docParams = "• <b>nfeatures:</b> 最大保留特征点上限（如 200~2000），根据特征响应值降序保留。<br>"
+                      "• <b>scaleFactor:</b> 图像金字塔层间缩放比例（默认 1.2，越接近 1.0 尺度匹配越平滑）。<br>"
+                      "• <b>nlevels:</b> 金字塔层数（通常 4~8 层），层数越多检测不同远近尺度目标的鲁棒性越高。";
+        t.usageTiming = "视觉 SLAM 地图构建、目标多角度姿态匹配找图、大视野多图全景拼接 (Stitching)、移动端与嵌入式实时特征跟踪。";
+        t.bestPractices = "① 描述子匹配务必使用汉明距离 <code>cv::BFMatcher(cv::NORM_HAMMING)</code>，底层硬件指令单周期即可完成两个 256 位特征的异或比对！<br>"
+                          "② 若画面中存在大量动态反光导致误检，可通过掩膜 <code>mask</code> 限制特征提取区域。";
+
+        ParamDescriptor p1{"nfeatures", "最大特征点数 (nfeatures)", ParamType::SliderInt, 50, 1500, 50, 400, {}, {}, "特征点上限"};
+        ParamDescriptor p2{"scaleFactor", "金字塔缩放比例 (scaleFactor)", ParamType::SliderDouble, 1.1, 2.0, 0.1, 1.2, {}, {}, "金字塔降采样因子"};
+        ParamDescriptor p3{"nlevels", "金字塔层数 (nlevels)", ParamType::SliderInt, 1, 8, 1, 4, {}, {}, "多尺度金字塔层数"};
+        t.params << p1 << p2 << p3;
+
+        t.codeGenerator = [](const QMap<QString, QVariant>& p) -> QString {
+            int nf = p.value("nfeatures", 400).toInt();
+            double sf = p.value("scaleFactor", 1.2).toDouble();
+            int nl = p.value("nlevels", 4).toInt();
+            return QString::fromStdString(fmt::format(
+                "cv::Ptr<cv::ORB> orb = cv::ORB::create({}, {:.1f}f, {});\n"
+                "std::vector<cv::KeyPoint> keypoints;\n"
+                "cv::Mat descriptors;\n"
+                "orb->detectAndCompute(src, cv::noArray(), keypoints, descriptors);\n"
+                "cv::Mat dst;\n"
+                "cv::drawKeypoints(src, keypoints, dst, cv::Scalar(0, 255, 0), cv::DrawMatchesFlags::DRAW_RICH_KEYPOINTS);",
+                nf, sf, nl));
+        };
+        t.cvRunner = [](const cv::Mat &src, cv::Mat &dst, const QMap<QString, QVariant>& p, QString &note) {
+            int nf = p.value("nfeatures", 400).toInt();
+            double sf = p.value("scaleFactor", 1.2).toDouble();
+            int nl = p.value("nlevels", 4).toInt();
+            cv::Ptr<cv::ORB> orb = cv::ORB::create(nf, static_cast<float>(sf), nl);
+            std::vector<cv::KeyPoint> keypoints;
+            cv::Mat descriptors;
+            orb->detectAndCompute(src, cv::noArray(), keypoints, descriptors);
+            cv::drawKeypoints(src, keypoints, dst, cv::Scalar(0, 255, 0), cv::DrawMatchesFlags::DRAW_RICH_KEYPOINTS);
+            note = QString("ORB 特征提取成功：共检测到 %1 个关键点 (金字塔 %2 层)").arg(keypoints.size()).arg(nl);
+        };
+        m_topics.append(t);
+        m_topicMap[t.id] = t;
+    }
+
+    {
+        KnowledgeTopic t;
+        t.id = "cv_corner_harris";
+        t.framework = "OpenCV";
+        t.category = "OpenCV 09. 特征检测与多尺度分析";
+        t.name = "Harris 角点检测 (cornerHarris)";
+        t.tag = "自相关矩阵与二阶梯度拐角特征";
+        t.isVisualInteractive = true;
+        t.apiSignature = "void cv::cornerHarris(InputArray src, OutputArray dst, int blockSize, int ksize, double k, int borderType = BORDER_DEFAULT);";
+        t.docSummary = "经典的图像拐角检测算法。通过计算像素局部邻域内的自相关矩阵 $M$。当滑动窗口在任意二维方向移动时灰度均发生剧烈变化，判定该处存在几何拐角。";
+        t.docParams = "• <b>blockSize:</b> 计算导数协方差矩阵的邻域块大小 (通常 2~5)。<br>"
+                      "• <b>ksize:</b> Sobel 导数算子的卷积核尺寸 (通常为 3)。<br>"
+                      "• <b>k:</b> Harris 经验响应因子 (通常 0.04 ~ 0.06)。<br>"
+                      "• <b>thresh:</b> 归一化响应强度截断阈值，高于此值的局部极大值点标注为有效角点。";
+        t.usageTiming = "工业零部件直角顶点与转角精确定位、芯片引脚焊盘点阵识别、双目相机棋盘格角点初选。";
+        t.bestPractices = "① 输入图像必须为单通道灰度图；<br>② `cornerHarris` 输出为 `CV_32FC1` 浮点矩阵，必须经过 `cv::normalize` 线性映射到 0~255 后设置阈值过滤。";
+
+        ParamDescriptor p1{"blockSize", "邻域块大小 (blockSize)", ParamType::SliderInt, 2, 7, 1, 2, {}, {}, "自相关矩阵计算邻域"};
+        ParamDescriptor p2{"thresh", "角点过滤阈值 (thresh)", ParamType::SliderInt, 80, 220, 5, 130, {}, {}, "归一化响应强度截断阈值"};
+        ParamDescriptor p3{"k", "Harris 参数 (k)", ParamType::SliderDouble, 0.02, 0.10, 0.01, 0.04, {}, {}, "响应公式灵敏度经验系数"};
+        t.params << p1 << p2 << p3;
+
+        t.codeGenerator = [](const QMap<QString, QVariant>& p) -> QString {
+            int bs = p.value("blockSize", 2).toInt();
+            int th = p.value("thresh", 130).toInt();
+            double k = p.value("k", 0.04).toDouble();
+            return QString::fromStdString(fmt::format(
+                "cv::Mat gray, harrisResp, dstNorm;\n"
+                "cv::cvtColor(src, gray, cv::COLOR_BGR2GRAY);\n"
+                "cv::cornerHarris(gray, harrisResp, {}, 3, {:.2f});\n"
+                "cv::normalize(harrisResp, dstNorm, 0, 255, cv::NORM_MINMAX, CV_32FC1);\n"
+                "dst = src.clone();\n"
+                "for (int j = 0; j < dstNorm.rows; ++j) {{\n"
+                "    for (int i = 0; i < dstNorm.cols; ++i) {{\n"
+                "        if (dstNorm.at<float>(j, i) > {}) {{\n"
+                "            cv::circle(dst, cv::Point(i, j), 4, cv::Scalar(0, 0, 255), 2);\n"
+                "        }}\n"
+                "    }}\n"
+                "}}", bs, k, th));
+        };
+        t.cvRunner = [](const cv::Mat &src, cv::Mat &dst, const QMap<QString, QVariant>& p, QString &note) {
+            int bs = p.value("blockSize", 2).toInt();
+            int th = p.value("thresh", 130).toInt();
+            double k = p.value("k", 0.04).toDouble();
+            cv::Mat gray;
+            if (src.channels() > 1) cv::cvtColor(src, gray, cv::COLOR_BGR2GRAY);
+            else gray = src;
+            cv::Mat harrisResp;
+            cv::cornerHarris(gray, harrisResp, bs, 3, k);
+            cv::Mat dstNorm;
+            cv::normalize(harrisResp, dstNorm, 0, 255, cv::NORM_MINMAX, CV_32FC1);
+            dst = src.clone();
+            if (dst.channels() == 1) cv::cvtColor(dst, dst, cv::COLOR_GRAY2BGR);
+            int cornerCount = 0;
+            for (int j = 0; j < dstNorm.rows; ++j) {
+                const float* rowPtr = dstNorm.ptr<float>(j);
+                for (int i = 0; i < dstNorm.cols; ++i) {
+                    if (rowPtr[i] > th) {
+                        cv::circle(dst, cv::Point(i, j), 3, cv::Scalar(0, 0, 255), 2, cv::LINE_AA);
+                        cornerCount++;
+                    }
+                }
+            }
+            note = QString("Harris 角点检测完成：共标注 %1 个角点 (阈值=%2)").arg(cornerCount).arg(th);
+        };
+        m_topics.append(t);
+        m_topicMap[t.id] = t;
+    }
+
+    {
+        KnowledgeTopic t;
+        t.id = "cv_pyramids";
+        t.framework = "OpenCV";
+        t.category = "OpenCV 09. 特征检测与多尺度分析";
+        t.name = "图像金字塔与残差细节 (pyrDown / pyrUp)";
+        t.tag = "高斯降采样与拉普拉斯高频细节剥离";
+        t.isVisualInteractive = true;
+        t.apiSignature = "void cv::pyrDown(InputArray src, OutputArray dst, const Size& dstsize = Size());\nvoid cv::pyrUp(InputArray src, OutputArray dst, const Size& dstsize = Size());";
+        t.docSummary = "图像金字塔是多尺度表达的基石。<code>pyrDown</code> 先执行高斯平滑滤波，再隔行隔列抽样（分辨率减半）；<code>pyrUp</code> 注入零采样后做高斯插值（分辨率翻倍）。两者结合做差分运算，即可得到<b>拉普拉斯金字塔（Laplacian Pyramid）</b>高频残差边缘！";
+        t.docParams = "• <b>模式选择:</b> 0=单次高斯降采样 (pyrDown); 1=降采样后升采样重构 (高频平滑图); 2=原图与重构图差分 (拉普拉斯金字塔纯高频细节)。";
+        t.usageTiming = "多尺度粗到细模板匹配加速、深度图多分辨率融合、全景图像多频段泊松羽化无缝拼接 (Pyramid Blending)。";
+        t.bestPractices = "<code>pyrUp</code> 重构后的图像并不能完全还原降采样前丢失的高频信息，原图与其相减得到的残差就是图像的微小边缘与纹理，常用于缺陷高反光特征增强。";
+
+        ParamDescriptor p1{"mode", "金字塔处理模式", ParamType::ComboBox, 0, 2, 1, 2,
+            {"高斯降采样 (pyrDown)", "升采样重建 (pyrDown+pyrUp)", "拉普拉斯残差 (Laplacian 残差细节)"},
+            {0, 1, 2}, "选择图像金字塔的运算流水线"};
+        t.params << p1;
+
+        t.codeGenerator = [](const QMap<QString, QVariant>& p) -> QString {
+            int m = p.value("mode", 2).toInt();
+            if (m == 0) {
+                return "cv::Mat dst;\n// 高斯平滑 + 隔行隔列隔点抽样，尺寸各缩小一半\ncv::pyrDown(src, dst);";
+            } else if (m == 1) {
+                return "cv::Mat down, dst;\n// 先降采样后升采样重构（高频细节丢失后的模糊图）\ncv::pyrDown(src, down);\ncv::pyrUp(down, dst, src.size());";
+            } else {
+                return "cv::Mat down, up, dst;\n// 拉普拉斯金字塔核心思想：原图与升采样预测图做差分，孤立出纯高频纹理\ncv::pyrDown(src, down);\ncv::pyrUp(down, up, src.size());\ncv::subtract(src, up, dst);\ndst = dst * 3; // 适度放大高频差分以清晰观察细节";
+            }
+        };
+        t.cvRunner = [](const cv::Mat &src, cv::Mat &dst, const QMap<QString, QVariant>& p, QString &note) {
+            int m = p.value("mode", 2).toInt();
+            cv::Mat down, up;
+            cv::pyrDown(src, down);
+            if (m == 0) {
+                dst = down.clone();
+                note = QString("高斯金字塔降采样完成：输出分辨率 %1x%2 (原图面积 1/4)").arg(dst.cols).arg(dst.rows);
+            } else if (m == 1) {
+                cv::pyrUp(down, dst, src.size());
+                note = QString("升采样重建完成：输出恢复原图尺寸 %1x%2").arg(dst.cols).arg(dst.rows);
+            } else {
+                cv::pyrUp(down, up, src.size());
+                cv::Mat diff;
+                cv::subtract(src, up, diff);
+                diff.convertTo(dst, -1, 3.0, 10.0);
+                note = QString("拉普拉斯金字塔残差提取成功：高频纹理与边缘孤立呈现！");
+            }
+        };
+        m_topics.append(t);
+        m_topicMap[t.id] = t;
+    }
+
+    // ========================================================
+    // 10. OpenCV 10. 三维视觉与空间位姿 (工业级高阶架构)
+    // ========================================================
+    {
+        KnowledgeTopic t;
+        t.id = "cv_camera_calibration";
+        t.framework = "OpenCV";
+        t.category = "OpenCV 10. 三维视觉与空间位姿";
+        t.name = "工业相机张正友标定法与畸变矫正";
+        t.tag = "内参矩阵、畸变系数与张氏标定法";
+        t.isVisualInteractive = false;
+        t.apiSignature = "double cv::calibrateCamera(const vector<vector<Point3f>>& objectPoints, const vector<vector<Point2f>>& imagePoints, Size imageSize, InputOutputArray cameraMatrix, InputOutputArray distCoeffs, OutputArrayOfArrays rvecs, OutputArrayOfArrays tvecs);\nvoid cv::undistort(InputArray src, OutputArray dst, InputArray cameraMatrix, InputArray distCoeffs);";
+        t.docSummary = "工业机器视觉精密测量的灵魂基石。普通工业镜头存在径向畸变（桶形/枕形）与切向畸变（透镜与传感器不完全平行）。通过采集多张不同角度的黑白棋盘格或圆点标定板，利用张正友标定法解算出相机的<b>相机内参矩阵 K</b>（焦距 fx, fy 和光心 cx, cy）以及 5 个<b>畸变系数 D (k1, k2, p1, p2, k3)</b>。";
+        t.docParams = "• <b>cameraMatrix (3x3):</b> 相机内在几何参数矩阵 [[fx, 0, cx], [0, fy, cy], [0, 0, 1]]。<br>"
+                      "• <b>distCoeffs (1x5):</b> 畸变多项式系数向量 [k1, k2, p1, p2, k3]。<br>"
+                      "• <b>undistort():</b> 利用内参与畸变矩阵，对原始畸变画面进行无损去畸变重映射，使弯曲直线恢复笔直。";
+        t.usageTiming = "工业尺寸精密测量（微米级尺寸公差）、机械臂手眼标定（3D 引导抓取）、自动驾驶环视拼接、三维重建测量。";
+        t.bestPractices = "① 标定图像通常需要 15~25 张，标定板应倾斜不同角度（倾斜 < 45°）且均匀覆盖画面的四个角落与边缘（边缘畸变最显著）。<br>"
+                          "② 在线高帧率视频去畸变时，避免反复调用 `undistort()`，应当先用 `cv::initUndistortRectifyMap` 预生成查找表（LUT），后续每帧只需调用 `cv::remap()`，耗时缩减 80%！";
+        t.codeSnippet = 
+            "// 工业相机张正友标定与去畸变完整流水线：\n"
+            "#include <opencv2/calib3d.hpp>\n\n"
+            "void calibrateAndUndistort(const std::vector<cv::Mat> &calibImages, const cv::Size &patternSize, float squareSize) {\n"
+            "    std::vector<std::vector<cv::Point3f>> objectPoints;\n"
+            "    std::vector<std::vector<cv::Point2f>> imagePoints;\n\n"
+            "    // 1. 构建标定板世界物理坐标系 (Z=0 平面)\n"
+            "    std::vector<cv::Point3f> objP;\n"
+            "    for (int r = 0; r < patternSize.height; ++r) {\n"
+            "        for (int c = 0; c < patternSize.width; ++c) {\n"
+            "            objP.emplace_back(c * squareSize, r * squareSize, 0.0f);\n"
+            "        }\n"
+            "    }\n\n"
+            "    // 2. 批量检出各视角棋盘格内角点并进行亚像素精修\n"
+            "    for (const auto &img : calibImages) {\n"
+            "        cv::Mat gray;\n"
+            "        cv::cvtColor(img, gray, cv::COLOR_BGR2GRAY);\n"
+            "        std::vector<cv::Point2f> corners;\n"
+            "        bool found = cv::findChessboardCorners(gray, patternSize, corners);\n"
+            "        if (found) {\n"
+            "            cv::cornerSubPix(gray, corners, cv::Size(11, 11), cv::Size(-1, -1),\n"
+            "                cv::TermCriteria(cv::TermCriteria::EPS + cv::TermCriteria::COUNT, 30, 0.1));\n"
+            "            imagePoints.push_back(corners);\n"
+            "            objectPoints.push_back(objP);\n"
+            "        }\n"
+            "    }\n\n"
+            "    // 3. 解算相机内参矩阵与畸变系数\n"
+            "    cv::Mat K, distCoeffs;\n"
+            "    std::vector<cv::Mat> rvecs, tvecs;\n"
+            "    double rms = cv::calibrateCamera(objectPoints, imagePoints, calibImages[0].size(),\n"
+            "                                     K, distCoeffs, rvecs, tvecs);\n\n"
+            "    // 4. 对实际工作画面执行去畸变矫正 (使用 LUT 预计算加速)\n"
+            "    cv::Mat map1, map2;\n"
+            "    cv::initUndistortRectifyMap(K, distCoeffs, cv::Mat(), K, calibImages[0].size(), CV_16SC2, map1, map2);\n"
+            "    cv::Mat undistorted;\n"
+            "    cv::remap(calibImages[0], undistorted, map1, map2, cv::INTER_LINEAR);\n"
+            "}";
+        m_topics.append(t);
+        m_topicMap[t.id] = t;
+    }
+
+    {
+        KnowledgeTopic t;
+        t.id = "cv_solve_pnp";
+        t.framework = "OpenCV";
+        t.category = "OpenCV 10. 三维视觉与空间位姿";
+        t.name = "PnP 空间 6 自由度位姿估计 (solvePnP / solvePnPRansac)";
+        t.tag = "3D 模型到 2D 像素的空间位姿解算";
+        t.isVisualInteractive = false;
+        t.apiSignature = "bool cv::solvePnP(InputArray objectPoints, InputArray imagePoints, InputArray cameraMatrix, InputArray distCoeffs, OutputArray rvec, OutputArray tvec, bool useExtrinsicGuess = false, int flags = SOLVEPNP_ITERATIVE);\nbool cv::solvePnPRansac(...);";
+        t.docSummary = "Perspective-n-Point (PnP) 是根据物体已知的 3D 几何特征点与图像中对应的 2D 像素坐标，计算物体在相机坐标系下的<b>旋转向量 (rvec) 和平移向量 (tvec)</b>（共 6 自由度）。";
+        t.docParams = "• <b>objectPoints:</b> 物体自身的物理世界 3D 坐标数组（至少 4 对匹配点）。<br>"
+                      "• <b>imagePoints:</b> 画面上检测出的 2D 像素特征点。<br>"
+                      "• <b>rvec & tvec:</b> 输出的旋转与平移向量。通过 <code>cv::Rodrigues()</code> 可将 rvec 转为 3x3 旋转矩阵。";
+        t.usageTiming = "工业机器人装配定位、无人机自主降落停机坪对准、AR 增强现实虚拟模型空间锚定、头部姿态估计。";
+        t.bestPractices = "① 特征匹配点中若存在野点（误匹配），务必使用 <code>cv::solvePnPRansac</code>，利用 RANSAC 随机采样一致性过滤离群噪点！<br>"
+                          "② 空间平移向量 tvec 的模长即为目标距离镜头的真实物理直线距离。";
+        t.codeSnippet = 
+            "// PnP 解算物体空间 6 自由度位姿与投影回绘：\n"
+            "#include <opencv2/calib3d.hpp>\n\n"
+            "void estimatePose(const cv::Mat &frame, const cv::Mat &K, const cv::Mat &dist) {\n"
+            "    // 1. 定义物体物理三维坐标 (如 10cm x 10cm 工件 4 个角点)\n"
+            "    std::vector<cv::Point3f> objPts = {\n"
+            "        {-50.0f, -50.0f, 0.0f}, {50.0f, -50.0f, 0.0f},\n"
+            "        {50.0f, 50.0f, 0.0f},   {-50.0f, 50.0f, 0.0f}\n"
+            "    };\n\n"
+            "    // 2. 图像中实际检测出的 4 个角点像素坐标\n"
+            "    std::vector<cv::Point2f> imgPts = {\n"
+            "        {210.f, 180.f}, {430.f, 195.f}, {410.f, 390.f}, {205.f, 375.f}\n"
+            "    };\n\n"
+            "    // 3. solvePnP 解算外参 (旋转平移)\n"
+            "    cv::Mat rvec, tvec;\n"
+            "    bool success = cv::solvePnP(objPts, imgPts, K, dist, rvec, tvec, false, cv::SOLVEPNP_IPPE);\n"
+            "    if (success) {\n"
+            "        // 旋转向量转换为 3x3 旋转矩阵\n"
+            "        cv::Mat R;\n"
+            "        cv::Rodrigues(rvec, R);\n"
+            "        // 空间绘制 3D 坐标轴 (红绿蓝分别代表 X, Y, Z 轴)\n"
+            "        cv::drawFrameAxes(frame, K, dist, rvec, tvec, 50.0f);\n"
+            "    }\n"
+            "}";
+        m_topics.append(t);
+        m_topicMap[t.id] = t;
+    }
+
+    {
+        KnowledgeTopic t;
+        t.id = "cv_optical_flow";
+        t.framework = "OpenCV";
+        t.category = "OpenCV 10. 三维视觉与空间位姿";
+        t.name = "Lucas-Kanade 稀疏光流运动追踪 (calcOpticalFlowPyrLK)";
+        t.tag = "金字塔时空梯度与亚像素特征点跟踪";
+        t.isVisualInteractive = false;
+        t.apiSignature = "void cv::calcOpticalFlowPyrLK(InputArray prevImg, InputArray nextImg, InputArray prevPts, InputOutputArray nextPts, OutputArray status, OutputArray err, Size winSize = Size(21,21), int maxLevel = 3, TermCriteria criteria = TermCriteria(TermCriteria::COUNT+TermCriteria::EPS, 30, 0.01));";
+        t.docSummary = "光流法基于<b>光照恒定假设</b>与<b>空间一致性假设</b>。LK (Lucas-Kanade) 稀疏光流在图像金字塔上迭代求解特征点在两帧之间的微小位移矢量，无需每一帧重复检测特征，实现超高速（> 100 FPS）目标追踪。";
+        t.docParams = "• <b>prevImg & nextImg:</b> 前一帧与当前帧的单通道灰度图。<br>"
+                      "• <b>prevPts:</b> 追踪的特征点集（通常由 <code>goodFeaturesToTrack</code> 选出）。<br>"
+                      "• <b>nextPts:</b> 输出的当前帧对应点像素坐标。<br>"
+                      "• <b>status:</b> 追踪状态位（1 代表追踪成功，0 代表点已飞出或丢失遮挡）。";
+        t.usageTiming = "运动物体轨迹追踪、视频电子防抖 (EIS)、行人和车辆速度估计、微小振动位移测量。";
+        t.bestPractices = "① <b>正反向一致性检验 (Forward-Backward Check)：</b>从 Frame1 追踪到 Frame2，再反向从 Frame2 追踪回 Frame1，若反向位置与原点距离 > 1 像素，则判定为漂移点予以剔除！<br>"
+                          "② 目标若发生大尺度跳跃或剧烈光照突变，LK 光流容易跟丢，需周期性（如每 30 帧）重新补点。";
+        t.codeSnippet = 
+            "// 工业级双向校验稀疏光流追踪范式：\n"
+            "#include <opencv2/video/tracking.hpp>\n\n"
+            "void trackMotion(const cv::Mat &prevGray, const cv::Mat &currGray, std::vector<cv::Point2f> &pts) {\n"
+            "    if (pts.empty()) {\n"
+            "        // 初始检出 100 个优质强角点\n"
+            "        cv::goodFeaturesToTrack(prevGray, pts, 100, 0.03, 10);\n"
+            "    }\n\n"
+            "    std::vector<cv::Point2f> nextPts, backPts;\n"
+            "    std::vector<uchar> status, backStatus;\n"
+            "    std::vector<float> err;\n\n"
+            "    // 1. 正向光流追踪\n"
+            "    cv::calcOpticalFlowPyrLK(prevGray, currGray, pts, nextPts, status, err, cv::Size(21, 21), 3);\n"
+            "    // 2. 反向校验防漂移\n"
+            "    cv::calcOpticalFlowPyrLK(currGray, prevGray, nextPts, backPts, backStatus, err, cv::Size(21, 21), 3);\n\n"
+            "    std::vector<cv::Point2f> goodNextPts;\n"
+            "    for (size_t i = 0; i < pts.size(); ++i) {\n"
+            "        if (status[i] && backStatus[i] && cv::norm(pts[i] - backPts[i]) < 1.0) {\n"
+            "            goodNextPts.push_back(nextPts[i]);\n"
+            "        }\n"
+            "    }\n"
+            "    pts = goodNextPts;\n"
+            "}";
+        m_topics.append(t);
+        m_topicMap[t.id] = t;
+    }
 }
 
 void KnowledgeRegistry::initQtTopics() {
@@ -1502,6 +1824,381 @@ void KnowledgeRegistry::initQtTopics() {
             "}\n\n"
             "void TitleBar::mouseReleaseEvent(QMouseEvent *event) {\n"
             "    m_isPressed = false;\n"
+            "}";
+        m_topics.append(t);
+        m_topicMap[t.id] = t;
+    }
+
+    // ========================================================
+    // 11. Qt 03. Model / View 架构与高级数据展现 (工业级架构)
+    // ========================================================
+    {
+        KnowledgeTopic t;
+        t.id = "qt_model_view_architecture";
+        t.framework = "Qt";
+        t.category = "Qt 03. Model / View 架构与高级数据展现";
+        t.name = "Model / View 架构设计哲学 (QAbstractItemModel)";
+        t.tag = "海量千万级数据高性能渲染的解耦基石";
+        t.isVisualInteractive = false;
+        t.apiSignature = "class CustomTableModel : public QAbstractTableModel {\n    int rowCount(const QModelIndex &parent = QModelIndex()) const override;\n    int columnCount(const QModelIndex &parent = QModelIndex()) const override;\n    QVariant data(const QModelIndex &index, int role = Qt::DisplayRole) const override;\n};";
+        t.docSummary = "Qt 的 Model/View 架构将底层业务数据结构与前台 UI 渲染完全解耦。传统控件（如 QTableWidget）每个单元格都是一个 QTableWidgetItem 对象，当数据达到十万行时会消耗数百兆内存并导致界面卡死。而基于 QAbstractItemModel 的自定义模型，<b>无论数据有多少千万行，内存开销为零额外冗余，视图（QTableView）只在滚动到可视区域时才动态向 Model 索取当前可见单元格的 data()！</b>";
+        t.docParams = "• <b>rowCount & columnCount:</b> 返回虚拟数据矩阵的行数和列数。<br>"
+                      "• <b>data(index, role):</b> 视图渲染时的回调核心。根据不同 role（DisplayRole 文本、DecorationRole 图标/颜色、ToolTipRole 提示、BackgroundRole 底色）返回对应 QVariant。";
+        t.usageTiming = "工业检测日志实时滚动瀑布流、千万级点云/标注坐标列表、大型传感器时序监控数据展现。";
+        t.bestPractices = "① 数据发生变更时（如插入新行），务必在修改底层数据容器前调用 <code>beginInsertRows(...)</code>，并在修改后调用 <code>endInsertRows()</code>，通知所有观察者视图平滑局部重绘，严禁暴力的 `modelReset()`！<br>"
+                          "② `data()` 函数由视图高频调用，严禁在其中执行数据库查询或复杂算法运算。";
+        t.codeSnippet = 
+            "// 生产级高性能千万行虚拟只读表格模型范式：\n"
+            "#include <QAbstractTableModel>\n"
+            "#include <vector>\n\n"
+            "struct VisionInspectionItem {\n"
+            "    int id;\n"
+            "    QString timestamp;\n"
+            "    double confidence;\n"
+            "    bool passed;\n"
+            "};\n\n"
+            "class VisionLogModel : public QAbstractTableModel {\n"
+            "    Q_OBJECT\n"
+            "    std::vector<VisionInspectionItem> m_records;\n\n"
+            "public:\n"
+            "    explicit VisionLogModel(QObject *parent = nullptr) : QAbstractTableModel(parent) {}\n\n"
+            "    int rowCount(const QModelIndex &) const override { return static_cast<int>(m_records.size()); }\n"
+            "    int columnCount(const QModelIndex &) const override { return 4; }\n\n"
+            "    QVariant data(const QModelIndex &index, int role) const override {\n"
+            "        if (!index.isValid() || index.row() >= static_cast<int>(m_records.size())) return {};\n"
+            "        const auto &rec = m_records[index.row()];\n\n"
+            "        if (role == Qt::DisplayRole) {\n"
+            "            switch (index.column()) {\n"
+            "                case 0: return rec.id;\n"
+            "                case 1: return rec.timestamp;\n"
+            "                case 2: return QString::number(rec.confidence, 'f', 2) + \"%\";\n"
+            "                case 3: return rec.passed ? \"PASS\" : \"FAIL\";\n"
+            "            }\n"
+            "        } else if (role == Qt::ForegroundRole && index.column() == 3) {\n"
+            "            return rec.passed ? QColor(\"#16a34a\") : QColor(\"#dc2626\");\n"
+            "        }\n"
+            "        return {};\n"
+            "    }\n\n"
+            "    void appendRecord(const VisionInspectionItem &item) {\n"
+            "        int row = static_cast<int>(m_records.size());\n"
+            "        beginInsertRows(QModelIndex(), row, row);\n"
+            "        m_records.push_back(item);\n"
+            "        endInsertRows();\n"
+            "    }\n"
+            "};";
+        m_topics.append(t);
+        m_topicMap[t.id] = t;
+    }
+
+    {
+        KnowledgeTopic t;
+        t.id = "qt_custom_delegate";
+        t.framework = "Qt";
+        t.category = "Qt 03. Model / View 架构与高级数据展现";
+        t.name = "自定义单元格委托代理 (QStyledItemDelegate)";
+        t.tag = "表格无损定制绘制、内嵌状态药丸与进度条";
+        t.isVisualInteractive = false;
+        t.apiSignature = "void paint(QPainter *painter, const QStyleOptionViewItem &option, const QModelIndex &index) const override;\nQWidget *createEditor(QWidget *parent, const QStyleOptionViewItem &option, const QModelIndex &index) const override;";
+        t.docSummary = "Delegate（委托）负责 Model/View 体系中<b>单个单元格的绘制与交互编辑</b>。初学者常犯的错误是调用 <code>setCellWidget()</code> 为每个单元格塞入一个实体 QPushButton 或 QProgressBar，导致数千个 QWidget 实例将操作系统 GDI 句柄与内存耗尽。使用 QStyledItemDelegate 仅需在 <code>paint()</code> 中利用 QPainter 轻量绘制形状，<b>0 个多余 Widget，瞬间拥有惊艳的胶囊状态药丸与进度条！</b>";
+        t.docParams = "• <b>paint():</b> 单元格绘制入口。传入的 `option.rect` 指定了该单元格的精确绘制像素矩形。<br>"
+                      "• <b>createEditor():</b> 当用户双击单元格时动态创建编辑器（如 QSpinBox、QComboBox），编辑完成后自动销毁。";
+        t.usageTiming = "在表格中优雅展示质检状态胶囊徽章（绿色 PASS / 红色 NG）、算法匹配相似度百分比彩色进度条、操作按钮组。";
+        t.bestPractices = "在 `paint()` 绘制前务必调用 `painter->save()`，绘制结束后调用 `painter->restore()`，防止画笔颜色与坐标变换污染后续单元格的绘制上下文。";
+        t.codeSnippet = 
+            "// 生产级药丸徽章（Status Badge）高性能自绘委托：\n"
+            "#include <QStyledItemDelegate>\n"
+            "#include <QPainter>\n\n"
+            "class StatusBadgeDelegate : public QStyledItemDelegate {\n"
+            "public:\n"
+            "    using QStyledItemDelegate::QStyledItemDelegate;\n\n"
+            "    void paint(QPainter *painter, const QStyleOptionViewItem &option, const QModelIndex &index) const override {\n"
+            "        QString status = index.data(Qt::DisplayRole).toString();\n"
+            "        painter->save();\n"
+            "        painter->setRenderHint(QPainter::Antialiasing);\n\n"
+            "        // 药丸矩形计算（垂直居中，自适应内边距）\n"
+            "        QRect badgeRect = option.rect.adjusted(10, 6, -10, -6);\n"
+            "        bool isPass = (status == \"PASS\");\n\n"
+            "        // 绘制圆角背景药丸\n"
+            "        painter->setPen(Qt::NoPen);\n"
+            "        painter->setBrush(isPass ? QColor(\"#dcfce7\") : QColor(\"#fee2e2\"));\n"
+            "        painter->drawRoundedRect(badgeRect, badgeRect.height() / 2, badgeRect.height() / 2);\n\n"
+            "        // 绘制高对比度文字\n"
+            "        painter->setPen(isPass ? QColor(\"#15803d\") : QColor(\"#b91c1c\"));\n"
+            "        QFont font = painter->font();\n"
+            "        font.setBold(true);\n"
+            "        painter->setFont(font);\n"
+            "        painter->drawText(badgeRect, Qt::AlignCenter, status);\n\n"
+            "        painter->restore();\n"
+            "    }\n"
+            "};\n\n"
+            "// 挂载到 QTableView 指定列：\n"
+            "// tableView->setItemDelegateForColumn(3, new StatusBadgeDelegate(tableView));";
+        m_topics.append(t);
+        m_topicMap[t.id] = t;
+    }
+
+    {
+        KnowledgeTopic t;
+        t.id = "qt_sort_filter_proxy";
+        t.framework = "Qt";
+        t.category = "Qt 03. Model / View 架构与高级数据展现";
+        t.name = "代理模型与动态搜索排序 (QSortFilterProxyModel)";
+        t.tag = "零性能损耗的即时搜索与多列智能排序";
+        t.isVisualInteractive = false;
+        t.apiSignature = "QSortFilterProxyModel *proxy = new QSortFilterProxyModel(this);\nproxy->setSourceModel(sourceModel);\nview->setModel(proxy);";
+        t.docSummary = "QSortFilterProxyModel 充当原始 Model 与 View 之间的“智能透镜”。它不需要对底层原始数据做任何排序或拷贝，仅通过维护映射索引，就能以毫秒级响应实现<b>全局模糊搜索过滤、正则表达式筛选、任意列升降序排序</b>。";
+        t.docParams = "• <b>setSourceModel:</b> 挂载原始数据源模型。<br>"
+                      "• <b>setFilterCaseSensitivity:</b> 设置大小写敏感度。<br>"
+                      "• <b>setFilterKeyColumn(-1):</b> 设置为 -1 时触发全列全局智能搜索；设定具体数字时仅过滤指定列。";
+        t.usageTiming = "软件顶部搜索框实时输入搜索日志、点击表头点击字段排序、多状态下拉组合过滤。";
+        t.bestPractices = "View 中选中的索引是 `proxyIndex`，若要修改底层业务数据，必须调用 <code>proxy->mapToSource(proxyIndex)</code> 转换为原始 Model 坐标，严禁混用两者坐标！";
+        t.codeSnippet = 
+            "// 生产级全局搜索与表头双向排序范式：\n"
+            "#include <QSortFilterProxyModel>\n"
+            "#include <QLineEdit>\n"
+            "#include <QTableView>\n\n"
+            "void setupSearchableTable(QAbstractItemModel *rawModel, QTableView *tableView, QLineEdit *searchBox) {\n"
+            "    auto *proxyModel = new QSortFilterProxyModel(tableView);\n"
+            "    proxyModel->setSourceModel(rawModel);\n"
+            "    \n"
+            "    // 全列不区分大小写模糊匹配\n"
+            "    proxyModel->setFilterKeyColumn(-1);\n"
+            "    proxyModel->setFilterCaseSensitivity(Qt::CaseInsensitive);\n\n"
+            "    // 启用点击表头自动升降序排序\n"
+            "    tableView->setModel(proxyModel);\n"
+            "    tableView->setSortingEnabled(true);\n"
+            "    tableView->sortByColumn(0, Qt::AscendingOrder);\n\n"
+            "    // 搜索框文本变化联动过滤\n"
+            "    QObject::connect(searchBox, &QLineEdit::textChanged, proxyModel, &QSortFilterProxyModel::setFilterWildcard);\n"
+            "}";
+        m_topics.append(t);
+        m_topicMap[t.id] = t;
+    }
+
+    // ========================================================
+    // 12. Qt 04. 工业网络通信与进程间 IPC (工业级通信)
+    // ========================================================
+    {
+        KnowledgeTopic t;
+        t.id = "qt_network_http";
+        t.framework = "Qt";
+        t.category = "Qt 04. 工业网络通信与进程间 IPC";
+        t.name = "网络请求管理器与异步客户端 (QNetworkAccessManager)";
+        t.tag = "非阻塞异步 HTTP(S) 请求与 RESTful API";
+        t.isVisualInteractive = false;
+        t.apiSignature = "QNetworkAccessManager *mgr = new QNetworkAccessManager(this);\nQNetworkReply *reply = mgr->post(request, jsonData);";
+        t.docSummary = "Qt 官方异步非阻塞网络通信核心引擎。采用底层事件循环驱动，发送任何 GET/POST 请求都不会阻塞 UI 主线程。支持 SSL/TLS、流式大文件断点续传、Cookie 管理与 RESTful API 数据上报。";
+        t.docParams = "• <b>QNetworkRequest:</b> 请求封装器，可设置目标 URL、请求头（如 Content-Type、Authorization Token）。<br>"
+                      "• <b>QNetworkReply:</b> 异步响应流。通过 `finished` 信号通知完成，具备 `readAll()` 读取数据流。";
+        t.usageTiming = "视觉质检结果上报 MES/ERP 工厂系统、软件在线检查更新版本、从云端算法服务器拉取最新检测模型权重。";
+        t.bestPractices = "① <b>生命周期陷阱：</b>在 `reply` 的 `finished` 槽函数处理完毕后，必须调用 <code>reply->deleteLater()</code>，否则高频网络请求会导致严重内存泄露！<br>"
+                          "② 全局通常仅需保留<b>一个</b> `QNetworkAccessManager` 实例，复用底层 HTTP/2 连接池。";
+        t.codeSnippet = 
+            "// 生产级异步 RESTful POST 上报缺陷质检数据：\n"
+            "#include <QNetworkAccessManager>\n"
+            "#include <QNetworkRequest>\n"
+            "#include <QNetworkReply>\n"
+            "#include <QJsonDocument>\n"
+            "#include <QJsonObject>\n"
+            "#include <QDateTime>\n\n"
+            "void reportDefectToCloud(QNetworkAccessManager *netMgr, const QString &partId, double score) {\n"
+            "    QUrl url(\"https://mes.factory.local/api/v1/defect-report\");\n"
+            "    QNetworkRequest request(url);\n"
+            "    request.setHeader(QNetworkRequest::ContentTypeHeader, \"application/json\");\n"
+            "    request.setRawHeader(\"Authorization\", \"Bearer token_secret_xyz\");\n\n"
+            "    QJsonObject json;\n"
+            "    json[\"part_id\"] = partId;\n"
+            "    json[\"defect_score\"] = score;\n"
+            "    json[\"timestamp\"] = QDateTime::currentSecsSinceEpoch();\n\n"
+            "    QNetworkReply *reply = netMgr->post(request, QJsonDocument(json).toJson());\n"
+            "    QObject::connect(reply, &QNetworkReply::finished, [reply]() {\n"
+            "        reply->deleteLater(); // 确保安全销毁防泄露\n"
+            "        if (reply->error() == QNetworkReply::NoError) {\n"
+            "            qDebug() << \"上报成功：\" << reply->readAll();\n"
+            "        } else {\n"
+            "            qWarning() << \"网络异常：\" << reply->errorString();\n"
+            "        }\n"
+            "    });\n"
+            "}";
+        m_topics.append(t);
+        m_topicMap[t.id] = t;
+    }
+
+    {
+        KnowledgeTopic t;
+        t.id = "qt_tcp_socket";
+        t.framework = "Qt";
+        t.category = "Qt 04. 工业网络通信与进程间 IPC";
+        t.name = "高性能 TCP 工业网络与二进制防粘包协议 (QTcpSocket)";
+        t.tag = "工业以太网、QDataStream 与固定消息头分包";
+        t.isVisualInteractive = false;
+        t.apiSignature = "QTcpSocket socket;\nsocket.connectToHost(\"192.168.1.50\", 5000);\nconnect(&socket, &QTcpSocket::readyRead, this, &Client::onReadyRead);";
+        t.docSummary = "TCP 是面向流的协议（Byte Stream），在操作系统传输层不存在“单条消息边界”，多包合并（粘包）或单包截断（拆包）是工业网络的必然常态。掌握<b>“4字节包头消息长度（quint32 payloadSize）+ 动态循环缓冲读取”</b>是工业机器视觉通信的合格标尺！";
+        t.docParams = "• <b>readyRead 信号:</b> 只要网络缓冲区收到新字节就触发，并不代表一条完整消息刚好到齐。<br>"
+                      "• <b>bytesAvailable():</b> 当前 socket 输入缓冲区中已累积的未读字节数。";
+        t.usageTiming = "与 PLC（欧姆龙/西门子/三菱）工业以太网通讯交互触发相机信号、视觉工控机向机械臂发送三维抓取坐标点位。";
+        t.bestPractices = "写入数据必须前置写入消息总包体大小，读取时若 `bytesAvailable() < payloadSize` 则坚决保留在缓冲区中等待下一次 `readyRead`，绝对严禁盲目直接 `readAll()` 当作完整指令解析！";
+        t.codeSnippet = 
+            "// 工业标准级防粘包 TCP 数据接收器范式：\n"
+            "#include <QTcpSocket>\n"
+            "#include <QDataStream>\n\n"
+            "class IndustrialTcpClient : public QObject {\n"
+            "    Q_OBJECT\n"
+            "    QTcpSocket m_socket;\n"
+            "    quint32 m_expectedBlockSize = 0;\n\n"
+            "public:\n"
+            "    IndustrialTcpClient() {\n"
+            "        connect(&m_socket, &QTcpSocket::readyRead, this, &IndustrialTcpClient::handleIncomingData);\n"
+            "    }\n\n"
+            "private slots:\n"
+            "    void handleIncomingData() {\n"
+            "        QDataStream in(&m_socket);\n"
+            "        in.setVersion(QDataStream::Qt_6_5);\n\n"
+            "        while (true) {\n"
+            "            // 阶段 1：先读取 4 字节消息体长度头\n"
+            "            if (m_expectedBlockSize == 0) {\n"
+            "                if (m_socket.bytesAvailable() < static_cast<qint64>(sizeof(quint32))) {\n"
+            "                    return; // 头都还没凑齐，等待下批字节涌入\n"
+            "                }\n"
+            "                in >> m_expectedBlockSize;\n"
+            "            }\n\n"
+            "            // 阶段 2：校验缓冲区是否已容纳完整的一包数据体\n"
+            "            if (m_socket.bytesAvailable() < m_expectedBlockSize) {\n"
+            "                return; // 数据体尚未到齐，退出等待\n"
+            "            }\n\n"
+            "            // 阶段 3：完整消费该包，重置状态以处理粘在后面的下一包\n"
+            "            QByteArray packetData = m_socket.read(m_expectedBlockSize);\n"
+            "            m_expectedBlockSize = 0;\n"
+            "            processCompleteMessage(packetData);\n"
+            "        }\n"
+            "    }\n\n"
+            "    void processCompleteMessage(const QByteArray &data) {\n"
+            "        // 保证拿到的一定是 100% 完整干净的单个数据包！\n"
+            "    }\n"
+            "};";
+        m_topics.append(t);
+        m_topicMap[t.id] = t;
+    }
+
+    {
+        KnowledgeTopic t;
+        t.id = "qt_shared_memory";
+        t.framework = "Qt";
+        t.category = "Qt 04. 工业网络通信与进程间 IPC";
+        t.name = "跨进程共享内存与互斥守护 (QSharedMemory / QSystemSemaphore)";
+        t.tag = "零拷贝大图像帧跨进程微秒级极速共享";
+        t.isVisualInteractive = false;
+        t.apiSignature = "QSharedMemory shm(\"VisionGlobalMemoryKey\");\nshm.create(1920 * 1080 * 3);\nshm.lock();\nmemcpy(shm.data(), frame.data, size);\nshm.unlock();";
+        t.docSummary = "工业机器视觉处理中，4K 60FPS 的原始图像每秒产生近 1.5GB 数据流。如果采用 TCP/管道/Socket 进行跨进程传递，严重的内存二次拷贝与序列化会导致 CPU 满载掉帧。<code>QSharedMemory</code> 允许独立进程将<b>同一段物理内存直接映射到各自的虚拟地址空间</b>，写方写入与读方读取处于同一个物理芯片块，实现<b>真正的零拷贝微秒级通信！</b>";
+        t.docParams = "• <b>setKey:</b> 系统级全局唯一标识符键名。<br>"
+                      "• <b>lock() / unlock():</b> 进程级互斥锁，保证同一时刻只有一个进程读写共享内存，防止脏读。";
+        t.usageTiming = "相机独立底层采集守护进程（Daemon）与上层 Qt 算法界面的高速图像共享、多算法进程并行抢占式推理。";
+        t.bestPractices = "当进程异常崩溃退出时，共享内存段在 Linux/Windows 上可能残留锁定状态。若 `attach()` 失败，可先调用 `detach()` 清除僵尸引用再尝试挂载。";
+        t.codeSnippet = 
+            "// 跨进程图像共享写入方标准范式：\n"
+            "#include <QSharedMemory>\n"
+            "#include <opencv2/core.hpp>\n\n"
+            "void publishFrameToIPC(const cv::Mat &bgrFrame) {\n"
+            "    static QSharedMemory shm(\"VISION_FRAME_SHM_KEY\");\n"
+            "    int requiredSize = static_cast<int>(bgrFrame.total() * bgrFrame.elemSize());\n\n"
+            "    // 首次创建共享内存块\n"
+            "    if (!shm.isAttached()) {\n"
+            "        if (!shm.create(requiredSize)) {\n"
+            "            shm.attach(); // 若其他进程已创建，则直接挂载\n"
+            "        }\n"
+            "    }\n\n"
+            "    // 加锁并零拷贝拷贝内存\n"
+            "    if (shm.lock()) {\n"
+            "        char *to = static_cast<char*>(shm.data());\n"
+            "        memcpy(to, bgrFrame.data, requiredSize);\n"
+            "        shm.unlock(); // 解锁放行读者进程\n"
+            "    }\n"
+            "}";
+        m_topics.append(t);
+        m_topicMap[t.id] = t;
+    }
+
+    {
+        KnowledgeTopic t;
+        t.id = "qt_process_launch";
+        t.framework = "Qt";
+        t.category = "Qt 04. 工业网络通信与进程间 IPC";
+        t.name = "外部子进程异步调度与管道交互 (QProcess)";
+        t.tag = "非阻塞唤起 Python / FFmpeg / 命令行工具";
+        t.isVisualInteractive = false;
+        t.apiSignature = "QProcess *proc = new QProcess(this);\nproc->start(\"ffmpeg.exe\", QStringList() << \"-i\" << ...);\nconnect(proc, &QProcess::readyReadStandardOutput, this, &Handler::onLogReady);";
+        t.docSummary = "Qt 强大的外部进程管理组件。在工业生产中，很多优秀工具（如 FFmpeg 推流、Python 脚本、Halcon 离线引擎、系统硬件诊断工具）以独立可执行文件存在。<code>QProcess</code> 允许我们异步拉起子进程，全双工重定向其标准输入/输出/错误流（stdin/stdout/stderr），实时获取运行日志并捕获异常退出码。";
+        t.docParams = "• <b>start(program, arguments):</b> 异步启动外部程序，绝不阻塞 UI 主界面。<br>"
+                      "• <b>readyReadStandardOutput:</b> 外部程序产生控制台打印时触发通知。<br>"
+                      "• <b>write(data):</b> 向外部进程的 stdin 输入管道追加输入命令。";
+        t.usageTiming = "一键调用 Python YOLO 模型训练脚本并实时在界面滚动日志、调用 FFmpeg 对工业录制视频进行 H.264 硬件编码转码。";
+        t.bestPractices = "① 严禁使用系统的 `system(\"...\")` 阻塞调用！必须使用 `QProcess` 异步驱动；<br>"
+                          "② 主程序关闭时应先温和触发 `proc->terminate()`，超时未退出再调用 `proc->kill()` 强制收尾，防止残留孤儿进程占用系统端口。";
+        t.codeSnippet = 
+            "// 生产级非阻塞调用外部 Python 脚本并流式收集输出：\n"
+            "#include <QProcess>\n"
+            "#include <QDebug>\n\n"
+            "void runExternalPythonWorker(QObject *parent) {\n"
+            "    auto *proc = new QProcess(parent);\n"
+            "    \n"
+            "    // 监听子进程标准输出日志流\n"
+            "    QObject::connect(proc, &QProcess::readyReadStandardOutput, [proc]() {\n"
+            "        QByteArray output = proc->readAllStandardOutput();\n"
+            "        qDebug() << \"[Python Output]:\" << QString::fromUtf8(output);\n"
+            "    });\n\n"
+            "    // 监听执行完毕信号并自释放\n"
+            "    QObject::connect(proc, QOverload<int, QProcess::ExitStatus>::of(&QProcess::finished),\n"
+            "        [proc](int exitCode, QProcess::ExitStatus status) {\n"
+            "            qDebug() << \"子进程执行完毕，退出码:\" << exitCode;\n"
+            "            proc->deleteLater();\n"
+            "        });\n\n"
+            "    // 异步拉起（入参安全传递，无命令注入隐患）\n"
+            "    proc->start(\"python.exe\", QStringList() << \"scripts/deep_eval.py\" << \"--threshold\" << \"0.85\");\n"
+            "}";
+        m_topics.append(t);
+        m_topicMap[t.id] = t;
+    }
+
+    // ========================================================
+    // 13. Qt 05. 高性能交互与图形视图 (工业级绘图与标注)
+    // ========================================================
+    {
+        KnowledgeTopic t;
+        t.id = "qt_graphics_view";
+        t.framework = "Qt";
+        t.category = "Qt 05. 高性能交互与图形视图";
+        t.name = "交互式图形视图架构 (QGraphicsView / QGraphicsScene)";
+        t.tag = "十万图元流畅平移缩放、ROI 自由拖拽与形变";
+        t.isVisualInteractive = false;
+        t.apiSignature = "QGraphicsScene *scene = new QGraphicsScene(this);\nQGraphicsView *view = new QGraphicsView(scene, this);\nview->setDragMode(QGraphicsView::ScrollHandDrag);\nscene->addItem(new QGraphicsPixmapItem(pixmap));";
+        t.docSummary = "Qt 的 Graphics View 框架专为<b>超大规模图元渲染与高级几何交互</b>而生。基于 BSP（二叉空间分割树）空间索引，即便是十万个独立图元（如点、线、圆、多边形框），缩放与平移仍可保持 60 FPS 流畅满帧！支持图元点击选定、八向拖拽拉伸变形、碰撞检测、图层分组管理。";
+        t.docParams = "• <b>QGraphicsScene:</b> 逻辑世界画布容器，存储所有图元的几何拓扑信息。<br>"
+                      "• <b>QGraphicsView:</b> 摄像机视窗窗口，支持鼠标滚轮平滑缩放、手势平移、OpenGL 硬件渲染加速。<br>"
+                      "• <b>QGraphicsItem:</b> 自定义图元基类，重写 <code>boundingRect()</code> 和 <code>paint()</code> 即可实现任何几何标注。";
+        t.usageTiming = "机器视觉工业相机标定 ROI 自定义框选（矩形/旋转矩形/自由多边形）、缺陷检测结果标记热力图、大型电子地图绘制。";
+        t.bestPractices = "① 大图显示时务必设置 `view->setViewport(new QOpenGLWidget())`，借助 GPU 显卡硬件流水线秒级吞吐 4K 图像；<br>"
+                          "② `boundingRect()` 必须严格包裹图元的全部外边缘（包括画笔宽度），否则移动或缩放图元时会留下未刷新的花屏残影。";
+        t.codeSnippet = 
+            "// 工业机器视觉可交互自由拖拽 ROI 矩形框范式：\n"
+            "#include <QGraphicsView>\n"
+            "#include <QGraphicsScene>\n"
+            "#include <QGraphicsRectItem>\n\n"
+            "void setupInteractiveVisionViewport(QWidget *parent, const QPixmap &inspectionImg) {\n"
+            "    auto *scene = new QGraphicsScene(parent);\n"
+            "    auto *view = new QGraphicsView(scene, parent);\n\n"
+            "    // 1. 底层大图\n"
+            "    scene->addPixmap(inspectionImg);\n\n"
+            "    // 2. 注入一个可被鼠标拖拽、可被选中的 ROI 检测框\n"
+            "    auto *roiItem = new QGraphicsRectItem(QRectF(100, 100, 200, 150));\n"
+            "    roiItem->setPen(QPen(QColor(\"#38bdf8\"), 2));\n"
+            "    roiItem->setBrush(QColor(56, 189, 248, 40)); // 半透明浅蓝底色\n"
+            "    roiItem->setFlags(QGraphicsItem::ItemIsMovable | \n"
+            "                      QGraphicsItem::ItemIsSelectable | \n"
+            "                      QGraphicsItem::ItemSendsGeometryChanges);\n"
+            "    scene->addItem(roiItem);\n\n"
+            "    // 3. 开启视窗抗锯齿与拖拽漫游\n"
+            "    view->setRenderHint(QPainter::Antialiasing);\n"
+            "    view->setDragMode(QGraphicsView::RubberBandDrag);\n"
             "}";
         m_topics.append(t);
         m_topicMap[t.id] = t;

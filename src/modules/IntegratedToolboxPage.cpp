@@ -2,6 +2,7 @@
 #include "vision_matcher/VisionMatcherPage.h"
 #include "image_processor/ImageProcessorPage.h"
 #include "dev_toolbox/DevToolboxPage.h"
+#include "ThemeManager.h"
 #include <QVBoxLayout>
 
 IntegratedToolboxPage::IntegratedToolboxPage(QWidget *parent) : IToolPage(parent) {
@@ -9,12 +10,25 @@ IntegratedToolboxPage::IntegratedToolboxPage(QWidget *parent) : IToolPage(parent
     layout->setContentsMargins(15, 10, 15, 15);
 
     m_tabWidget = new QTabWidget(this);
-    m_tabWidget->setStyleSheet(
-        "QTabWidget::pane { border: 1px solid #334155; border-radius: 8px; background: transparent; }"
-        "QTabBar::tab { font-size: 13px; font-weight: 600; padding: 10px 20px; border-top-left-radius: 8px; border-top-right-radius: 8px; margin-right: 4px; }"
-        "QTabBar::tab:selected { background-color: #2563eb; color: #ffffff; }"
-        "QTabBar::tab:!selected { background-color: #1e293b; color: #94a3b8; }"
-    );
+    auto updateTabsStyle = [this](bool isDark) {
+        if (isDark) {
+            m_tabWidget->setStyleSheet(
+                "QTabWidget::pane { border: 1px solid #334155; border-radius: 8px; background: transparent; }"
+                "QTabBar::tab { font-size: 13px; font-weight: 600; padding: 10px 20px; border-top-left-radius: 8px; border-top-right-radius: 8px; margin-right: 4px; }"
+                "QTabBar::tab:selected { background-color: #2563eb; color: #ffffff; }"
+                "QTabBar::tab:!selected { background-color: #1e293b; color: #94a3b8; }"
+            );
+        } else {
+            m_tabWidget->setStyleSheet(
+                "QTabWidget::pane { border: 1px solid #cbd5e1; border-radius: 8px; background: transparent; }"
+                "QTabBar::tab { font-size: 13px; font-weight: 600; padding: 10px 20px; border-top-left-radius: 8px; border-top-right-radius: 8px; margin-right: 4px; }"
+                "QTabBar::tab:selected { background-color: #2563eb; color: #ffffff; }"
+                "QTabBar::tab:!selected { background-color: #e2e8f0; color: #475569; }"
+            );
+        }
+    };
+    updateTabsStyle(ThemeManager::instance().isDarkMode());
+    connect(&ThemeManager::instance(), &ThemeManager::themeChanged, this, updateTabsStyle);
 
     m_matcherPage = new VisionMatcherPage(this);
     m_processorPage = new ImageProcessorPage(this);

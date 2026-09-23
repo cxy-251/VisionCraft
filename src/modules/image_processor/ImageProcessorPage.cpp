@@ -20,26 +20,24 @@ void ImageProcessorPage::setupUI() {
 
     // 左侧面板
     auto *leftPanel = new QFrame(this);
+    leftPanel->setObjectName("PanelCard");
     leftPanel->setFixedWidth(320);
-    leftPanel->setStyleSheet("QFrame { background-color: #ffffff; border: 1px solid #e2e8f0; border-radius: 10px; }");
     auto *leftLayout = new QVBoxLayout(leftPanel);
     leftLayout->setContentsMargins(18, 18, 18, 18);
     leftLayout->setSpacing(14);
 
     auto *title = new QLabel("🛠️ 图像算法与滤镜参数", leftPanel);
-    title->setStyleSheet("font-size: 16px; font-weight: 700; color: #0f172a; border: none;");
+    title->setObjectName("CardTitle");
     leftLayout->addWidget(title);
 
     // 输入源选择
     auto *inputBtnRow = new QHBoxLayout();
     auto *openFileBtn = new QPushButton("📂 打开图片", leftPanel);
-    openFileBtn->setStyleSheet("QPushButton { background-color: #f1f5f9; border: 1px solid #cbd5e1; border-radius: 6px; padding: 7px; font-weight: 500; }"
-                               "QPushButton:hover { background-color: #e2e8f0; }");
+    openFileBtn->setObjectName("SecondaryBtn");
     connect(openFileBtn, &QPushButton::clicked, this, &ImageProcessorPage::openImageFile);
 
     auto *grabScreenBtn = new QPushButton("📸 截取屏幕", leftPanel);
-    grabScreenBtn->setStyleSheet("QPushButton { background-color: #f1f5f9; border: 1px solid #cbd5e1; border-radius: 6px; padding: 7px; font-weight: 500; }"
-                                 "QPushButton:hover { background-color: #e2e8f0; }");
+    grabScreenBtn->setObjectName("SecondaryBtn");
     connect(grabScreenBtn, &QPushButton::clicked, this, &ImageProcessorPage::captureScreenAsInput);
 
     inputBtnRow->addWidget(openFileBtn);
@@ -48,7 +46,7 @@ void ImageProcessorPage::setupUI() {
 
     // 算法模式选择
     auto *modeLabel = new QLabel("当前算法模式:", leftPanel);
-    modeLabel->setStyleSheet("font-size: 13px; font-weight: 600; color: #475569; border: none;");
+    modeLabel->setObjectName("CardSubTitle");
     leftLayout->addWidget(modeLabel);
 
     m_modeCombo = new QComboBox(leftPanel);
@@ -56,16 +54,15 @@ void ImageProcessorPage::setupUI() {
     m_modeCombo->addItem("高斯滤波模糊 (Gaussian Blur)", "blur");
     m_modeCombo->addItem("自适应二值化 (Thresholding)", "threshold");
     m_modeCombo->addItem("灰度化 (Grayscale)", "gray");
-    m_modeCombo->setStyleSheet("QComboBox { padding: 6px; border: 1px solid #cbd5e1; border-radius: 6px; }");
     connect(m_modeCombo, QOverload<int>::of(&QComboBox::currentIndexChanged), this, &ImageProcessorPage::applyProcessing);
     leftLayout->addWidget(m_modeCombo);
 
     // 参数 1 滑条
     auto *p1Row = new QHBoxLayout();
     m_param1NameLabel = new QLabel("低阈值 (Threshold 1):", leftPanel);
-    m_param1NameLabel->setStyleSheet("font-size: 12px; color: #475569; border: none;");
+    m_param1NameLabel->setObjectName("CardSubTitle");
     m_param1ValLabel = new QLabel("50", leftPanel);
-    m_param1ValLabel->setStyleSheet("font-size: 12px; font-weight: bold; color: #2563eb; border: none;");
+    m_param1ValLabel->setStyleSheet("font-size: 12px; font-weight: bold; color: #38bdf8; border: none;");
     p1Row->addWidget(m_param1NameLabel);
     p1Row->addStretch();
     p1Row->addWidget(m_param1ValLabel);
@@ -83,9 +80,9 @@ void ImageProcessorPage::setupUI() {
     // 参数 2 滑条
     auto *p2Row = new QHBoxLayout();
     m_param2NameLabel = new QLabel("高阈值 (Threshold 2):", leftPanel);
-    m_param2NameLabel->setStyleSheet("font-size: 12px; color: #475569; border: none;");
+    m_param2NameLabel->setObjectName("CardSubTitle");
     m_param2ValLabel = new QLabel("150", leftPanel);
-    m_param2ValLabel->setStyleSheet("font-size: 12px; font-weight: bold; color: #2563eb; border: none;");
+    m_param2ValLabel->setStyleSheet("font-size: 12px; font-weight: bold; color: #38bdf8; border: none;");
     p2Row->addWidget(m_param2NameLabel);
     p2Row->addStretch();
     p2Row->addWidget(m_param2ValLabel);
@@ -108,8 +105,8 @@ void ImageProcessorPage::setupUI() {
     leftLayout->addWidget(saveBtn);
 
     m_infoLabel = new QLabel("就绪。载入图片并调节滑块可实时查看算法效果。", leftPanel);
+    m_infoLabel->setObjectName("StatusBox");
     m_infoLabel->setWordWrap(true);
-    m_infoLabel->setStyleSheet("background-color: #f8fafc; border-radius: 6px; padding: 10px; font-size: 12px; color: #64748b; border: none;");
     leftLayout->addWidget(m_infoLabel);
 
     leftLayout->addStretch();
@@ -117,7 +114,7 @@ void ImageProcessorPage::setupUI() {
 
     // 右侧大图画廊
     auto *rightPanel = new QFrame(this);
-    rightPanel->setStyleSheet("QFrame { background-color: #ffffff; border: 1px solid #e2e8f0; border-radius: 10px; }");
+    rightPanel->setObjectName("PanelCard");
     auto *rightLayout = new QVBoxLayout(rightPanel);
     rightLayout->setContentsMargins(15, 15, 15, 15);
 

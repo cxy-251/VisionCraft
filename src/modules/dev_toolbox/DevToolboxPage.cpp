@@ -1,4 +1,5 @@
 #include "DevToolboxPage.h"
+#include "ThemeManager.h"
 #include <QVBoxLayout>
 #include <QHBoxLayout>
 #include <QFrame>
@@ -23,19 +24,18 @@ void DevToolboxPage::setupUI() {
 
     // 左侧：JSON 校验与美化器
     auto *leftPanel = new QFrame(this);
-    leftPanel->setStyleSheet("QFrame { background-color: #ffffff; border: 1px solid #e2e8f0; border-radius: 10px; }");
+    leftPanel->setObjectName("PanelCard");
     auto *leftLayout = new QVBoxLayout(leftPanel);
     leftLayout->setContentsMargins(18, 18, 18, 18);
     leftLayout->setSpacing(12);
 
     auto *leftTitle = new QLabel("📋 JSON 语法高亮校验与格式化 (nlohmann-json)", leftPanel);
-    leftTitle->setStyleSheet("font-size: 15px; font-weight: 700; color: #0f172a; border: none;");
+    leftTitle->setObjectName("CardTitle");
     leftLayout->addWidget(leftTitle);
 
     m_inputJsonEdit = new QTextEdit(leftPanel);
     m_inputJsonEdit->setPlaceholderText("在此输入或粘贴需要解析/格式化的原始 JSON 文本...");
     m_inputJsonEdit->setPlainText("{\"project\":\"VisionCraft\",\"version\":\"1.0.0\",\"enabled\":true,\"features\":[\"ScreenMatcher\",\"FilterLab\",\"Toolbox\"],\"runtime\":{\"compiler\":\"MSVC\",\"gui\":\"Qt6\"}}");
-    m_inputJsonEdit->setStyleSheet("font-family: 'Consolas', 'Courier New', monospace; font-size: 13px; border: 1px solid #cbd5e1; border-radius: 6px;");
     leftLayout->addWidget(m_inputJsonEdit, 1);
 
     auto *btnRow = new QHBoxLayout();
@@ -57,41 +57,52 @@ void DevToolboxPage::setupUI() {
     m_outputJsonEdit = new QTextEdit(leftPanel);
     m_outputJsonEdit->setReadOnly(true);
     m_outputJsonEdit->setPlaceholderText("解析输出结果将在此展示...");
-    m_outputJsonEdit->setStyleSheet("font-family: 'Consolas', 'Courier New', monospace; font-size: 13px; background-color: #f8fafc; border: 1px solid #cbd5e1; border-radius: 6px; color: #0f172a;");
     leftLayout->addWidget(m_outputJsonEdit, 1);
 
     m_jsonStatusLabel = new QLabel("就绪", leftPanel);
-    m_jsonStatusLabel->setStyleSheet("font-size: 12px; color: #64748b; border: none;");
+    m_jsonStatusLabel->setObjectName("StatusBox");
     leftLayout->addWidget(m_jsonStatusLabel);
 
     mainLayout->addWidget(leftPanel, 3);
 
     // 右侧：系统信息诊断面板
     auto *rightPanel = new QFrame(this);
+    rightPanel->setObjectName("PanelCard");
     rightPanel->setFixedWidth(300);
-    rightPanel->setStyleSheet("QFrame { background-color: #ffffff; border: 1px solid #e2e8f0; border-radius: 10px; }");
     auto *rightLayout = new QVBoxLayout(rightPanel);
     rightLayout->setContentsMargins(18, 18, 18, 18);
     rightLayout->setSpacing(14);
 
     auto *rightTitle = new QLabel("🖥️ 系统与硬件状态", rightPanel);
-    rightTitle->setStyleSheet("font-size: 15px; font-weight: 700; color: #0f172a; border: none;");
+    rightTitle->setObjectName("CardTitle");
     rightLayout->addWidget(rightTitle);
 
     m_sysInfoLabel = new QLabel(rightPanel);
     m_sysInfoLabel->setWordWrap(true);
-    m_sysInfoLabel->setStyleSheet("font-size: 13px; color: #334155; line-height: 1.6; border: none;");
     rightLayout->addWidget(m_sysInfoLabel);
 
     rightLayout->addStretch();
 
     auto *refreshBtn = new QPushButton("🔄 刷新系统指标", rightPanel);
-    refreshBtn->setStyleSheet("QPushButton { background-color: #f1f5f9; border: 1px solid #cbd5e1; border-radius: 6px; padding: 8px; font-size: 13px; font-weight: 500; }"
-                             "QPushButton:hover { background-color: #e2e8f0; }");
+    refreshBtn->setObjectName("SecondaryBtn");
     connect(refreshBtn, &QPushButton::clicked, this, &DevToolboxPage::refreshSystemInfo);
     rightLayout->addWidget(refreshBtn);
 
     mainLayout->addWidget(rightPanel, 2);
+
+    auto updateThemeColors = [this](bool isDark) {
+        if (isDark) {
+            m_inputJsonEdit->setStyleSheet("font-family: 'Consolas', 'Courier New', monospace; font-size: 13px; background-color: #1e293b; color: #f8fafc; border: 1px solid #475569; border-radius: 6px;");
+            m_outputJsonEdit->setStyleSheet("font-family: 'Consolas', 'Courier New', monospace; font-size: 13px; background-color: #0b1329; color: #f8fafc; border: 1px solid #334155; border-radius: 6px;");
+            m_sysInfoLabel->setStyleSheet("font-size: 13px; color: #cbd5e1; line-height: 1.6; border: none;");
+        } else {
+            m_inputJsonEdit->setStyleSheet("font-family: 'Consolas', 'Courier New', monospace; font-size: 13px; background-color: #ffffff; color: #0f172a; border: 1px solid #cbd5e1; border-radius: 6px;");
+            m_outputJsonEdit->setStyleSheet("font-family: 'Consolas', 'Courier New', monospace; font-size: 13px; background-color: #f8fafc; color: #0f172a; border: 1px solid #cbd5e1; border-radius: 6px;");
+            m_sysInfoLabel->setStyleSheet("font-size: 13px; color: #334155; line-height: 1.6; border: none;");
+        }
+    };
+    updateThemeColors(ThemeManager::instance().isDarkMode());
+    connect(&ThemeManager::instance(), &ThemeManager::themeChanged, this, updateThemeColors);
 
     refreshSystemInfo();
     formatJSON();

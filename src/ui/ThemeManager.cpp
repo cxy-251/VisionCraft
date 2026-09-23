@@ -125,6 +125,47 @@ QString ThemeManager::currentGlobalStyleSheet() const {
             }
             QPushButton:hover { background-color: #3b82f6; }
             QPushButton:pressed { background-color: #1d4ed8; }
+
+            #ToolCard, #PanelCard {
+                background-color: #1e293b;
+                border: 1px solid #334155;
+                border-radius: 10px;
+            }
+            #ToolCard:hover {
+                background-color: #24344d;
+                border: 1px solid #38bdf8;
+            }
+            QPushButton#SecondaryBtn {
+                background-color: #334155;
+                color: #f8fafc;
+                border: 1px solid #475569;
+                border-radius: 6px;
+                padding: 7px 12px;
+                font-weight: 500;
+            }
+            QPushButton#SecondaryBtn:hover {
+                background-color: #475569;
+            }
+            #StatusBox {
+                background-color: #0b1329;
+                border: 1px solid #334155;
+                border-radius: 6px;
+                padding: 10px;
+                font-size: 12px;
+                color: #94a3b8;
+            }
+            #CardTitle {
+                font-size: 16px;
+                font-weight: 700;
+                color: #f8fafc;
+                border: none;
+            }
+            #CardSubTitle {
+                font-size: 13px;
+                font-weight: 600;
+                color: #94a3b8;
+                border: none;
+            }
         )";
     } else {
         // 高对比度浅色模式
@@ -183,6 +224,47 @@ QString ThemeManager::currentGlobalStyleSheet() const {
             }
             QPushButton:hover { background-color: #1d4ed8; }
             QPushButton:pressed { background-color: #1e40af; }
+
+            #ToolCard, #PanelCard {
+                background-color: #ffffff;
+                border: 1px solid #e2e8f0;
+                border-radius: 10px;
+            }
+            #ToolCard:hover {
+                background-color: #f8fafc;
+                border: 1px solid #3b82f6;
+            }
+            QPushButton#SecondaryBtn {
+                background-color: #f1f5f9;
+                color: #334155;
+                border: 1px solid #cbd5e1;
+                border-radius: 6px;
+                padding: 7px 12px;
+                font-weight: 500;
+            }
+            QPushButton#SecondaryBtn:hover {
+                background-color: #e2e8f0;
+            }
+            #StatusBox {
+                background-color: #f8fafc;
+                border: 1px solid #e2e8f0;
+                border-radius: 6px;
+                padding: 10px;
+                font-size: 12px;
+                color: #334155;
+            }
+            #CardTitle {
+                font-size: 16px;
+                font-weight: 700;
+                color: #0f172a;
+                border: none;
+            }
+            #CardSubTitle {
+                font-size: 13px;
+                font-weight: 600;
+                color: #475569;
+                border: none;
+            }
         )";
     }
 }

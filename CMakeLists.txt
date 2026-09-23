@@ -23,6 +23,7 @@ find_package(nlohmann_json CONFIG REQUIRED)
 # 头文件搜索路径
 include_directories(
     src
+    src/ui
     ${OpenCV_INCLUDE_DIRS}
 )
 

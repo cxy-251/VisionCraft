@@ -10,7 +10,7 @@ set(CMAKE_AUTOUIC ON)
 
 # 1. Qt 6
 list(APPEND CMAKE_PREFIX_PATH "C:/02Programmer/Qt/6.7.3/msvc2019_64")
-find_package(Qt6 REQUIRED COMPONENTS Core Gui Widgets)
+find_package(Qt6 REQUIRED COMPONENTS Core Gui Widgets Concurrent)
 
 # 2. OpenCV 4
 set(OpenCV_DIR "C:/02Programmer/opencv/build")
@@ -64,6 +64,7 @@ target_link_libraries(VisionCraft PRIVATE
     Qt6::Core
     Qt6::Gui
     Qt6::Widgets
+    Qt6::Concurrent
     ${OpenCV_LIBS}
     fmt::fmt
     nlohmann_json::nlohmann_json

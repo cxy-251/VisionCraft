@@ -2,6 +2,7 @@
 #include <opencv2/imgproc.hpp>
 #include <opencv2/core.hpp>
 #include <opencv2/features2d.hpp>
+#include <opencv2/objdetect.hpp>
 #include <fmt/format.h>
 #include <vector>
 #include <cmath>
@@ -1422,6 +1423,439 @@ void KnowledgeRegistry::initOpenCVTopics() {
         m_topics.append(t);
         m_topicMap[t.id] = t;
     }
+
+    // ========================================================
+    // 11. OpenCV 11. 图像算术与位运算 (视觉实操)
+    // ========================================================
+    {
+        KnowledgeTopic t;
+        t.id = "cv_add_weighted";
+        t.framework = "OpenCV";
+        t.category = "OpenCV 11. 图像算术与位运算";
+        t.name = "图像线性混合与加权融合 (addWeighted)";
+        t.tag = "多重曝光融图与透明遮罩叠加";
+        t.isVisualInteractive = true;
+        t.apiSignature = "void cv::addWeighted(InputArray src1, double alpha, InputArray src2, double beta, double gamma, OutputArray dst, int dtype = -1);";
+        t.docSummary = "按公式 <code>dst = alpha * src1 + beta * src2 + gamma</code> 对两幅尺寸与通道相同的图像执行逐像素线性混合。广泛用于半透明水印融合、工业温度热力图半透明覆盖于零件实物图之上。";
+        t.docParams = "• <b>alpha:</b> 第一幅图像权重系数 (0.0 ~ 1.0)。<br>"
+                      "• <b>beta:</b> 第二幅图像权重系数 (0.0 ~ 1.0)。<br>"
+                      "• <b>gamma:</b> 像素级亮度增益偏移标量。";
+        t.usageTiming = "红外热成像与可见光双波段融合、深度图与彩色图半透明叠加、高对比度水印渲染。";
+        t.bestPractices = "两幅图像必须具有**完全相同的分辨率与通道数**！若要与单通道图融合，必须先用 `cvtColor` 转为 3 通道。";
+
+        ParamDescriptor p1{"alpha", "原图权重 (alpha)", ParamType::SliderDouble, 0.0, 1.0, 0.05, 0.65, {}, {}, "第一图权重"};
+        ParamDescriptor p2{"beta", "覆盖层权重 (beta)", ParamType::SliderDouble, 0.0, 1.0, 0.05, 0.35, {}, {}, "第二图权重"};
+        ParamDescriptor p3{"gamma", "亮度偏移 (gamma)", ParamType::SliderInt, -50, 50, 5, 0, {}, {}, "全局亮度标量增益"};
+        t.params << p1 << p2 << p3;
+
+        t.codeGenerator = [](const QMap<QString, QVariant>& p) -> QString {
+            double a = p.value("alpha", 0.65).toDouble();
+            double b = p.value("beta", 0.35).toDouble();
+            int g = p.value("gamma", 0).toInt();
+            return QString::fromStdString(fmt::format(
+                "cv::Mat overlay = createThermalOverlay(src.size());\n"
+                "cv::Mat dst;\n"
+                "cv::addWeighted(src, {:.2f}, overlay, {:.2f}, {}, dst);", a, b, g));
+        };
+        t.cvRunner = [](const cv::Mat &src, cv::Mat &dst, const QMap<QString, QVariant>& p, QString &note) {
+            double a = p.value("alpha", 0.65).toDouble();
+            double b = p.value("beta", 0.35).toDouble();
+            int g = p.value("gamma", 0).toInt();
+            cv::Mat overlay(src.size(), src.type(), cv::Scalar(180, 100, 30));
+            cv::circle(overlay, cv::Point(src.cols / 2, src.rows / 2), qMin(src.cols, src.rows) / 3, cv::Scalar(40, 220, 255), -1);
+            cv::GaussianBlur(overlay, overlay, cv::Size(45, 45), 0);
+            cv::addWeighted(src, a, overlay, b, g, dst);
+            note = QString("加权混合完成：alpha=%1, beta=%2, gamma=%3").arg(a, 0, 'f', 2).arg(b, 0, 'f', 2).arg(g);
+        };
+        m_topics.append(t);
+        m_topicMap[t.id] = t;
+    }
+
+    {
+        KnowledgeTopic t;
+        t.id = "cv_bitwise_mask";
+        t.framework = "OpenCV";
+        t.category = "OpenCV 11. 图像算术与位运算";
+        t.name = "逻辑位运算与非规则掩膜 (bitwise_and / Masking)";
+        t.tag = "精准提取任意多边形/圆形 ROI 区域";
+        t.isVisualInteractive = true;
+        t.apiSignature = "void cv::bitwise_and(InputArray src1, InputArray src2, OutputArray dst, InputArray mask = noArray());\nvoid cv::bitwise_not(InputArray src, OutputArray dst);";
+        t.docSummary = "按位与、或、异或和非运算。在机器视觉中，掩膜（Mask）是一个单通道二值黑白图（白色 255 代表保留，黑色 0 代表剔除），利用 <code>bitwise_and</code> 可以毫秒级挖出任意异形几何区域，过滤外界反光与机械背景干扰。";
+        t.docParams = "• <b>mask:</b> 8位单通道灰度图，非零像素位置对应的原图像素将被保留，零像素位置被置为纯黑。<br>"
+                      "• <b>bitwise_not:</b> 对像素按位取反（255-像素值），常用于前景背景反转。";
+        t.usageTiming = "工业圆形晶圆剔除外部托架、机器臂传送带多边形区域兴趣区（ROI）提取、缺陷抠图。";
+        t.bestPractices = "位运算在底层直接映射到 CPU 矢量指令（SIMD），比任何逐像素 `if` 判断快数千倍，是图像抠图的工业标准。";
+
+        ParamDescriptor p1{"shape", "掩膜几何形状", ParamType::ComboBox, 0, 2, 1, 0,
+            {"圆形中央掩膜 (Circle Mask)", "菱形多边形掩膜 (Diamond Mask)", "反向抠图 (Invert Mask)"},
+            {0, 1, 2}, "选择掩膜的几何拓扑"};
+        ParamDescriptor p2{"radius", "掩膜半径大小", ParamType::SliderInt, 60, 220, 10, 140, {}, {}, "掩膜几何半径"};
+        t.params << p1 << p2;
+
+        t.codeGenerator = [](const QMap<QString, QVariant>& p) -> QString {
+            int r = p.value("radius", 140).toInt();
+            return QString::fromStdString(fmt::format(
+                "cv::Mat mask = cv::Mat::zeros(src.size(), CV_8UC1);\n"
+                "cv::circle(mask, cv::Point(src.cols/2, src.rows/2), {}, cv::Scalar(255), -1);\n"
+                "cv::Mat dst = cv::Mat::zeros(src.size(), src.type());\n"
+                "src.copyTo(dst, mask); // 利用掩膜毫秒级提取 ROI", r));
+        };
+        t.cvRunner = [](const cv::Mat &src, cv::Mat &dst, const QMap<QString, QVariant>& p, QString &note) {
+            int mode = p.value("shape", 0).toInt();
+            int r = p.value("radius", 140).toInt();
+            cv::Mat mask = cv::Mat::zeros(src.size(), CV_8UC1);
+            cv::Point center(src.cols / 2, src.rows / 2);
+            if (mode == 0) {
+                cv::circle(mask, center, r, cv::Scalar(255), -1);
+            } else if (mode == 1) {
+                std::vector<cv::Point> diamond = {
+                    {center.x, center.y - r},
+                    {center.x + r, center.y},
+                    {center.x, center.y + r},
+                    {center.x - r, center.y}
+                };
+                cv::fillConvexPoly(mask, diamond, cv::Scalar(255));
+            } else {
+                cv::circle(mask, center, r, cv::Scalar(255), -1);
+                cv::bitwise_not(mask, mask);
+            }
+            dst = cv::Mat::zeros(src.size(), src.type());
+            src.copyTo(dst, mask);
+            note = QString("掩膜位运算完成：抠取 ROI 区域，背景像素置零");
+        };
+        m_topics.append(t);
+        m_topicMap[t.id] = t;
+    }
+
+    // ========================================================
+    // 12. OpenCV 12. 几何拟合与拓扑分析 (视觉实操)
+    // ========================================================
+    {
+        KnowledgeTopic t;
+        t.id = "cv_fit_shapes";
+        t.framework = "OpenCV";
+        t.category = "OpenCV 12. 几何拟合与拓扑分析";
+        t.name = "最小外接圆与拟合椭圆 (minEnclosingCircle / fitEllipse)";
+        t.tag = "工业圆度检测、轴承与椭圆几何测量";
+        t.isVisualInteractive = true;
+        t.apiSignature = "void cv::minEnclosingCircle(InputArray points, Point2f& center, float& radius);\nRotatedRect cv::fitEllipse(InputArray points);\nvoid cv::fitLine(InputArray points, OutputArray line, int distType, double param, double reps, double aeps);";
+        t.docSummary = "几何拟合算法能够从粗糙离散的边缘轮廓点中，以最小二乘法精确解算物体的几何参数（圆心坐标、真实半径、长短半轴、倾斜旋转角 $\\theta$）。";
+        t.docParams = "• <b>minEnclosingCircle:</b> 能够完全包裹住所有目标点的最小外接圆。<br>"
+                      "• <b>fitEllipse:</b> 最小二乘法拟合椭圆（要求轮廓至少包含 5 个点），返回 `RotatedRect`。";
+        t.usageTiming = "工业圆孔冲压尺寸公差检验（微米级圆度）、圆柱形销柱倾斜检测、螺丝螺纹倾角测量。";
+        t.bestPractices = "拟合前应当先进行亚像素边缘提取或中值滤波消除尖锐毛刺噪点，否则单个野点会导致拟合半径严重偏大。";
+
+        ParamDescriptor p1{"fitMode", "几何拟合算法模式", ParamType::ComboBox, 0, 2, 1, 0,
+            {"最小外接圆 (minEnclosingCircle)", "拟合椭圆 (fitEllipse)", "拟合轴线与外接矩形 (fitLine)"},
+            {0, 1, 2}, "选择拟合的几何基元"};
+        ParamDescriptor p2{"minThresh", "二值化分割阈值", ParamType::SliderInt, 20, 180, 5, 80, {}, {}, "前景分割阈值"};
+        t.params << p1 << p2;
+
+        t.codeGenerator = [](const QMap<QString, QVariant>& p) -> QString {
+            int m = p.value("fitMode", 0).toInt();
+            int th = p.value("minThresh", 80).toInt();
+            return QString::fromStdString(fmt::format(
+                "cv::Mat gray, bin;\n"
+                "cv::cvtColor(src, gray, cv::COLOR_BGR2GRAY);\n"
+                "cv::threshold(gray, bin, {}, 255, cv::THRESH_BINARY);\n"
+                "std::vector<std::vector<cv::Point>> contours;\n"
+                "cv::findContours(bin, contours, cv::RETR_EXTERNAL, cv::CHAIN_APPROX_SIMPLE);\n"
+                "for (const auto &cnt : contours) {{\n"
+                "    if (cnt.size() < 5) continue;\n"
+                "    {}\n"
+                "}}", th, (m == 0 ? "cv::Point2f pt; float r; cv::minEnclosingCircle(cnt, pt, r); cv::circle(dst, pt, cvRound(r), Scalar(0,255,0), 2);" : "cv::RotatedRect box = cv::fitEllipse(cnt); cv::ellipse(dst, box, Scalar(255,0,255), 2);")));
+        };
+        t.cvRunner = [](const cv::Mat &src, cv::Mat &dst, const QMap<QString, QVariant>& p, QString &note) {
+            int mode = p.value("fitMode", 0).toInt();
+            int th = p.value("minThresh", 80).toInt();
+            cv::Mat gray, bin;
+            if (src.channels() > 1) cv::cvtColor(src, gray, cv::COLOR_BGR2GRAY);
+            else gray = src.clone();
+            cv::threshold(gray, bin, th, 255, cv::THRESH_BINARY);
+            std::vector<std::vector<cv::Point>> contours;
+            cv::findContours(bin, contours, cv::RETR_EXTERNAL, cv::CHAIN_APPROX_SIMPLE);
+            dst = src.clone();
+            if (dst.channels() == 1) cv::cvtColor(dst, dst, cv::COLOR_GRAY2BGR);
+            int fitCount = 0;
+            for (const auto &cnt : contours) {
+                if (cnt.size() < 5) continue;
+                fitCount++;
+                if (mode == 0) {
+                    cv::Point2f center;
+                    float radius = 0.f;
+                    cv::minEnclosingCircle(cnt, center, radius);
+                    cv::circle(dst, center, cvRound(radius), cv::Scalar(0, 255, 0), 2, cv::LINE_AA);
+                    cv::circle(dst, center, 3, cv::Scalar(0, 0, 255), -1, cv::LINE_AA);
+                } else if (mode == 1) {
+                    cv::RotatedRect box = cv::fitEllipse(cnt);
+                    cv::ellipse(dst, box, cv::Scalar(255, 0, 255), 2, cv::LINE_AA);
+                } else {
+                    cv::Vec4f line;
+                    cv::fitLine(cnt, line, cv::DIST_L2, 0, 0.01, 0.01);
+                    float vx = line[0], vy = line[1], x0 = line[2], y0 = line[3];
+                    cv::Point p1(cvRound(x0 - vx * 200), cvRound(y0 - vy * 200));
+                    cv::Point p2(cvRound(x0 + vx * 200), cvRound(y0 + vy * 200));
+                    cv::line(dst, p1, p2, cv::Scalar(0, 255, 255), 2, cv::LINE_AA);
+                    cv::Rect r = cv::boundingRect(cnt);
+                    cv::rectangle(dst, r, cv::Scalar(0, 165, 255), 1, cv::LINE_AA);
+                }
+            }
+            note = QString("几何拟合解算完成：共拟合 %1 个轮廓对象").arg(fitCount);
+        };
+        m_topics.append(t);
+        m_topicMap[t.id] = t;
+    }
+
+    {
+        KnowledgeTopic t;
+        t.id = "cv_convex_hull";
+        t.framework = "OpenCV";
+        t.category = "OpenCV 12. 几何拟合与拓扑分析";
+        t.name = "凸包多边形与凹缺陷检测 (convexHull / convexityDefects)";
+        t.tag = "手势指缝分析与冲压零件缺口毛刺";
+        t.isVisualInteractive = true;
+        t.apiSignature = "void cv::convexHull(InputArray points, OutputArray hull, bool clockwise = false, bool returnPoints = true);\nvoid cv::convexityDefects(InputArray contour, InputArray hull, OutputArray convexityDefects);";
+        t.docSummary = "凸包（Convex Hull）是完全包围一个多边形或轮廓点集的最小凸多边形（橡皮筋紧绷在物体外围的形状）。凸包与物体原始轮廓之间的内陷区域即为<b>凸缺陷（Convexity Defects）</b>。";
+        t.docParams = "• <b>convexityDefects:</b> 返回四元组向量 [起始点索引, 终止点索引, 最深内陷点索引, 内陷深度距离(乘以256)]。";
+        t.usageTiming = "手势识别（通过凹缺陷统计指缝与伸出手指数量）、齿轮断齿与冲压件边缘毛刺凹凸缺陷检测。";
+        t.bestPractices = "调用 `convexityDefects` 时，传入的 `hull` 必须是包含**轮廓点索引（int）**的整数向量，而不是坐标点向量，否则函数会报错崩溃！";
+
+        ParamDescriptor p1{"defectDepth", "凹陷深度阈值 (Depth)", ParamType::SliderInt, 5, 60, 5, 15, {}, {}, "过滤微小噪点的凹陷深度"};
+        t.params << p1;
+
+        t.codeGenerator = [](const QMap<QString, QVariant>& p) -> QString {
+            int d = p.value("defectDepth", 15).toInt();
+            return QString::fromStdString(fmt::format(
+                "std::vector<int> hullIndices;\n"
+                "cv::convexHull(contour, hullIndices, false, false);\n"
+                "std::vector<cv::Vec4i> defects;\n"
+                "cv::convexityDefects(contour, hullIndices, defects);\n"
+                "// 深度过滤 (d[3] / 256.0f > {})\n", d));
+        };
+        t.cvRunner = [](const cv::Mat &src, cv::Mat &dst, const QMap<QString, QVariant>& p, QString &note) {
+            int depthThresh = p.value("defectDepth", 15).toInt();
+            cv::Mat gray, bin;
+            if (src.channels() > 1) cv::cvtColor(src, gray, cv::COLOR_BGR2GRAY);
+            else gray = src.clone();
+            cv::threshold(gray, bin, 80, 255, cv::THRESH_BINARY);
+            std::vector<std::vector<cv::Point>> contours;
+            cv::findContours(bin, contours, cv::RETR_EXTERNAL, cv::CHAIN_APPROX_SIMPLE);
+            dst = src.clone();
+            if (dst.channels() == 1) cv::cvtColor(dst, dst, cv::COLOR_GRAY2BGR);
+            int defectCount = 0;
+            for (const auto &cnt : contours) {
+                if (cnt.size() < 6) continue;
+                std::vector<int> hullIndices;
+                cv::convexHull(cnt, hullIndices, false, false);
+                std::vector<cv::Point> hullPoints;
+                cv::convexHull(cnt, hullPoints, false, true);
+                cv::polylines(dst, hullPoints, true, cv::Scalar(0, 255, 0), 2, cv::LINE_AA);
+                if (hullIndices.size() > 3) {
+                    std::vector<cv::Vec4i> defects;
+                    cv::convexityDefects(cnt, hullIndices, defects);
+                    for (const auto &df : defects) {
+                        float depth = df[3] / 256.0f;
+                        if (depth > depthThresh) {
+                            cv::Point farPt = cnt[df[2]];
+                            cv::circle(dst, farPt, 5, cv::Scalar(0, 0, 255), -1, cv::LINE_AA);
+                            defectCount++;
+                        }
+                    }
+                }
+            }
+            note = QString("凸包多边形绘制完成，检出 %1 处深凹缺陷点").arg(defectCount);
+        };
+        m_topics.append(t);
+        m_topicMap[t.id] = t;
+    }
+
+    {
+        KnowledgeTopic t;
+        t.id = "cv_distance_transform";
+        t.framework = "OpenCV";
+        t.category = "OpenCV 12. 几何拟合与拓扑分析";
+        t.name = "距离变换与骨架细化 (distanceTransform)";
+        t.tag = "二值中心轴骨架与分水岭种子提取";
+        t.isVisualInteractive = true;
+        t.apiSignature = "void cv::distanceTransform(InputArray src, OutputArray dst, int distanceType, int maskSize, int dstType = CV_32F);";
+        t.docSummary = "计算二值图像中每一个前景像素到其<b>最近的背景（0 像素）边界的欧氏距离</b>。越靠近物体内部核心，像素值越大（呈现亮白色山峰）；越靠近边缘，像素值越小。";
+        t.docParams = "• <b>distanceType:</b> 距离度量标准（`DIST_L2` 欧几里得几何距离、`DIST_L1` 曼哈顿距离）。<br>"
+                      "• <b>maskSize:</b> 距离变换近似卷积核大小（通常为 3 或 5）。";
+        t.usageTiming = "物体中心骨架提取、分水岭算法寻找局部前景种子点、工件最厚壁厚测量。";
+        t.bestPractices = "输出是 `CV_32FC1` 单精度浮点图，可视化时需用 `cv::normalize` 线性缩放到 0~255。";
+
+        ParamDescriptor p1{"distType", "距离计算度量", ParamType::ComboBox, 0, 2, 1, 0,
+            {"DIST_L2 (精确欧几里得几何距离)", "DIST_L1 (曼哈顿轴线距离)", "DIST_C (切比雪夫对角距离)"},
+            {0, 1, 2}, "选择距离度量公式"};
+        t.params << p1;
+
+        t.codeGenerator = [](const QMap<QString, QVariant>&) -> QString {
+            return 
+                "cv::Mat distFloat, distNorm, dst;\n"
+                "cv::distanceTransform(bin, distFloat, cv::DIST_L2, 3);\n"
+                "cv::normalize(distFloat, distNorm, 0, 255, cv::NORM_MINMAX, CV_8UC1);\n"
+                "cv::applyColorMap(distNorm, dst, cv::COLORMAP_JET); // 伪彩色热力图呈现";
+        };
+        t.cvRunner = [](const cv::Mat &src, cv::Mat &dst, const QMap<QString, QVariant>& p, QString &note) {
+            int distType = p.value("distType", 0).toInt();
+            int dt = (distType == 0 ? cv::DIST_L2 : (distType == 1 ? cv::DIST_L1 : cv::DIST_C));
+            cv::Mat gray, bin;
+            if (src.channels() > 1) cv::cvtColor(src, gray, cv::COLOR_BGR2GRAY);
+            else gray = src.clone();
+            cv::threshold(gray, bin, 100, 255, cv::THRESH_BINARY);
+            cv::Mat distFloat;
+            cv::distanceTransform(bin, distFloat, dt, 3);
+            cv::Mat distNorm;
+            cv::normalize(distFloat, distNorm, 0, 255, cv::NORM_MINMAX, CV_8UC1);
+            cv::applyColorMap(distNorm, dst, cv::COLORMAP_JET);
+            note = QString("距离变换完成：呈现中心骨架高亮热力分布图");
+        };
+        m_topics.append(t);
+        m_topicMap[t.id] = t;
+    }
+
+    // ========================================================
+    // 13. OpenCV 13. 工业条码识别与三维对齐 (实操与架构)
+    // ========================================================
+    {
+        KnowledgeTopic t;
+        t.id = "cv_qrcode_detect";
+        t.framework = "OpenCV";
+        t.category = "OpenCV 13. 工业条码识别与三维对齐";
+        t.name = "工业二维码与条形码全自动定位与解码 (QRCodeDetector)";
+        t.tag = "高鲁棒性工业扫码与几何四边形矫正";
+        t.isVisualInteractive = true;
+        t.apiSignature = "cv::QRCodeDetector detector;\nstd::string text = detector.detectAndDecode(src, points, straight_qrcode);";
+        t.docSummary = "OpenCV 原生搭载的二维码检测与解码引擎。能够在复杂工业背景、微弱倾斜与反光条件下，毫秒级检测出 QR Code 的三个回字形定位角点，输出包裹四边形坐标与解密后的文本字符串，并支持透视旋正。";
+        t.docParams = "• <b>points:</b> 输出的 4 个顶点像素坐标点（Point2f），顺时针排列。<br>"
+                      "• <b>straight_qrcode:</b> 经过透视矫正后生成的笔直方形黑白二维码切片。";
+        t.usageTiming = "工业 AGV 搬运车地面二维码导航定位、流水线零部件二维码追踪追溯扫码。";
+        t.bestPractices = "若图像分辨率过大（如 4K），直接全图扫码较慢；可先通过 OTSU 二值化提取轮廓粗筛，再把疑似 ROI 传给 QRCodeDetector，解码速度可提升 10 倍。";
+
+        ParamDescriptor p1{"drawMode", "标注呈现模式", ParamType::ComboBox, 0, 1, 1, 0,
+            {"绘制定位边框与角点 (Bounding Box)", "提取画中画校正二维码 (Straight QR)"},
+            {0, 1}, "选择检测结果渲染方式"};
+        t.params << p1;
+
+        t.codeGenerator = [](const QMap<QString, QVariant>&) -> QString {
+            return 
+                "cv::QRCodeDetector detector;\n"
+                "std::vector<cv::Point2f> points;\n"
+                "cv::Mat straightQr;\n"
+                "std::string info = detector.detectAndDecode(src, points, straightQr);\n"
+                "if (!points.empty()) {\n"
+                "    for (int i = 0; i < 4; ++i) cv::line(dst, points[i], points[(i+1)%4], cv::Scalar(0,255,0), 3);\n"
+                "}";
+        };
+        t.cvRunner = [](const cv::Mat &src, cv::Mat &dst, const QMap<QString, QVariant>& p, QString &note) {
+            int drawMode = p.value("drawMode", 0).toInt();
+            static cv::QRCodeDetector detector;
+            std::vector<cv::Point2f> points;
+            cv::Mat straightQr;
+            std::string decodedInfo = detector.detectAndDecode(src, points, straightQr);
+            dst = src.clone();
+            if (!points.empty()) {
+                for (size_t i = 0; i < 4; ++i) {
+                    cv::line(dst, points[i], points[(i + 1) % 4], cv::Scalar(0, 255, 0), 3, cv::LINE_AA);
+                    cv::circle(dst, points[i], 6, cv::Scalar(0, 0, 255), -1, cv::LINE_AA);
+                }
+                if (!decodedInfo.empty()) {
+                    cv::putText(dst, decodedInfo, cv::Point(cvRound(points[0].x), cvRound(qMax(20.f, points[0].y - 10.f))),
+                                cv::FONT_HERSHEY_SIMPLEX, 0.7, cv::Scalar(0, 255, 255), 2, cv::LINE_AA);
+                }
+                if (drawMode == 1 && !straightQr.empty()) {
+                    cv::Mat qrRgb;
+                    if (straightQr.channels() == 1) cv::cvtColor(straightQr, qrRgb, cv::COLOR_GRAY2BGR);
+                    else qrRgb = straightQr;
+                    cv::resize(qrRgb, qrRgb, cv::Size(120, 120), 0, 0, cv::INTER_NEAREST);
+                    qrRgb.copyTo(dst(cv::Rect(dst.cols - 130, 10, 120, 120)));
+                }
+                note = QString("QR 码识别成功！解码内容: %1").arg(QString::fromStdString(decodedInfo));
+            } else {
+                cv::putText(dst, "Waiting for QR Code in view...", cv::Point(30, 40),
+                            cv::FONT_HERSHEY_SIMPLEX, 0.7, cv::Scalar(0, 165, 255), 2, cv::LINE_AA);
+                note = QString("未在当前画幅中检出标准 QR 码，请将二维码放置在画面中");
+            }
+        };
+        m_topics.append(t);
+        m_topicMap[t.id] = t;
+    }
+
+    {
+        KnowledgeTopic t;
+        t.id = "cv_homography_align";
+        t.framework = "OpenCV";
+        t.category = "OpenCV 13. 工业条码识别与三维对齐";
+        t.name = "单应性矩阵与多图精准配准对齐 (findHomography)";
+        t.tag = "PCB 印刷板缺陷金标差分与透视校正";
+        t.isVisualInteractive = false;
+        t.apiSignature = "cv::Mat H = cv::findHomography(srcPoints, dstPoints, cv::RANSAC, 3.0);\ncv::warpPerspective(currentImg, alignedImg, H, goldenTemplate.size());";
+        t.docSummary = "单应性矩阵（Homography）描述了两幅 2D 平面图像在不同视角下的几何映射关系（3x3 矩阵，8 自由度）。通过特征匹配获取对应点对，利用 RANSAC 鲁棒解算，可将任意倾斜、微小位移的工件图像<b>100% 像素级对齐校正到标准模板坐标系</b>，进而做差分检测缺陷。";
+        t.docParams = "• <b>srcPoints & dstPoints:</b> 对应的特征匹配点坐标对（至少 4 对，通常几百对）。<br>"
+                      "• <b>method:</b> 优先使用 `cv::RANSAC`，自动滤除由于反光和遮挡产生的误匹配噪点。<br>"
+                      "• <b>ransacReprojThreshold:</b> 允许的最大重投影像素误差（通常 1.0 ~ 3.0）。";
+        t.usageTiming = "工业印刷电路板（PCB）断线与锡珠缺陷比对、多传感器图像融合、全景图无缝拼接。";
+        t.bestPractices = "图像配准对齐后，直接做 `absdiff(alignedImg, goldenTemplate)` 即可得到两幅图的差异。大于阈值的残差区域即为工件漏印、异物或短路缺陷！";
+        t.codeSnippet = 
+            "// PCB 印刷电路板精准对齐与缺陷差分范式：\n"
+            "#include <opencv2/calib3d.hpp>\n"
+            "#include <opencv2/imgproc.hpp>\n\n"
+            "void alignAndDetectDefects(const cv::Mat &goldenTemplate, const cv::Mat &currentWorkpiece) {\n"
+            "    // 1. 提取两图特征点并进行描述子匹配 (获取匹配对 srcPts 与 dstPts)\n"
+            "    std::vector<cv::Point2f> srcPts, dstPts;\n"
+            "    // ... 特征匹配与 RANSAC 优选 ...\n\n"
+            "    // 2. 解算 3x3 单应性配准矩阵\n"
+            "    cv::Mat H = cv::findHomography(srcPts, dstPts, cv::RANSAC, 3.0);\n\n"
+            "    // 3. 透视重投影对齐\n"
+            "    cv::Mat alignedWorkpiece;\n"
+            "    cv::warpPerspective(currentWorkpiece, alignedWorkpiece, H, goldenTemplate.size());\n\n"
+            "    // 4. 绝对差分定位微小缺陷\n"
+            "    cv::Mat diff, defectMask;\n"
+            "    cv::absdiff(goldenTemplate, alignedWorkpiece, diff);\n"
+            "    cv::threshold(diff, defectMask, 40, 255, cv::THRESH_BINARY);\n"
+            "}";
+        m_topics.append(t);
+        m_topicMap[t.id] = t;
+    }
+
+    {
+        KnowledgeTopic t;
+        t.id = "cv_watershed";
+        t.framework = "OpenCV";
+        t.category = "OpenCV 13. 工业条码识别与三维对齐";
+        t.name = "分水岭算法解决重叠粘连物体分割 (watershed)";
+        t.tag = "拓扑地貌模拟与粘连细胞/药丸分离";
+        t.isVisualInteractive = false;
+        t.apiSignature = "void cv::watershed(InputArray image, InputOutputArray markers);";
+        t.docSummary = "经典的基于拓扑数学形态学的图像分割算法。将图像视为地表高低地貌（灰度高处为山脊，低处为盆地），从用户指定的“种子注水点（Markers）”开始注水，当不同盆地的水即将汇聚时筑起“分水岭坝”，从而在粘连交界处精准切断分割。";
+        t.docParams = "• <b>image:</b> 必须为 8 位 3 通道 BGR 图像。<br>"
+                      "• <b>markers:</b> 32 位有符号单通道整数矩阵 `CV_32SC1`，不同目标打上不同整数标签（1, 2, 3...），背景打标签，未知区域为 0。函数执行后分水岭边界被标为 -1。";
+        t.usageTiming = "工业生产线堆叠紧贴的轴承圆球计数、药厂流水线重叠药丸独立分离、生物医学粘连细胞分离。";
+        t.bestPractices = "分水岭必须配合**“距离变换提取种子中心（Distance Transform + ConnectedComponents）”**使用，严禁盲目不给种子直接调用，否则会产生严重的“过分割（Over-segmentation）”。";
+        t.codeSnippet = 
+            "// 工业级粘连物体分水岭分离完整流水线：\n"
+            "#include <opencv2/imgproc.hpp>\n\n"
+            "void segmentOverlappingObjects(const cv::Mat &srcBgr) {\n"
+            "    cv::Mat gray, bin;\n"
+            "    cv::cvtColor(srcBgr, gray, cv::COLOR_BGR2GRAY);\n"
+            "    cv::threshold(gray, bin, 0, 255, cv::THRESH_BINARY | cv::THRESH_OTSU);\n\n"
+            "    // 1. 距离变换提取每一个物体的核心高地\n"
+            "    cv::Mat dist;\n"
+            "    cv::distanceTransform(bin, dist, cv::DIST_L2, 3);\n"
+            "    cv::Mat sureFg;\n"
+            "    cv::threshold(dist, sureFg, 0.5 * 100.0, 255, cv::THRESH_BINARY);\n"
+            "    sureFg.convertTo(sureFg, CV_8U);\n\n"
+            "    // 2. 连通域标记注入独立整数种子\n"
+            "    cv::Mat markers;\n"
+            "    cv::connectedComponents(sureFg, markers);\n"
+            "    markers = markers + 1; // 背景设为 1，未知区域设为 0\n\n"
+            "    // 3. 运行分水岭分割\n"
+            "    cv::watershed(srcBgr, markers);\n"
+            "    // markers == -1 的像素即为粘连处的精准切割线！\n"
+            "}";
+        m_topics.append(t);
+        m_topicMap[t.id] = t;
+    }
 }
 
 void KnowledgeRegistry::initQtTopics() {
@@ -2203,4 +2637,290 @@ void KnowledgeRegistry::initQtTopics() {
         m_topics.append(t);
         m_topicMap[t.id] = t;
     }
+
+    // ========================================================
+    // 14. Qt 02. 多线程、并发与异步流水线 (高阶拓展)
+    // ========================================================
+    {
+        KnowledgeTopic t;
+        t.id = "qt_concurrent_run";
+        t.framework = "Qt";
+        t.category = "Qt 02. 多线程、并发与异步流水线";
+        t.name = "函数式高阶并发计算 (QtConcurrent::run / QFutureWatcher)";
+        t.tag = "免写 QThread / 线程池自适应多核密集型任务";
+        t.isVisualInteractive = false;
+        t.apiSignature = "QFuture<cv::Mat> future = QtConcurrent::run(QThreadPool::globalInstance(), [img]() {\n    return heavyVisionAlgorithm(img);\n});\nQFutureWatcher<cv::Mat> *watcher = new QFutureWatcher<cv::Mat>(this);\nconnect(watcher, &QFutureWatcher::finished, this, &Handler::onDone);";
+        t.docSummary = "工业视觉算法通常包含计算密集型任务（如大津阈值分割、双边降噪滤波、三维点云法向量估计）。编写独立的 <code>QThread</code> 或 <code>Worker</code> 类往往需要繁琐的信号槽样板代码。<code>QtConcurrent::run</code> 提供了现代 C++ 高阶函数式并发接口，能够将任意 Lambda 表达式或函数直接提交到底层全局线程池 <code>QThreadPool</code> 执行。配合 <code>QFuture</code> 异步凭据和 <code>QFutureWatcher</code> 观察者，能在后台多核并发计算完成的瞬间，以 Qt 信号槽安全回弹主 UI 线程，彻底消除界面卡顿，代码量大幅缩减。";
+        t.docParams = "• <b>QtConcurrent::run:</b> 模板函数，接受可选的 QThreadPool*、可调用对象（Lambda/函数/成员函数指针）及可变参数列表，返回 QFuture&lt;T&gt;。<br>"
+                      "• <b>QFutureWatcher&lt;T&gt;:</b> 桥接 QFuture 与 Qt 事件循环的观察者 QObject，提供 <code>finished()</code>、<code>canceled()</code>、<code>progressValueChanged()</code> 等信号。<br>"
+                      "• <b>watcher-&gt;result():</b> 获取异步任务返回值，在 <code>finished()</code> 信号槽中调用是瞬时且绝对安全的。";
+        t.usageTiming = "单次、按需触发的耗时计算任务，如按下“一键图像去噪”、“深度特征提取”、“加载大图点云”、“导出高分辨率缺陷报表”等无需长期常驻线程的场景。";
+        t.bestPractices = "① 严禁在 <code>QtConcurrent::run</code> 的子线程中直接访问、读写任何 QWidget 或调用 UI 界面函数（Qt 严格限制 GUI 只能在主线程更新）；<br>"
+                          "② 后台任务若持有外部指针，需警惕生命周期悬空（生命周期陷阱），推荐在 Lambda 捕获时采用值拷贝（如按值捕获 <code>cv::Mat</code> 或智能指针）；<br>"
+                          "③ 对于持续性高频数据流（如 60FPS 相机采集流水线），优先使用常驻 <code>QThread + Worker</code>，避免频繁入队调度开销；而对于批量独立离散任务，推荐 <code>QtConcurrent::mapped</code> / <code>filtered</code>。";
+        t.codeSnippet = 
+            "// 工业级高阶异步并发算法执行范式：\n"
+            "#include <QtConcurrent/QtConcurrent>\n"
+            "#include <QFutureWatcher>\n"
+            "#include <opencv2/imgproc.hpp>\n\n"
+            "void runAsyncVisionTask(QWidget *parent, const cv::Mat &inputMat) {\n"
+            "    // 1. 创建异步结果监视器\n"
+            "    auto *watcher = new QFutureWatcher<cv::Mat>(parent);\n\n"
+            "    // 2. 挂接计算完成事件（主线程安全接收回调）\n"
+            "    QObject::connect(watcher, &QFutureWatcher<cv::Mat>::finished, [watcher, parent]() {\n"
+            "        cv::Mat processed = watcher->result(); // 零阻塞提取运算结果\n"
+            "        // 安全更新主窗口 UI 或渲染视图\n"
+            "        watcher->deleteLater(); // 自动释放监视器内存\n"
+            "    });\n\n"
+            "    // 3. 将密集型算法抛入全局线程池异步并发执行\n"
+            "    QFuture<cv::Mat> future = QtConcurrent::run(QThreadPool::globalInstance(), [inputMat]() {\n"
+            "        cv::Mat dst;\n"
+            "        cv::bilateralFilter(inputMat, dst, 9, 75, 75); // 耗时双边滤波\n"
+            "        return dst;\n"
+            "    });\n\n"
+            "    watcher->setFuture(future);\n"
+            "}";
+        m_topics.append(t);
+        m_topicMap[t.id] = t;
+    }
+
+    // ========================================================
+    // 15. Qt 06. 系统工程与现代桌面架构 (持久化配置与热重载)
+    // ========================================================
+    {
+        KnowledgeTopic t;
+        t.id = "qt_qsettings_config";
+        t.framework = "Qt";
+        t.category = "Qt 06. 系统工程与现代桌面架构";
+        t.name = "工业配方与持久化配置管理 (QSettings)";
+        t.tag = "跨平台 INI/注册表无缝读写、相机参数与窗口状态记忆";
+        t.isVisualInteractive = false;
+        t.apiSignature = "QSettings settings(\"config/recipe.ini\", QSettings::IniFormat);\nsettings.beginGroup(\"CameraParameters\");\nsettings.setValue(\"exposureTime\", 5000);\nsettings.endGroup();\nint exp = settings.value(\"CameraParameters/exposureTime\", 3000).toInt();";
+        t.docSummary = "工业检测软件必须具备断电或重启后的状态自愈能力，包括相机曝光/增益配方、检测工件公差阈值、主窗口几何尺寸（全屏/最大化/悬浮位置）以及最近打开的图像历史记录。<code>QSettings</code> 提供了优雅的无锁持久化抽象，支持以分组层次（Group）在 Windows 注册表或跨平台 INI 文件中进行无缝读写，原生支持 <code>QByteArray</code>（可直接将 <code>saveGeometry()</code> 和 <code>saveState()</code> 序列化入配置）。";
+        t.docParams = "• <b>QSettings::IniFormat:</b> 指定存储为通用的纯文本 INI 配置文件，便于现场工程师通过记事本直接排查与修改参数。<br>"
+                      "• <b>beginGroup / endGroup:</b> 层次化前缀作用域，避免键名（Key）冲突，逻辑结构清晰。<br>"
+                      "• <b>value(key, defaultValue):</b> 读取指定键的值，当该键在文件中不存在时自动回退为默认值，极具防御性。";
+        t.usageTiming = "软件启动时恢复上次关闭时的窗口布局与分割条比例；切换不同产品检测型号时加载对应参数配方；保存用户暗黑/明亮主题偏好与快捷键绑定。";
+        t.bestPractices = "① 工业视觉工控机现场常遇非正常断电，建议在写入关键配方后显式调用 <code>settings.sync()</code> 强制刷盘，防止操作系统写缓存丢失；<br>"
+                          "② 窗口几何持久化：关闭事件重写 <code>closeEvent</code>，执行 <code>settings.setValue(\"geometry\", saveGeometry()); settings.setValue(\"windowState\", saveState());</code>，在构造函数中通过 <code>restoreGeometry()</code> 还原，可完美兼容多显示器插拔情况。";
+        t.codeSnippet = 
+            "// 工业级相机参数与系统状态持久化配方管理器：\n"
+            "#include <QSettings>\n"
+            "#include <QWidget>\n\n"
+            "class RecipeManager {\n"
+            "public:\n"
+            "    static void saveCameraRecipe(const QString &recipePath, double exposure, double gain) {\n"
+            "        QSettings s(recipePath, QSettings::IniFormat);\n"
+            "        s.beginGroup(\"SensorProfile\");\n"
+            "        s.setValue(\"ExposureUs\", exposure);\n"
+            "        s.setValue(\"GainDb\", gain);\n"
+            "        s.setValue(\"AutoWhiteBalance\", true);\n"
+            "        s.endGroup();\n"
+            "        s.sync(); // 强制刷入硬件磁盘\n"
+            "    }\n\n"
+            "    static void restoreWindowLayout(QWidget *window, const QString &iniPath) {\n"
+            "        QSettings s(iniPath, QSettings::IniFormat);\n"
+            "        s.beginGroup(\"MainWindow\");\n"
+            "        if (s.contains(\"geometry\")) {\n"
+            "            window->restoreGeometry(s.value(\"geometry\").toByteArray());\n"
+            "        }\n"
+            "        s.endGroup();\n"
+            "    }\n"
+            "};";
+        m_topics.append(t);
+        m_topicMap[t.id] = t;
+    }
+
+    {
+        KnowledgeTopic t;
+        t.id = "qt_file_watcher";
+        t.framework = "Qt";
+        t.category = "Qt 06. 系统工程与现代桌面架构";
+        t.name = "文件目录监控与热重载体系 (QFileSystemWatcher)";
+        t.tag = "深度学习模型热更新、生产配方变更瞬时热响应";
+        t.isVisualInteractive = false;
+        t.apiSignature = "QFileSystemWatcher *watcher = new QFileSystemWatcher(this);\nwatcher->addPath(\"models/yolo_defect.onnx\");\nconnect(watcher, &QFileSystemWatcher::fileChanged, this, &ModelManager::onHotReload);";
+        t.docSummary = "在自动化无人值守质检工位中，算法工程师经常需要在线更换 ONNX/TensorRT 模型权重文件，或者 MES 制造执行系统会在特定共享文件夹下动态推送最新的待测产品批次 JSON 配置。<code>QFileSystemWatcher</code> 封装了操作系统的原生内核通知机制（Windows 的 <code>ReadDirectoryChangesW</code> / Linux 的 <code>inotify</code>），无需开启死循环轮询即可毫秒级捕获文件或目录的创建、修改、重命名与删除。";
+        t.docParams = "• <b>addPath / addPaths:</b> 注册需要监控的目标文件绝对路径或目录绝对路径。<br>"
+                      "• <b>fileChanged(const QString &path):</b> 被监控的文件内容被外部修改并落盘时触发。<br>"
+                      "• <b>directoryChanged(const QString &path):</b> 被监控的目录内有新文件生成、文件删除或子目录变动时触发。";
+        t.usageTiming = "工业相机采集端目录“热入库”自动触发质检流水线；算法模型/配方文件修改后免重启应用热重载；日志目录自动滚动与清理。";
+        t.bestPractices = "① <b>重命名覆盖原子写入防丢失：</b>许多现代化编辑器保存文件时采用“写临时文件 -> 删除原文件 -> 重命名覆盖”的原子策略。这会导致原始文件被短暂删除，<code>QFileSystemWatcher</code> 会自动将其从监控列表中移除！因此在 <code>fileChanged</code> 槽函数中，若 <code>QFile::exists(path)</code>，务必再次调用 <code>watcher->addPath(path)</code> 重新注册；<br>"
+                          "② <b>防抖定时器（Debounce）：</b>大文件分块写入可能触发多次连续的文件修改事件，应使用单次定时器 <code>QTimer::singleShot(250, ...)</code> 进行防抖合并，等待文件完全写闭合后再读取。";
+        t.codeSnippet = 
+            "// 模型与配方文件热重载工业防御性实现：\n"
+            "#include <QFileSystemWatcher>\n"
+            "#include <QTimer>\n"
+            "#include <QFile>\n"
+            "#include <QDebug>\n\n"
+            "class ModelHotReloader : public QObject {\n"
+            "public:\n"
+            "    explicit ModelHotReloader(const QString &modelPath, QObject *parent = nullptr)\n"
+            "        : QObject(parent), m_path(modelPath), m_watcher(new QFileSystemWatcher(this)) {\n"
+            "        m_watcher->addPath(m_path);\n"
+            "        connect(m_watcher, &QFileSystemWatcher::fileChanged, this, [this](const QString &path) {\n"
+            "            // 重新挂载监控（防原子重命名脱落）\n"
+            "            if (QFile::exists(path) && !m_watcher->files().contains(path)) {\n"
+            "                m_watcher->addPath(path);\n"
+            "            }\n"
+            "            // 250ms 防抖合并多次连续写入\n"
+            "            QTimer::singleShot(250, this, [this]() {\n"
+            "                qDebug() << \"[HotReload] 检测到新模型权重，重新加载推理引擎...\" << m_path;\n"
+            "            });\n"
+            "        });\n"
+            "    }\n"
+            "private:\n"
+            "    QString m_path;\n"
+            "    QFileSystemWatcher *m_watcher;\n"
+            "};";
+        m_topics.append(t);
+        m_topicMap[t.id] = t;
+    }
+
+    {
+        KnowledgeTopic t;
+        t.id = "qt_property_animation";
+        t.framework = "Qt";
+        t.category = "Qt 06. 系统工程与现代桌面架构";
+        t.name = "现代化流畅动效与缓动插值 (QPropertyAnimation / QEasingCurve)";
+        t.tag = "无阻塞视觉过渡、侧边栏丝滑抽屉与告警呼吸灯";
+        t.isVisualInteractive = false;
+        t.apiSignature = "QPropertyAnimation *anim = new QPropertyAnimation(widget, \"maximumWidth\");\nanim->setDuration(300);\nanim->setEasingCurve(QEasingCurve::OutCubic);\nanim->setStartValue(60);\nanim->setEndValue(260);\nanim->start(QAbstractAnimation::DeleteWhenStopped);";
+        t.docSummary = "传统工业软件界面往往显得僵硬死板，状态切换突兀。Qt 的动画框架基于元对象系统（<code>Q_PROPERTY</code>），无需手写任何定时器循环插值代码，即可让任意 Qt 属性（如控件尺寸 <code>geometry</code>、透明度 <code>opacity</code>、背景颜色、最大宽度等）在时间线上平滑过渡。通过搭配 <code>QEasingCurve</code> 提供的 40 余种物理级数学缓动曲线（如弹簧回弹 <code>OutBack</code>、惯性平滑 <code>OutCubic</code>、弹性碰撞 <code>OutBounce</code>），能为工业桌面注入现代消费级软件的丝滑体验。";
+        t.docParams = "• <b>targetObject & propertyName:</b> 目标动画对象及其注册的 Q_PROPERTY 属性名（如 \"pos\"、\"size\"、\"windowOpacity\" 等）。<br>"
+                      "• <b>setDuration(ms):</b> 动画持续时长（毫秒），一般微交互在 150ms~350ms 为人体工学最舒适区间。<br>"
+                      "• <b>setEasingCurve:</b> 插值数学曲线，如 <code>QEasingCurve::InOutQuad</code> 实现物理重力加速减速。";
+        t.usageTiming = "侧边导航栏折叠与展开收起抽屉动效；视觉质检超差（NG）时界面的红色半透明呼吸告警灯；数据卡片 hover 悬浮升起浮雕阴影过度。";
+        t.bestPractices = "① 布局系统兼容：当控件位于 <code>QLayout</code>（如 <code>QVBoxLayout</code>）内部时，直接对 <code>geometry</code> 做动画可能被父布局管理器强行重置重算。推荐对 <code>minimumWidth</code> / <code>maximumWidth</code> 或自定义的 <code>QGraphicsOpacityEffect</code> 的 <code>opacity</code> 属性做动画；<br>"
+                          "② 内存泄漏防范：动态创建的一次性过渡动画，建议设置 <code>anim->start(QAbstractAnimation::DeleteWhenStopped)</code>，使动画播放结束后自动安全销毁对象。";
+        t.codeSnippet = 
+            "// 工业级抽屉侧边栏折叠/展开丝滑物理动画：\n"
+            "#include <QPropertyAnimation>\n"
+            "#include <QEasingCurve>\n"
+            "#include <QWidget>\n\n"
+            "void animateDrawerSidebar(QWidget *sidebar, bool expand) {\n"
+            "    auto *anim = new QPropertyAnimation(sidebar, \"maximumWidth\");\n"
+            "    anim->setDuration(280);\n"
+            "    anim->setEasingCurve(QEasingCurve::OutCubic);\n"
+            "    \n"
+            "    int startW = sidebar->width();\n"
+            "    int targetW = expand ? 260 : 64;\n"
+            "    anim->setStartValue(startW);\n"
+            "    anim->setEndValue(targetW);\n"
+            "    \n"
+            "    // 动画完成后自动销毁指针，零内存泄漏\n"
+            "    anim->start(QAbstractAnimation::DeleteWhenStopped);\n"
+            "}";
+        m_topics.append(t);
+        m_topicMap[t.id] = t;
+    }
+
+    // ========================================================
+    // 16. Qt 05. 高性能交互与图形视图 (自绘与原生拖放)
+    // ========================================================
+    {
+        KnowledgeTopic t;
+        t.id = "qt_qpainter_advanced";
+        t.framework = "Qt";
+        t.category = "Qt 05. 高性能交互与图形视图";
+        t.name = "高级几何自绘与抗锯齿变换 (QPainter 高级特性)";
+        t.tag = "视口变换、线性渐变、亚像素高精度工业仪表与曲线";
+        t.isVisualInteractive = false;
+        t.apiSignature = "void paintEvent(QPaintEvent *event) override {\n    QPainter p(this);\n    p.setRenderHints(QPainter::Antialiasing | QPainter::TextAntialiasing);\n    p.translate(width() / 2.0, height() / 2.0);\n    p.rotate(m_angle);\n    p.drawPath(path);\n}";
+        t.docSummary = "当标准 Qt 控件无法满足特定工业视觉需求（如圆形压力/转速仪表盘、示波器实时动态正弦波形、带公差上下限的尺寸直方图、旋转角度亚像素指针）时，重写 <code>paintEvent</code> 配合 <code>QPainter</code> 提供了无与伦比的自绘控制力。结合坐标矩阵变换（<code>translate</code>、<code>rotate</code>、<code>scale</code>）、高阶画刷渐变（<code>QLinearGradient</code>、<code>QRadialGradient</code>）以及贝塞尔矢量路径（<code>QPainterPath</code>），可以绘制出超越原生控件的精美工业 HMI 交互界面。";
+        t.docParams = "• <b>setRenderHint(QPainter::Antialiasing):</b> 开启几何抗锯齿，彻底消除折线与圆弧边缘的粗糙锯齿伪影。<br>"
+                      "• <b>translate / rotate / scale:</b> 2D 仿射矩阵变换，将绘制原点移动到组件中心，使旋转计算完全脱离复杂的三角函数坐标换算。<br>"
+                      "• <b>save() / restore():</b> 状态栈保护，成对保存与恢复画笔、画刷、变换矩阵与裁剪区，确保组件模块化绘制不受污染。";
+        t.usageTiming = "工业相机帧率实时波动折线图、转盘式多工位分度盘状态监控、带刻度与游标卡尺的亚像素量测标注覆盖层。";
+        t.bestPractices = "① 严禁在 <code>paintEvent</code> 内部构造重型对象（如解析字体、读取磁盘图片、重新计算上万个点的复杂算法），应在外部完成数据预计算，绘图事件中仅做纯粹的渲染管线消费；<br>"
+                          "② 动态波形高频重绘时，调用 <code>update(dirtyRect)</code> 局部刷新脏矩形，而非盲目 <code>update()</code> 全量重刷，可显著降低 GPU 与 CPU 渲染负载。";
+        t.codeSnippet = 
+            "// 工业级圆形速度与旋转刻度盘自绘范式：\n"
+            "#include <QWidget>\n"
+            "#include <QPainter>\n"
+            "#include <QPainterPath>\n\n"
+            "class IndustrialGaugeWidget : public QWidget {\n"
+            "protected:\n"
+            "    void paintEvent(QPaintEvent *event) override {\n"
+            "        Q_UNUSED(event);\n"
+            "        QPainter p(this);\n"
+            "        p.setRenderHints(QPainter::Antialiasing | QPainter::TextAntialiasing);\n\n"
+            "        // 1. 将原点移至组件正中心\n"
+            "        p.translate(width() / 2.0, height() / 2.0);\n"
+            "        int side = qMin(width(), height());\n"
+            "        p.scale(side / 200.0, side / 200.0); // 坐标归一化到 [-100, 100]\n\n"
+            "        // 2. 绘制弧形渐变外圈\n"
+            "        QConicalGradient grad(0, 0, -90);\n"
+            "        grad.setColorAt(0.0, QColor(\"#10b981\"));\n"
+            "        grad.setColorAt(0.7, QColor(\"#f59e0b\"));\n"
+            "        grad.setColorAt(1.0, QColor(\"#ef4444\"));\n"
+            "        p.setPen(QPen(QBrush(grad), 8, Qt::SolidLine, Qt::RoundCap));\n"
+            "        p.drawArc(-80, -80, 160, 160, -30 * 16, 240 * 16);\n\n"
+            "        // 3. 绘制旋转指针\n"
+            "        p.save();\n"
+            "        p.rotate(45.0); // 指向目标角度\n"
+            "        p.setPen(Qt::NoPen);\n"
+            "        p.setBrush(QColor(\"#38bdf8\"));\n"
+            "        static const QPoint needle[3] = { QPoint(-4, 0), QPoint(4, 0), QPoint(0, -75) };\n"
+            "        p.drawConvexPolygon(needle, 3);\n"
+            "        p.restore();\n"
+            "    }\n"
+            "};";
+        m_topics.append(t);
+        m_topicMap[t.id] = t;
+    }
+
+    {
+        KnowledgeTopic t;
+        t.id = "qt_drag_and_drop";
+        t.framework = "Qt";
+        t.category = "Qt 05. 高性能交互与图形视图";
+        t.name = "原生桌面拖放与 MIME 交互系统 (Drag & Drop / QMimeData)";
+        t.tag = "文件直接拖入视觉检测视窗即刻分析、跨控件交互";
+        t.isVisualInteractive = false;
+        t.apiSignature = "void dragEnterEvent(QDragEnterEvent *event) override {\n    if (event->mimeData()->hasUrls()) event->acceptProposedAction();\n}\nvoid dropEvent(QDropEvent *event) override {\n    for (const QUrl &url : event->mimeData()->urls()) {\n        QString file = url.toLocalFile();\n    }\n}";
+        t.docSummary = "现代桌面应用程序极度依赖直觉化操作。用户期望将 Windows 文件资源管理器中的工件图片、缺陷样本或者标定文件直接拖拽并释放到软件视窗内立即进行推理。Qt 提供了深植于操作系统底层的 Drag and Drop（拖放）体系，通过 <code>QMimeData</code> 封装标准互联网 MIME 协议（支持文本、富文本、URI 列表、任意自定义二进制序列化载荷），实现进程间与控件间的自由拖拽对接。";
+        t.docParams = "• <b>setAcceptDrops(true):</b> 必须在目标控件构造函数中显式开启接收拖放权限。<br>"
+                      "• <b>dragEnterEvent(event):</b> 鼠标拖着数据悬停进入控件边缘瞬间触发，用于检查数据类型并决定是否点亮释放准许手势。<br>"
+                      "• <b>dropEvent(event):</b> 鼠标松开释放时触发，解包 QMimeData 并提取本地文件路径 <code>toLocalFile()</code>。";
+        t.usageTiming = "直接拖入 BMP/PNG/TIFF 工业检测图至视窗即刻执行缺陷识别；在视觉算法算子树中拖拽算子节点重排执行先后顺序；拖拽标定参数文件快速载入。";
+        t.bestPractices = "① 必须在 <code>dragEnterEvent</code> 和 <code>dragMoveEvent</code> 中显式调用 <code>event->acceptProposedAction()</code>，否则系统鼠标指针会显示禁止放置图标，且不会派发随后的 <code>dropEvent</code>；<br>"
+                          "② <b>文件路径跨平台兼容：</b>从 <code>event->mimeData()->urls()</code> 取出的 <code>QUrl</code> 必须通过 <code>url.toLocalFile()</code> 转换为本地操作系统的原生文件路径，直接调用 <code>toString()</code> 会带 <code>file:///</code> 前缀从而导致 <code>cv::imread</code> 读取失败。";
+        t.codeSnippet = 
+            "// 工业视觉视窗支持文件直接拖拽载入的生产级实现：\n"
+            "#include <QLabel>\n"
+            "#include <QDragEnterEvent>\n"
+            "#include <QDropEvent>\n"
+            "#include <QMimeData>\n"
+            "#include <QFileInfo>\n\n"
+            "class VisionDropTargetLabel : public QLabel {\n"
+            "public:\n"
+            "    explicit VisionDropTargetLabel(QWidget *parent = nullptr) : QLabel(parent) {\n"
+            "        setAcceptDrops(true); // 必须显式激活接收拖放权限\n"
+            "        setText(\"【可将图片文件直接拖拽至此处立即检测】\");\n"
+            "        setAlignment(Qt::AlignCenter);\n"
+            "    }\n\n"
+            "protected:\n"
+            "    void dragEnterEvent(QDragEnterEvent *event) override {\n"
+            "        if (event->mimeData()->hasUrls()) {\n"
+            "            event->acceptProposedAction(); // 接受拖拽悬停，显示绿色加号手势\n"
+            "        }\n"
+            "    }\n\n"
+            "    void dropEvent(QDropEvent *event) override {\n"
+            "        const auto urls = event->mimeData()->urls();\n"
+            "        if (urls.isEmpty()) return;\n\n"
+            "        QString localPath = urls.first().toLocalFile(); // 提取真实操作系统本地路径\n"
+            "        QFileInfo info(localPath);\n"
+            "        QString ext = info.suffix().toLower();\n"
+            "        if (ext == \"png\" || ext == \"jpg\" || ext == \"bmp\" || ext == \"tif\") {\n"
+            "            qDebug() << \"成功接收并加载拖放图片:\" << localPath;\n"
+            "            // 载入图片并通知算法处理流水线\n"
+            "            event->acceptProposedAction();\n"
+            "        }\n"
+            "    }\n"
+            "};";
+        m_topics.append(t);
+        m_topicMap[t.id] = t;
+    }
 }
+

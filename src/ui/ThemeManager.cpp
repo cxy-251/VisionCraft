@@ -79,6 +79,11 @@ QString ThemeManager::currentGlobalStyleSheet() const {
             }
             QLabel { color: #f8fafc; }
             QScrollArea { background: transparent; border: none; }
+            QTabWidget, QStackedWidget { background: transparent; border: none; }
+            QTabWidget::pane { border: 1px solid #334155; border-radius: 8px; background: transparent; }
+            QTabBar::tab { font-size: 13px; font-weight: 600; padding: 10px 20px; border-top-left-radius: 8px; border-top-right-radius: 8px; margin-right: 4px; background-color: #1e293b; color: #94a3b8; }
+            QTabBar::tab:selected { background-color: #2563eb; color: #ffffff; }
+            QTabBar::tab:!selected:hover { background-color: #334155; color: #f8fafc; }
             QTreeWidget { 
                 background-color: #1e293b; 
                 border: 1px solid #334155; 
@@ -177,6 +182,11 @@ QString ThemeManager::currentGlobalStyleSheet() const {
             }
             QLabel { color: #0f172a; }
             QScrollArea { background: transparent; border: none; }
+            QTabWidget, QStackedWidget { background: transparent; border: none; }
+            QTabWidget::pane { border: 1px solid #cbd5e1; border-radius: 8px; background: transparent; }
+            QTabBar::tab { font-size: 13px; font-weight: 600; padding: 10px 20px; border-top-left-radius: 8px; border-top-right-radius: 8px; margin-right: 4px; background-color: #e2e8f0; color: #475569; }
+            QTabBar::tab:selected { background-color: #2563eb; color: #ffffff; }
+            QTabBar::tab:!selected:hover { background-color: #cbd5e1; color: #0f172a; }
             QTreeWidget { 
                 background-color: #ffffff; 
                 border: 1px solid #cbd5e1; 

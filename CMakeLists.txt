@@ -56,6 +56,14 @@ set(SOURCES
     src/modules/image_processor/ImageProcessorPage.cpp
     src/modules/dev_toolbox/DevToolboxPage.h
     src/modules/dev_toolbox/DevToolboxPage.cpp
+    src/modules/node_pipeline/ConnectionWireItem.h
+    src/modules/node_pipeline/ConnectionWireItem.cpp
+    src/modules/node_pipeline/VisionNodeItem.h
+    src/modules/node_pipeline/VisionNodeItem.cpp
+    src/modules/node_pipeline/NodeGraphPipelinePage.h
+    src/modules/node_pipeline/NodeGraphPipelinePage.cpp
+    src/modules/batch_inspector/BatchInspectorPage.h
+    src/modules/batch_inspector/BatchInspectorPage.cpp
 )
 
 add_executable(VisionCraft WIN32 ${SOURCES})

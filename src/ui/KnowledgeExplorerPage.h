@@ -31,10 +31,13 @@ public:
 private slots:
     void onSearchTextChanged(const QString &text);
     void onTreeItemClicked(QTreeWidgetItem *item, int column);
+    void filterTreeCategory(int filterMode);
     void captureScreenSource();
     void openImageSource();
     void resetSyntheticSource();
     void copyCodeToClipboard();
+    void copyApiSignature();
+    void resetCurrentParams();
     void onParamChanged();
 
 private:
@@ -45,9 +48,11 @@ private:
     void runCurrentAlgorithm();
     void generateSyntheticImage();
 
-    // 搜索与树
+    // 搜索、分类筛选与知识树
     QLineEdit *m_searchEdit = nullptr;
     QTreeWidget *m_treeWidget = nullptr;
+    QLabel *m_topicCountBadge = nullptr;
+    int m_currentTreeFilter = 0; // 0: All, 1: OpenCV, 2: Qt, 3: Interactive, 4: Guide
 
     // 当前选中的知识点数据
     QString m_currentTopicId;
@@ -57,6 +62,7 @@ private:
     QLabel *m_topicTitleLabel = nullptr;
     QLabel *m_topicTagLabel = nullptr;
     QLabel *m_apiSignatureLabel = nullptr;
+    QPushButton *m_copyApiBtn = nullptr;
     QLabel *m_docSummaryLabel = nullptr;
     QLabel *m_docParamsLabel = nullptr;
 

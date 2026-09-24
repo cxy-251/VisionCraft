@@ -41,14 +41,42 @@ void KnowledgeExplorerPage::setupUI() {
     leftNavLayout->setContentsMargins(10, 10, 10, 10);
     leftNavLayout->setSpacing(10);
 
+    auto *searchHeaderRow = new QHBoxLayout();
     auto *searchHeader = new QLabel("📚 知识体系大纲", leftNavWidget);
     searchHeader->setStyleSheet("font-size: 15px; font-weight: 700;");
-    leftNavLayout->addWidget(searchHeader);
+    m_topicCountBadge = new QLabel(leftNavWidget);
+    m_topicCountBadge->setStyleSheet("font-size: 11px; padding: 2px 7px; border-radius: 4px; background: #0284c7; color: #ffffff; font-weight: bold;");
+    searchHeaderRow->addWidget(searchHeader);
+    searchHeaderRow->addStretch();
+    searchHeaderRow->addWidget(m_topicCountBadge);
+    leftNavLayout->addLayout(searchHeaderRow);
+
+    // 分类快速筛选 Pill 按钮栏
+    auto *pillRow = new QHBoxLayout();
+    pillRow->setSpacing(3);
+    auto makeFilterBtn = [this, pillRow, leftNavWidget](const QString &text, int mode) {
+        auto *btn = new QPushButton(text, leftNavWidget);
+        btn->setCursor(Qt::PointingHandCursor);
+        btn->setStyleSheet(
+            "QPushButton { font-size: 11px; padding: 4px 6px; border-radius: 4px; background-color: #1e293b; color: #94a3b8; border: 1px solid #334155; font-weight: 600; }"
+            "QPushButton:hover { background-color: #2563eb; color: #ffffff; border-color: #2563eb; }"
+        );
+        connect(btn, &QPushButton::clicked, this, [this, mode]() {
+            filterTreeCategory(mode);
+        });
+        pillRow->addWidget(btn);
+    };
+    makeFilterBtn("全部", 0);
+    makeFilterBtn("OpenCV", 1);
+    makeFilterBtn("Qt", 2);
+    makeFilterBtn("⚡交互", 3);
+    makeFilterBtn("📖指南", 4);
+    leftNavLayout->addLayout(pillRow);
 
     m_searchEdit = new QLineEdit(leftNavWidget);
-    m_searchEdit->setPlaceholderText("🔍 搜索 API / 语法 (如 Canny, 信号槽)...");
+    m_searchEdit->setPlaceholderText("🔍 检索 API / 机制 (如 Canny, 信号槽)...");
     m_searchEdit->setStyleSheet(
-        "QLineEdit { padding: 8px 10px; border-radius: 6px; font-size: 13px; }"
+        "QLineEdit { padding: 8px 10px; border-radius: 6px; font-size: 12px; }"
     );
     connect(m_searchEdit, &QLineEdit::textChanged, this, &KnowledgeExplorerPage::onSearchTextChanged);
     leftNavLayout->addWidget(m_searchEdit);
@@ -90,14 +118,22 @@ void KnowledgeExplorerPage::setupUI() {
     titleRow->addStretch();
     docLayout->addLayout(titleRow);
 
-    // API 签名显示框
+    // API 签名显示框与一键复制按钮
+    auto *apiRow = new QHBoxLayout();
     m_apiSignatureLabel = new QLabel(docCard);
     m_apiSignatureLabel->setTextInteractionFlags(Qt::TextSelectableByMouse);
     m_apiSignatureLabel->setWordWrap(true);
     m_apiSignatureLabel->setStyleSheet(
         "font-family: 'Consolas', 'Courier New', monospace; font-size: 12px; font-weight: 600; background: #0f172a; color: #38bdf8; padding: 10px 14px; border-radius: 6px; border: 1px solid #334155;"
     );
-    docLayout->addWidget(m_apiSignatureLabel);
+    m_copyApiBtn = new QPushButton("📋 复制原型", docCard);
+    m_copyApiBtn->setObjectName("SecondaryBtn");
+    m_copyApiBtn->setFixedWidth(95);
+    m_copyApiBtn->setCursor(Qt::PointingHandCursor);
+    connect(m_copyApiBtn, &QPushButton::clicked, this, &KnowledgeExplorerPage::copyApiSignature);
+    apiRow->addWidget(m_apiSignatureLabel, 1);
+    apiRow->addWidget(m_copyApiBtn);
+    docLayout->addLayout(apiRow);
 
     // 原理与参数说明（彻底放开高度，杜绝文字截断）
     m_docSummaryLabel = new QLabel(docCard);
@@ -178,6 +214,12 @@ void KnowledgeExplorerPage::setupUI() {
     m_paramLayout->setSpacing(10);
     paramScroll->setWidget(m_paramContainer);
     paramRootLayout->addWidget(paramScroll, 1);
+
+    auto *resetParamsBtn = new QPushButton("🔄 恢复算子默认参数", paramCard);
+    resetParamsBtn->setObjectName("SecondaryBtn");
+    resetParamsBtn->setStyleSheet("font-size: 12px; padding: 6px; font-weight: 600;");
+    connect(resetParamsBtn, &QPushButton::clicked, this, &KnowledgeExplorerPage::resetCurrentParams);
+    paramRootLayout->addWidget(resetParamsBtn);
 
     auto *srcBtnRow = new QVBoxLayout();
     srcBtnRow->setSpacing(6);
@@ -347,6 +389,10 @@ void KnowledgeExplorerPage::generateSyntheticImage() {
 void KnowledgeExplorerPage::populateKnowledgeTree() {
     m_treeWidget->clear();
     const auto &grouped = KnowledgeRegistry::instance().topicsByCategory();
+    int totalCount = KnowledgeRegistry::instance().allTopics().size();
+    if (m_topicCountBadge) {
+        m_topicCountBadge->setText(QString("收录 %1 专题").arg(totalCount));
+    }
 
     QTreeWidgetItem *firstTopicItem = nullptr;
 
@@ -374,22 +420,57 @@ void KnowledgeExplorerPage::populateKnowledgeTree() {
     }
 }
 
-void KnowledgeExplorerPage::onSearchTextChanged(const QString &text) {
-    QString q = text.trimmed();
+void KnowledgeExplorerPage::filterTreeCategory(int filterMode) {
+    m_currentTreeFilter = filterMode;
+    QString q = m_searchEdit->text().trimmed();
+
     for (int i = 0; i < m_treeWidget->topLevelItemCount(); ++i) {
         auto *catItem = m_treeWidget->topLevelItem(i);
+        QString catName = catItem->text(0);
+        bool catMatchMode = true;
+        if (filterMode == 1 && !catName.contains("OpenCV", Qt::CaseInsensitive)) catMatchMode = false;
+        if (filterMode == 2 && !catName.contains("Qt", Qt::CaseInsensitive)) catMatchMode = false;
+
         bool anyChildVisible = false;
         for (int j = 0; j < catItem->childCount(); ++j) {
             auto *child = catItem->child(j);
-            bool match = q.isEmpty() || child->text(0).contains(q, Qt::CaseInsensitive);
-            child->setHidden(!match);
-            if (match) anyChildVisible = true;
+            QString topicId = child->data(0, Qt::UserRole).toString();
+            const auto *topic = KnowledgeRegistry::instance().findTopic(topicId);
+            bool topicModeMatch = catMatchMode;
+            if (topic) {
+                if (filterMode == 3 && !topic->isVisualInteractive) topicModeMatch = false;
+                if (filterMode == 4 && topic->isVisualInteractive) topicModeMatch = false;
+            }
+            bool textMatch = q.isEmpty() || child->text(0).contains(q, Qt::CaseInsensitive);
+            bool visible = topicModeMatch && textMatch;
+            child->setHidden(!visible);
+            if (visible) anyChildVisible = true;
         }
         catItem->setHidden(!anyChildVisible);
-        if (anyChildVisible && !q.isEmpty()) {
-            catItem->setExpanded(true);
-        }
+        if (anyChildVisible) catItem->setExpanded(true);
     }
+}
+
+void KnowledgeExplorerPage::onSearchTextChanged(const QString &text) {
+    Q_UNUSED(text);
+    filterTreeCategory(m_currentTreeFilter);
+}
+
+void KnowledgeExplorerPage::copyApiSignature() {
+    if (!m_apiSignatureLabel) return;
+    QClipboard *clipboard = QGuiApplication::clipboard();
+    clipboard->setText(m_apiSignatureLabel->text());
+    m_copyApiBtn->setText("✅ 已复制！");
+    QTimer::singleShot(1500, this, [this]() {
+        if (m_copyApiBtn) m_copyApiBtn->setText("📋 复制原型");
+    });
+}
+
+void KnowledgeExplorerPage::resetCurrentParams() {
+    const auto *topic = KnowledgeRegistry::instance().findTopic(m_currentTopicId);
+    if (!topic) return;
+    buildDynamicParamWidgets(*topic);
+    runCurrentAlgorithm();
 }
 
 void KnowledgeExplorerPage::onTreeItemClicked(QTreeWidgetItem *item, int column) {

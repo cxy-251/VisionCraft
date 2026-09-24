@@ -1856,7 +1856,497 @@ void KnowledgeRegistry::initOpenCVTopics() {
         m_topics.append(t);
         m_topicMap[t.id] = t;
     }
+
+    // ========================================================
+    // 25. OpenCV 06. 特征检测、描述与几何对齐
+    // ========================================================
+    {
+        KnowledgeTopic t;
+        t.id = "cv_orb_detector";
+        t.framework = "OpenCV";
+        t.category = "OpenCV 06. 特征检测、描述与几何对齐";
+        t.name = "ORB 特征提取与关键点绘制 (cv::ORB)";
+        t.tag = "免专利、高抗噪性、快速旋转尺度不变特征";
+        t.isVisualInteractive = true;
+        t.apiSignature = "cv::Ptr<cv::ORB> orb = cv::ORB::create(nfeatures, scaleFactor, nlevels, edgeThreshold, firstLevel, 2, cv::ORB::HARRIS_SCORE, patchSize, fastThreshold);\norb->detectAndCompute(src, cv::noArray(), keypoints, descriptors);\ncv::drawKeypoints(src, keypoints, dst, cv::Scalar(0, 255, 0), cv::DrawMatchesFlags::DRAW_RICH_KEYPOINTS);";
+        t.docSummary = "ORB（Oriented FAST and Rotated BRIEF）是计算机视觉领域最著名的开源免费特征提取算法之一（彻底免去 SIFT/SURF 曾面临的高昂商业专利风险）。基于 FAST 极速角点检测并注入灰度质心方向向量，结合 BRIEF 描述子的旋转不变性编码，计算速度比 SIFT 快近一个数量级，非常适合工业机器视觉中引导定位与目标位姿估计。";
+        t.docParams = "• <b>nfeatures:</b> 最大保留的关键点数量（根据工件丰富程度设定，如 200~800）。<br>"
+                      "• <b>fastThreshold:</b> FAST 角点检测的像素灰度差阈值，值越小检出越灵敏，越大则抗噪性越强。";
+        t.usageTiming = "工业流水线工件位姿识别、移动机器人视觉里程计、多模板图像极速匹配。";
+        t.bestPractices = "① 工业检测如需计算方向，背景光照变化会干扰灰度质心计算，务必保证光源漫反射均匀；<br>"
+                          "② `cv::drawKeypoints` 传入 `DRAW_RICH_KEYPOINTS` 标志可同时绘制出特征点的大小与主方向刻度，便于直观排查定位偏差。";
+
+        ParamDescriptor p1;
+        p1.key = "nfeatures";
+        p1.label = "最大特征数 (nfeatures)";
+        p1.type = ParamType::SliderInt;
+        p1.minVal = 50.0;
+        p1.maxVal = 1200.0;
+        p1.step = 50.0;
+        p1.defaultVal = 400.0;
+        p1.tooltip = "限制保留的最强角点数量";
+
+        ParamDescriptor p2;
+        p2.key = "fastThreshold";
+        p2.label = "FAST 灵敏度阈值";
+        p2.type = ParamType::SliderInt;
+        p2.minVal = 5.0;
+        p2.maxVal = 50.0;
+        p2.step = 1.0;
+        p2.defaultVal = 20.0;
+        p2.tooltip = "检测角点的中心像素差分阈值";
+
+        t.params.append(p1);
+        t.params.append(p2);
+
+        t.codeGenerator = [](const QMap<QString, QVariant> &p) -> QString {
+            int nf = p.value("nfeatures", 400).toInt();
+            int ft = p.value("fastThreshold", 20).toInt();
+            return QString(
+                "// OpenCV ORB 特征点检测与可视化：\n"
+                "#include <opencv2/features2d.hpp>\n\n"
+                "cv::Mat detectORBFeatures(const cv::Mat &srcBgr) {\n"
+                "    auto orb = cv::ORB::create(%1, 1.2f, 8, 31, 0, 2, cv::ORB::HARRIS_SCORE, 31, %2);\n"
+                "    std::vector<cv::KeyPoint> keypoints;\n"
+                "    cv::Mat descriptors;\n"
+                "    orb->detectAndCompute(srcBgr, cv::noArray(), keypoints, descriptors);\n\n"
+                "    cv::Mat dst;\n"
+                "    cv::drawKeypoints(srcBgr, keypoints, dst, cv::Scalar(0, 255, 0), cv::DrawMatchesFlags::DRAW_RICH_KEYPOINTS);\n"
+                "    return dst;\n"
+                "}"
+            ).arg(nf).arg(ft);
+        };
+
+        t.cvRunner = [](const cv::Mat &src, cv::Mat &dst, const QMap<QString, QVariant> &p, QString &execNote) {
+            int nf = p.value("nfeatures", 400).toInt();
+            int ft = p.value("fastThreshold", 20).toInt();
+
+            auto orb = cv::ORB::create(nf, 1.2f, 8, 31, 0, 2, cv::ORB::HARRIS_SCORE, 31, ft);
+            std::vector<cv::KeyPoint> keypoints;
+            cv::Mat descriptors;
+            orb->detectAndCompute(src, cv::noArray(), keypoints, descriptors);
+
+            cv::drawKeypoints(src, keypoints, dst, cv::Scalar(0, 255, 0), cv::DrawMatchesFlags::DRAW_RICH_KEYPOINTS);
+            execNote = QString("成功检出 %1 处 ORB 特征点 (绿圈表示特征尺度，半径线代表主方向角)").arg(keypoints.size());
+        };
+
+        m_topics.append(t);
+        m_topicMap[t.id] = t;
+    }
+
+    // ========================================================
+    // 26. OpenCV 01. 图像基本运算与几何变换
+    // ========================================================
+    {
+        KnowledgeTopic t;
+        t.id = "cv_inrange_hsv";
+        t.framework = "OpenCV";
+        t.category = "OpenCV 01. 图像基本运算与几何变换";
+        t.name = "HSV 色彩空间颜色阈值提取 (cv::inRange)";
+        t.tag = "光照鲁棒、工业色选机、特定工件色彩标定";
+        t.isVisualInteractive = true;
+        t.apiSignature = "cv::cvtColor(src, hsv, cv::COLOR_BGR2HSV);\ncv::inRange(hsv, cv::Scalar(hMin, sMin, vMin), cv::Scalar(hMax, sMax, vMax), mask);\ncv::bitwise_and(src, src, dst, mask);";
+        t.docSummary = "在工业视觉中，RGB 色彩空间极易受生产线光照强弱的剧烈干扰。而 HSV 色彩空间将<b>色调（Hue，颜色本质）</b>、<b>饱和度（Saturation）</b>与<b>亮度（Value）</b>完全解耦！通过 <code>cv::inRange</code> 在 HSV 空间设定上下界范围，即便工件处于背光或高光阴影下，仍能 100% 稳定过滤提取特定颜色区域。";
+        t.docParams = "• <b>Hue (色调 0~180):</b> 红色~0/180，黄色~30，绿色~60，青色~90，蓝色~120。<br>"
+                      "• <b>Saturation (饱和度 0~255):</b> 颜色的纯度/鲜艳度。<br>"
+                      "• <b>Value (明度 0~255):</b> 颜色的明暗亮度。";
+        t.usageTiming = "药片胶囊颜色分类分选、汽车车漆质检、电路板铜面/绿油阻焊层掩膜提取、交通信号灯识别。";
+        t.bestPractices = "① OpenCV 中 Hue 的取值范围是 0~180（由于 uchar 最大 255，故将 360° 除以 2）；<br>"
+                          "② 红色在 Hue 上跨越了 0° 与 180° 两端，提取红色工件时应使用两个 `inRange`（0~10 与 170~180）并通过 `bitwise_or` 逻辑或合并。";
+
+        ParamDescriptor p1;
+        p1.key = "hMin";
+        p1.label = "色调下限 (Hue Min)";
+        p1.type = ParamType::SliderInt;
+        p1.minVal = 0.0;
+        p1.maxVal = 180.0;
+        p1.step = 1.0;
+        p1.defaultVal = 35.0;
+
+        ParamDescriptor p2;
+        p2.key = "hMax";
+        p2.label = "色调上限 (Hue Max)";
+        p2.type = ParamType::SliderInt;
+        p2.minVal = 0.0;
+        p2.maxVal = 180.0;
+        p2.step = 1.0;
+        p2.defaultVal = 85.0;
+
+        ParamDescriptor p3;
+        p3.key = "sMin";
+        p3.label = "最小饱和度 (Sat Min)";
+        p3.type = ParamType::SliderInt;
+        p3.minVal = 0.0;
+        p3.maxVal = 255.0;
+        p3.step = 5.0;
+        p3.defaultVal = 40.0;
+
+        t.params.append(p1);
+        t.params.append(p2);
+        t.params.append(p3);
+
+        t.codeGenerator = [](const QMap<QString, QVariant> &p) -> QString {
+            int h1 = p.value("hMin", 35).toInt();
+            int h2 = p.value("hMax", 85).toInt();
+            int s1 = p.value("sMin", 40).toInt();
+            return QString(
+                "// HSV 色彩空间工件颜色过滤提取：\n"
+                "#include <opencv2/imgproc.hpp>\n\n"
+                "cv::Mat extractColorRegion(const cv::Mat &srcBgr) {\n"
+                "    cv::Mat hsv, mask, dst;\n"
+                "    cv::cvtColor(srcBgr, hsv, cv::COLOR_BGR2HSV);\n"
+                "    cv::inRange(hsv, cv::Scalar(%1, %3, 40), cv::Scalar(%2, 255, 255), mask);\n"
+                "    dst = cv::Mat::zeros(srcBgr.size(), srcBgr.type());\n"
+                "    srcBgr.copyTo(dst, mask);\n"
+                "    return dst;\n"
+                "}"
+            ).arg(h1).arg(h2).arg(s1);
+        };
+
+        t.cvRunner = [](const cv::Mat &src, cv::Mat &dst, const QMap<QString, QVariant> &p, QString &execNote) {
+            int h1 = p.value("hMin", 35).toInt();
+            int h2 = p.value("hMax", 85).toInt();
+            int s1 = p.value("sMin", 40).toInt();
+
+            cv::Mat hsv, mask;
+            cv::cvtColor(src, hsv, cv::COLOR_BGR2HSV);
+            cv::inRange(hsv, cv::Scalar(h1, s1, 40), cv::Scalar(h2, 255, 255), mask);
+
+            dst = cv::Mat::zeros(src.size(), src.type());
+            src.copyTo(dst, mask);
+
+            double pct = cv::countNonZero(mask) * 100.0 / mask.total();
+            execNote = QString("颜色过滤完成 (色调区间: %1~%2, 目标占比: %3%)").arg(h1).arg(h2).arg(pct, 0, 'f', 1);
+        };
+
+        m_topics.append(t);
+        m_topicMap[t.id] = t;
+    }
+
+    // ========================================================
+    // 27. OpenCV 02. 核心图像滤波与增强
+    // ========================================================
+    {
+        KnowledgeTopic t;
+        t.id = "cv_clahe_contrast";
+        t.framework = "OpenCV";
+        t.category = "OpenCV 02. 核心图像滤波与增强";
+        t.name = "自适应直方图均衡化 (CLAHE 对比度增强)";
+        t.tag = "工业背光暗区增强、消除大面积局部光照不均";
+        t.isVisualInteractive = true;
+        t.apiSignature = "cv::Ptr<cv::CLAHE> clahe = cv::createCLAHE(clipLimit, cv::Size(tileGridSize, tileGridSize));\nclahe->apply(grayOrLuminance, dst);";
+        t.docSummary = "传统全局直方图均衡化（`equalizeHist`）容易在放大整体对比度的同时导致亮区过曝、暗区噪点被过度放大。CLAHE（Contrast Limited Adaptive Histogram Equalization）采用<b>分块局部网格均衡化</b>，并在每个小方块内对直方图峰值进行<b>高斯限幅裁剪（Clip Limit）</b>，将多余能量均匀分散到其他灰度级，能够极其优雅地找回工件背光暗影下的微小划痕与刻字细节！";
+        t.docParams = "• <b>clipLimit:</b> 对比度裁剪门限（通常 2.0~4.0），值越小增强越温和，越大细节反差越强烈。<br>"
+                      "• <b>tileGridSize:</b> 局部网格分块尺寸（如 8x8），将全图划分为多个网格独立处理，最后双线性插值消除缝隙。";
+        t.usageTiming = "工业金属工件边缘背光反差弱、夜视监控低照度细节增强、X光透视工件内部微气孔检测。";
+        t.bestPractices = "彩色图像切勿在 BGR 三通道上分别做 CLAHE（会导致严重的色彩失真与色偏）！正确做法是转换到 Lab 或 YCrCb 空间，仅对 L（亮度）通道执行 CLAHE，再合并转回 BGR。";
+
+        ParamDescriptor p1;
+        p1.key = "clipLimit";
+        p1.label = "对比度受限门限 (ClipLimit)";
+        p1.type = ParamType::SliderDouble;
+        p1.minVal = 1.0;
+        p1.maxVal = 8.0;
+        p1.step = 0.5;
+        p1.defaultVal = 3.0;
+
+        ParamDescriptor p2;
+        p2.key = "gridSize";
+        p2.label = "网格分块大小 (TileSize)";
+        p2.type = ParamType::SliderInt;
+        p2.minVal = 2.0;
+        p2.maxVal = 16.0;
+        p2.step = 2.0;
+        p2.defaultVal = 8.0;
+
+        t.params.append(p1);
+        t.params.append(p2);
+
+        t.codeGenerator = [](const QMap<QString, QVariant> &p) -> QString {
+            double cl = p.value("clipLimit", 3.0).toDouble();
+            int sz = p.value("gridSize", 8).toInt();
+            return QString(
+                "// 工业彩色图像高保真 CLAHE 局部对比度增强范式：\n"
+                "#include <opencv2/imgproc.hpp>\n\n"
+                "cv::Mat applyCLAHE(const cv::Mat &srcBgr) {\n"
+                "    cv::Mat lab;\n"
+                "    cv::cvtColor(srcBgr, lab, cv::COLOR_BGR2Lab);\n"
+                "    std::vector<cv::Mat> channels;\n"
+                "    cv::split(lab, channels);\n\n"
+                "    auto clahe = cv::createCLAHE(%1, cv::Size(%2, %2));\n"
+                "    clahe->apply(channels[0], channels[0]); // 仅增强亮度 L 通道\n\n"
+                "    cv::merge(channels, lab);\n"
+                "    cv::Mat dst;\n"
+                "    cv::cvtColor(lab, dst, cv::COLOR_Lab2BGR);\n"
+                "    return dst;\n"
+                "}"
+            ).arg(cl, 0, 'f', 1).arg(sz);
+        };
+
+        t.cvRunner = [](const cv::Mat &src, cv::Mat &dst, const QMap<QString, QVariant> &p, QString &execNote) {
+            double cl = p.value("clipLimit", 3.0).toDouble();
+            int sz = p.value("gridSize", 8).toInt();
+
+            cv::Mat lab;
+            cv::cvtColor(src, lab, cv::COLOR_BGR2Lab);
+            std::vector<cv::Mat> channels;
+            cv::split(lab, channels);
+
+            auto clahe = cv::createCLAHE(cl, cv::Size(sz, sz));
+            clahe->apply(channels[0], channels[0]);
+
+            cv::merge(channels, lab);
+            cv::cvtColor(lab, dst, cv::COLOR_Lab2BGR);
+            execNote = QString("CLAHE 自适应增强完毕 (ClipLimit: %1, 局部网格: %2x%2)").arg(cl, 0, 'f', 1).arg(sz);
+        };
+
+        m_topics.append(t);
+        m_topicMap[t.id] = t;
+    }
+
+    // ========================================================
+    // 28. OpenCV 01. 图像基本运算与几何变换
+    // ========================================================
+    {
+        KnowledgeTopic t;
+        t.id = "cv_affine_transform";
+        t.framework = "OpenCV";
+        t.category = "OpenCV 01. 图像基本运算与几何变换";
+        t.name = "仿射变换与中心旋转微调 (getRotationMatrix2D / warpAffine)";
+        t.tag = "高精度亚像素旋转纠偏、平移微调与缩放";
+        t.isVisualInteractive = true;
+        t.apiSignature = "cv::Mat M = cv::getRotationMatrix2D(center, angleDeg, scale);\ncv::warpAffine(src, dst, M, src.size(), cv::INTER_LINEAR, cv::BORDER_CONSTANT, cv::Scalar(0, 0, 0));";
+        t.docSummary = "在工业视觉定位与对齐中，传送带上的工件往往伴随位置偏移和角度偏转。仿射变换保持了图像的“平直性”与“平行性”。借助 <code>cv::getRotationMatrix2D</code> 可以瞬间生成以指定中心点为基准的 2x3 旋转缩放矩阵，再通过 <code>cv::warpAffine</code> 完成亚像素双线性插值几何矫正。";
+        t.docParams = "• <b>center:</b> 旋转锚点中心（通常设为图像中心点或工件特征定位中心）。<br>"
+                      "• <b>angleDeg:</b> 旋转角度（角度制，正值代表逆时针，负值代表顺时针）。<br>"
+                      "• <b>scale:</b> 尺寸等比缩放因子。";
+        t.usageTiming = "工件机械夹取前的角度纠偏、印制板（PCB）Mark点粗定位后的图像正交化对准。";
+        t.bestPractices = "大角度旋转可能导致工件四个角移出视窗裁剪区。如需保留完整画布，可根据旋转后矩形外接框重新计算扩展尺寸（`warpAffine` 目标尺寸相应扩大）。";
+
+        ParamDescriptor p1;
+        p1.key = "angle";
+        p1.label = "旋转角度 (Angle °)";
+        p1.type = ParamType::SliderInt;
+        p1.minVal = -180.0;
+        p1.maxVal = 180.0;
+        p1.step = 1.0;
+        p1.defaultVal = 30.0;
+
+        ParamDescriptor p2;
+        p2.key = "scale";
+        p2.label = "缩放倍率 (Scale)";
+        p2.type = ParamType::SliderDouble;
+        p2.minVal = 0.4;
+        p2.maxVal = 1.8;
+        p2.step = 0.1;
+        p2.defaultVal = 1.0;
+
+        t.params.append(p1);
+        t.params.append(p2);
+
+        t.codeGenerator = [](const QMap<QString, QVariant> &p) -> QString {
+            int a = p.value("angle", 30).toInt();
+            double s = p.value("scale", 1.0).toDouble();
+            return QString(
+                "// 工业工件高精度仿射旋转纠偏范式：\n"
+                "#include <opencv2/imgproc.hpp>\n\n"
+                "cv::Mat rotateAndCorrect(const cv::Mat &src) {\n"
+                "    cv::Point2f center(src.cols * 0.5f, src.rows * 0.5f);\n"
+                "    cv::Mat M = cv::getRotationMatrix2D(center, %1, %2);\n"
+                "    cv::Mat dst;\n"
+                "    cv::warpAffine(src, dst, M, src.size(), cv::INTER_LINEAR, cv::BORDER_CONSTANT, cv::Scalar(20, 20, 20));\n"
+                "    return dst;\n"
+                "}"
+            ).arg(a).arg(s, 0, 'f', 2);
+        };
+
+        t.cvRunner = [](const cv::Mat &src, cv::Mat &dst, const QMap<QString, QVariant> &p, QString &execNote) {
+            int a = p.value("angle", 30).toInt();
+            double s = p.value("scale", 1.0).toDouble();
+
+            cv::Point2f center(src.cols * 0.5f, src.rows * 0.5f);
+            cv::Mat M = cv::getRotationMatrix2D(center, a, s);
+            cv::warpAffine(src, dst, M, src.size(), cv::INTER_LINEAR, cv::BORDER_CONSTANT, cv::Scalar(20, 20, 20));
+
+            execNote = QString("仿射几何纠偏完成 (旋转: %1°, 缩放: %2x)").arg(a).arg(s, 0, 'f', 1);
+        };
+
+        m_topics.append(t);
+        m_topicMap[t.id] = t;
+    }
+
+    // ========================================================
+    // 29. OpenCV 06. 特征检测、描述与几何对齐
+    // ========================================================
+    {
+        KnowledgeTopic t;
+        t.id = "cv_corner_harris";
+        t.framework = "OpenCV";
+        t.category = "OpenCV 06. 特征检测、描述与几何对齐";
+        t.name = "Harris 亚像素角点特征检测 (cv::cornerHarris)";
+        t.tag = "标定板网格角点、特征跟踪与多边形几何拐点";
+        t.isVisualInteractive = true;
+        t.apiSignature = "cv::cornerHarris(gray, dst, blockSize, ksize, k);\ncv::normalize(dst, dstNorm, 0, 255, cv::NORM_MINMAX, CV_32FC1);";
+        t.docSummary = "角点是图像中梯度方向变化剧烈的位置，是极具判别力的重要几何特征。Harris 角点检测通过移动微小窗口计算自相关矩阵的两个特征值。若在两个正交方向上的灰度变化都极大，则判定为角点。该算法对光照变化与旋转具备强大的数学鲁棒性。";
+        t.docParams = "• <b>blockSize:</b> 邻域微分核计算尺寸（通常为 2 或 3）。<br>"
+                      "• <b>ksize:</b> Sobel 导数算子孔径大小（通常为 3）。<br>"
+                      "• <b>k:</b> Harris 经验响应参数（0.04 ~ 0.06）。";
+        t.usageTiming = "棋盘格相机标定板网格交点自动初筛、零件外轮廓几何多边形拐点量测。";
+        t.bestPractices = "Harris 计算出的是响应强度图，后续必须通过非极大值抑制（NMS）或阈值截断筛选出孤立的极值点，再通过 `cv::cornerSubPix` 迭代求得真正的亚像素精度坐标。";
+
+        ParamDescriptor p1;
+        p1.key = "blockSize";
+        p1.label = "邻域窗口尺寸 (blockSize)";
+        p1.type = ParamType::SliderInt;
+        p1.minVal = 2.0;
+        p1.maxVal = 8.0;
+        p1.step = 1.0;
+        p1.defaultVal = 2.0;
+
+        ParamDescriptor p2;
+        p2.key = "thresh";
+        p2.label = "角点响应响应阈值";
+        p2.type = ParamType::SliderInt;
+        p2.minVal = 80.0;
+        p2.maxVal = 220.0;
+        p2.step = 5.0;
+        p2.defaultVal = 135.0;
+
+        t.params.append(p1);
+        t.params.append(p2);
+
+        t.codeGenerator = [](const QMap<QString, QVariant> &p) -> QString {
+            int b = p.value("blockSize", 2).toInt();
+            int th = p.value("thresh", 135).toInt();
+            return QString(
+                "// 工业级 Harris 几何角点检测范式：\n"
+                "#include <opencv2/imgproc.hpp>\n\n"
+                "cv::Mat detectHarrisCorners(const cv::Mat &srcBgr) {\n"
+                "    cv::Mat gray, harrisResp, normResp;\n"
+                "    cv::cvtColor(srcBgr, gray, cv::COLOR_BGR2GRAY);\n"
+                "    cv::cornerHarris(gray, harrisResp, %1, 3, 0.04);\n"
+                "    cv::normalize(harrisResp, normResp, 0, 255, cv::NORM_MINMAX, CV_32FC1);\n\n"
+                "    cv::Mat dst = srcBgr.clone();\n"
+                "    for (int r = 0; r < normResp.rows; ++r) {\n"
+                "        for (int c = 0; c < normResp.cols; ++c) {\n"
+                "            if (normResp.at<float>(r, c) > %2) {\n"
+                "                cv::circle(dst, cv::Point(c, r), 5, cv::Scalar(0, 0, 255), 2);\n"
+                "            }\n"
+                "        }\n"
+                "    }\n"
+                "    return dst;\n"
+                "}"
+            ).arg(b).arg(th);
+        };
+
+        t.cvRunner = [](const cv::Mat &src, cv::Mat &dst, const QMap<QString, QVariant> &p, QString &execNote) {
+            int b = p.value("blockSize", 2).toInt();
+            int th = p.value("thresh", 135).toInt();
+
+            cv::Mat gray, harrisResp, normResp;
+            cv::cvtColor(src, gray, cv::COLOR_BGR2GRAY);
+            cv::cornerHarris(gray, harrisResp, b, 3, 0.04);
+            cv::normalize(harrisResp, normResp, 0, 255, cv::NORM_MINMAX, CV_32FC1);
+
+            dst = src.clone();
+            int count = 0;
+            for (int r = 0; r < normResp.rows; ++r) {
+                for (int c = 0; c < normResp.cols; ++c) {
+                    if (normResp.at<float>(r, c) > th) {
+                        cv::circle(dst, cv::Point(c, r), 4, cv::Scalar(0, 0, 255), 2);
+                        count++;
+                    }
+                }
+            }
+            execNote = QString("Harris 几何特征运算完毕 (检出 %1 处角点)").arg(count);
+        };
+
+        m_topics.append(t);
+        m_topicMap[t.id] = t;
+    }
+
+    // ========================================================
+    // 30. OpenCV 01. 图像基本运算与几何变换
+    // ========================================================
+    {
+        KnowledgeTopic t;
+        t.id = "cv_perspective_warp";
+        t.framework = "OpenCV";
+        t.category = "OpenCV 01. 图像基本运算与几何变换";
+        t.name = "四点透视变换与文档工件拍平 (getPerspectiveTransform / warpPerspective)";
+        t.tag = "斜视相机视角矫正、工件正射投影变换";
+        t.isVisualInteractive = true;
+        t.apiSignature = "cv::Mat M = cv::getPerspectiveTransform(srcPoints, dstPoints);\ncv::warpPerspective(src, dst, M, cv::Size(width, height));";
+        t.docSummary = "在工业工位中，相机由于安装空间受限往往呈倾斜视角俯拍工件，导致原本平行的边缘产生严重的“近大远小”梯形透视畸变。四点透视变换通过 8 个自由度的单应性矩阵，将空间四边形非线性重投影还原为垂直正视的正射矩形！";
+        t.docParams = "• <b>srcPoints:</b> 倾斜图像中工件的 4 个物理顶点角点坐标。<br>"
+                      "• <b>dstPoints:</b> 期望展开拍平的标准目标正视矩形 4 个角点坐标。<br>"
+                      "• <b>getPerspectiveTransform:</b> 利用 4 组对应点求解 3x3 透视变换矩阵。";
+        t.usageTiming = "工业倾斜条码与OCR铭牌文字正射拍平、斜拍电路板元器件正视角对准。";
+        t.bestPractices = "四点顺序必须严格保持一致（通常遵循：左上 ➔ 右上 ➔ 右下 ➔ 左下），若顺序错乱会导致投影画面发生镜像翻转或蝴蝶结交叉扭曲。";
+
+        ParamDescriptor p1;
+        p1.key = "offset";
+        p1.label = "模拟斜视梯形畸变偏角";
+        p1.type = ParamType::SliderInt;
+        p1.minVal = 10.0;
+        p1.maxVal = 90.0;
+        p1.step = 5.0;
+        p1.defaultVal = 40.0;
+
+        t.params.append(p1);
+
+        t.codeGenerator = [](const QMap<QString, QVariant> &p) -> QString {
+            int off = p.value("offset", 40).toInt();
+            return QString(
+                "// 工业透视正射矫正标准实现：\n"
+                "#include <opencv2/imgproc.hpp>\n\n"
+                "cv::Mat unwarpPerspective(const cv::Mat &src) {\n"
+                "    std::vector<cv::Point2f> srcPts = {\n"
+                "        cv::Point2f(%1, %1),\n"
+                "        cv::Point2f(src.cols - %1 * 1.5f, %1 * 0.7f),\n"
+                "        cv::Point2f(src.cols - %1, src.rows - %1),\n"
+                "        cv::Point2f(%1 * 1.4f, src.rows - %1 * 0.8f)\n"
+                "    };\n"
+                "    std::vector<cv::Point2f> dstPts = {\n"
+                "        cv::Point2f(0, 0),\n"
+                "        cv::Point2f(src.cols, 0),\n"
+                "        cv::Point2f(src.cols, src.rows),\n"
+                "        cv::Point2f(0, src.rows)\n"
+                "    };\n"
+                "    cv::Mat M = cv::getPerspectiveTransform(srcPts, dstPts);\n"
+                "    cv::Mat dst;\n"
+                "    cv::warpPerspective(src, dst, M, src.size());\n"
+                "    return dst;\n"
+                "}"
+            ).arg(off);
+        };
+
+        t.cvRunner = [](const cv::Mat &src, cv::Mat &dst, const QMap<QString, QVariant> &p, QString &execNote) {
+            int off = p.value("offset", 40).toInt();
+
+            std::vector<cv::Point2f> srcPts = {
+                cv::Point2f(off, off),
+                cv::Point2f(src.cols - off * 1.5f, off * 0.7f),
+                cv::Point2f(src.cols - off, src.rows - off),
+                cv::Point2f(off * 1.4f, src.rows - off * 0.8f)
+            };
+            std::vector<cv::Point2f> dstPts = {
+                cv::Point2f(0, 0),
+                cv::Point2f(src.cols, 0),
+                cv::Point2f(src.cols, src.rows),
+                cv::Point2f(0, src.rows)
+            };
+
+            cv::Mat M = cv::getPerspectiveTransform(srcPts, dstPts);
+            cv::warpPerspective(src, dst, M, src.size());
+            execNote = QString("四点透视变换单应性映射矫正完成 (偏移偏移量: %1px)").arg(off);
+        };
+
+        m_topics.append(t);
+        m_topicMap[t.id] = t;
+    }
 }
+
 
 void KnowledgeRegistry::initQtTopics() {
     // ========================================================
@@ -2922,5 +3412,308 @@ void KnowledgeRegistry::initQtTopics() {
         m_topics.append(t);
         m_topicMap[t.id] = t;
     }
+
+    // ========================================================
+    // 17. Qt 03. 高性能 Model/View 架构 (自定义单元格委托)
+    // ========================================================
+    {
+        KnowledgeTopic t;
+        t.id = "qt_custom_delegate";
+        t.framework = "Qt";
+        t.category = "Qt 03. 高性能 Model/View 架构";
+        t.name = "自定义项委托与单元格嵌入组件 (QStyledItemDelegate)";
+        t.tag = "表格内嵌实时动态进度条、质检结论Badge与交互按钮";
+        t.isVisualInteractive = false;
+        t.apiSignature = "class StatusBadgeDelegate : public QStyledItemDelegate {\n    void paint(QPainter *painter, const QStyleOptionViewItem &option, const QModelIndex &index) const override;\n};\ntableView->setItemDelegateForColumn(2, new StatusBadgeDelegate(this));";
+        t.docSummary = "在工业视觉 HMI 监控表格中，单调的文字展示已无法满足现代现场需求。例如需要直接在单元格内呈现彩色圆角 PASS/NG 胶囊徽章（Badge）、实时缺陷面积微型进度条，或者工件缩略图。<code>QStyledItemDelegate</code> 是 Qt Model/View 架构的核心定制器，重写 <code>paint()</code> 方法可在极低内存开销下批量自绘任何精美组件，避免为每行创建重型独立 QWidget 控件，即便十万行数据依然保持 60 FPS 流畅满帧！";
+        t.docParams = "• <b>paint(painter, option, index):</b> 自定义渲染回调，`option.rect` 指定当前单元格的绘制矩形，`index.data()` 提取底层模型数据。<br>"
+                      "• <b>sizeHint(option, index):</b> 声明单元格的理想长宽，防止自绘内容被截断。<br>"
+                      "• <b>createEditor / setEditorData:</b> 用于在用户双击时临时弹出下拉框或微调器进行参数交互。";
+        t.usageTiming = "工业质检流水明细表中的状态胶囊徽章渲染、多工位产量完成率进度条、表格内嵌缩略图与操作按钮。";
+        t.bestPractices = "① 在 `paint()` 中绘制完成后，必须调用 `painter->restore()` 或保存画笔画刷状态，防止污染后续单元格的绘制；<br>"
+                          "② 严禁在委托的 `paint()` 中执行任何耗时的格式转换或磁盘 I/O（如 `cv::imread`），图片必须在外部缓存为 `QPixmap` 后通过数据源传递。";
+        t.codeSnippet = 
+            "// 工业级质检状态胶囊徽章 (Badge) 自定义委托实现：\n"
+            "#include <QStyledItemDelegate>\n"
+            "#include <QPainter>\n"
+            "#include <QPainterPath>\n\n"
+            "class StatusBadgeDelegate : public QStyledItemDelegate {\n"
+            "public:\n"
+            "    explicit StatusBadgeDelegate(QObject *parent = nullptr) : QStyledItemDelegate(parent) {}\n\n"
+            "    void paint(QPainter *painter, const QStyleOptionViewItem &option, const QModelIndex &index) const override {\n"
+            "        painter->save();\n"
+            "        painter->setRenderHint(QPainter::Antialiasing);\n\n"
+            "        QString status = index.data(Qt::DisplayRole).toString();\n"
+            "        bool isPass = status.contains(\"PASS\");\n\n"
+            "        // 计算居中胶囊区域\n"
+            "        QRect badgeRect = option.rect.adjusted(8, 4, -8, -4);\n"
+            "        QPainterPath path;\n"
+            "        path.addRoundedRect(badgeRect, 4, 4);\n\n"
+            "        painter->setPen(Qt::NoPen);\n"
+            "        painter->setBrush(isPass ? QColor(\"#10b981\") : QColor(\"#ef4444\"));\n"
+            "        painter->drawPath(path);\n\n"
+            "        painter->setPen(QColor(\"#ffffff\"));\n"
+            "        painter->setFont(QFont(\"Segoe UI\", 9, QFont::Bold));\n"
+            "        painter->drawText(badgeRect, Qt::AlignCenter, status);\n\n"
+            "        painter->restore();\n"
+            "    }\n"
+            "};";
+        m_topics.append(t);
+        m_topicMap[t.id] = t;
+    }
+
+    // ========================================================
+    // 18. Qt 01. 核心架构与元对象系统 (事件过滤器)
+    // ========================================================
+    {
+        KnowledgeTopic t;
+        t.id = "qt_event_filter";
+        t.framework = "Qt";
+        t.category = "Qt 01. 核心架构与元对象系统 (MOC / 信号槽)";
+        t.name = "全局与对象事件过滤器 (eventFilter / installEventFilter)";
+        t.tag = "工业扫码枪按键拦截、无干扰鼠标防抖与手势劫持";
+        t.isVisualInteractive = false;
+        t.apiSignature = "bool eventFilter(QObject *watched, QEvent *event) override {\n    if (event->type() == QEvent::KeyPress) {\n        QKeyEvent *ke = static_cast<QKeyEvent*>(event);\n        // 拦截条码枪输入缓冲区\n        return true; // 消费事件，阻止下发\n    }\n    return QObject::eventFilter(watched, event);\n}";
+        t.docSummary = "在工业现场，外接硬件（如 USB 条码枪、脚踏开关、急停按钮）通常模拟键盘输入。若当前界面焦点不在特定输入框，扫码枪数据就会丢失或串入其他控件。Qt 的事件过滤器机制允许一个 <code>QObject</code> 在目标对象处理事件之前先行截获。将其安装在 <code>qApp</code> 上即可实现系统级全局按键监听与前置分发，是工控软件必不可少的架构利器。";
+        t.docParams = "• <b>installEventFilter(filterObj):</b> 向目标对象注册监听器，目标接收的所有事件先流经 filterObj。<br>"
+                      "• <b>eventFilter(watched, event):</b> 事件过滤核心虚函数。返回 `true` 表示吃掉该事件（阻断传播），返回 `false` 放行继续流动。";
+        t.usageTiming = "工业 USB 扫码枪自动收集条码输入缓冲区、触摸屏误触物理防抖、全局快捷键捕获。";
+        t.bestPractices = "事件过滤器必须极速执行完毕（严禁内部做网络请求、耗时计算或磁盘读写），否则会导致整个界面的鼠标和键盘响应发生肉眼可见的严重卡顿。";
+        t.codeSnippet = 
+            "// 工业扫码枪全局按键拦截器标准范式：\n"
+            "#include <QObject>\n"
+            "#include <QEvent>\n"
+            "#include <QKeyEvent>\n"
+            "#include <QTimer>\n"
+            "#include <QDebug>\n\n"
+            "class BarcodeScannerFilter : public QObject {\n"
+            "    Q_OBJECT\n"
+            "public:\n"
+            "    explicit BarcodeScannerFilter(QObject *parent = nullptr) : QObject(parent) {}\n\n"
+            "signals:\n"
+            "    void barcodeScanned(const QString &barcode);\n\n"
+            "protected:\n"
+            "    bool eventFilter(QObject *watched, QEvent *event) override {\n"
+            "        if (event->type() == QEvent::KeyPress) {\n"
+            "            auto *ke = static_cast<QKeyEvent*>(event);\n"
+            "            if (ke->key() == Qt::Key_Return || ke->key() == Qt::Key_Enter) {\n"
+            "                if (!m_buffer.isEmpty()) {\n"
+            "                    emit barcodeScanned(m_buffer);\n"
+            "                    m_buffer.clear();\n"
+            "                    return true; // 拦截回车，避免触发界面其他默认按钮\n"
+            "                }\n"
+            "            } else if (!ke->text().isEmpty()) {\n"
+            "                m_buffer.append(ke->text());\n"
+            "            }\n"
+            "        }\n"
+            "        return QObject::eventFilter(watched, event);\n"
+            "    }\n"
+            "private:\n"
+            "    QString m_buffer;\n"
+            "};";
+        m_topics.append(t);
+        m_topicMap[t.id] = t;
+    }
+
+    // ========================================================
+    // 19. Qt 04. 工业网络通信与进程间 IPC (串口通信)
+    // ========================================================
+    {
+        KnowledgeTopic t;
+        t.id = "qt_serial_port";
+        t.framework = "Qt";
+        t.category = "Qt 04. 工业网络通信与进程间 IPC";
+        t.name = "工业硬件串口与 PLC 协议总线 (QSerialPort)";
+        t.tag = "RS232/RS485 异步全双工通讯、Modbus-RTU 校验与粘包处理";
+        t.isVisualInteractive = false;
+        t.apiSignature = "QSerialPort *serial = new QSerialPort(this);\nserial->setPortName(\"COM3\");\nserial->setBaudRate(QSerialPort::Baud115200);\nserial->setDataBits(QSerialPort::Data8);\nserial->setParity(QSerialPort::NoParity);\nserial->setStopBits(QSerialPort::OneStop);\nserial->open(QIODevice::ReadWrite);";
+        t.docSummary = "工业现场相机光源控制器、光电传感器、下位机 PLC 多采用 RS232/RS485 串口连接。<code>QSerialPort</code> 提供了跨平台的异步硬件通信，结合非阻塞的 <code>readyRead</code> 信号驱动事件循环。配合环形缓冲区与超时防抖机制，能完美解决 Modbus-RTU 工业通讯中的 3.5 字符帧间隔超时判定与粘包分包难题。";
+        t.docParams = "• <b>setBaudRate:</b> 设定波特率（常用 9600、19200、115200）。<br>"
+                      "• <b>readyRead:</b> 底层 UART 接收 FIFO 缓冲区有数据到达时异步触发通知。<br>"
+                      "• <b>write(const QByteArray &):</b> 向硬件写入控制帧。";
+        t.usageTiming = "机器视觉工位给光源控制器发送亮度调节指令、与欧姆龙/西门子/三菱 PLC 进行握手交互。";
+        t.bestPractices = "① 严禁在 GUI 线程中调用 `serial->waitForReadyRead()`（会冻结主界面鼠标和渲染）！必须使用信号槽非阻塞驱动；<br>"
+                          "② 现场常遇强电磁干扰导致 USB 串口拔插断开，应监听 `errorOccurred` 信号，在设备掉线时执行断线重连重试。";
+        t.codeSnippet = 
+            "// 工业级串口全双工通信与帧解析标准范式：\n"
+            "#include <QSerialPort>\n"
+            "#include <QByteArray>\n"
+            "#include <QDebug>\n\n"
+            "class PLCHandler : public QObject {\n"
+            "    Q_OBJECT\n"
+            "public:\n"
+            "    void initPort(const QString &portName) {\n"
+            "        m_serial = new QSerialPort(this);\n"
+            "        m_serial->setPortName(portName);\n"
+            "        m_serial->setBaudRate(QSerialPort::Baud115200);\n"
+            "        \n"
+            "        connect(m_serial, &QSerialPort::readyRead, this, [this]() {\n"
+            "            m_recvBuffer.append(m_serial->readAll());\n"
+            "            // 针对工业协议（如以 0x0D 0x0A 换行结尾）进行拆包\n"
+            "            while (m_recvBuffer.contains(\"\\r\\n\")) {\n"
+            "                int idx = m_recvBuffer.indexOf(\"\\r\\n\");\n"
+            "                QByteArray frame = m_recvBuffer.left(idx);\n"
+            "                m_recvBuffer.remove(0, idx + 2);\n"
+            "                processCompleteFrame(frame);\n"
+            "            }\n"
+            "        });\n"
+            "        m_serial->open(QIODevice::ReadWrite);\n"
+            "    }\n\n"
+            "    void sendTriggerCommand() {\n"
+            "        if (m_serial && m_serial->isOpen()) {\n"
+            "            m_serial->write(\"TRIG:START\\r\\n\");\n"
+            "        }\n"
+            "    }\n"
+            "private:\n"
+            "    QSerialPort *m_serial = nullptr;\n"
+            "    QByteArray m_recvBuffer;\n"
+            "    void processCompleteFrame(const QByteArray &data) {\n"
+            "        qDebug() << \"[PLC Frame]:\" << data;\n"
+            "    }\n"
+            "};";
+        m_topics.append(t);
+        m_topicMap[t.id] = t;
+    }
+
+    // ========================================================
+    // 20. Qt 03. 高性能 Model/View 架构 (多列过滤与排序)
+    // ========================================================
+    {
+        KnowledgeTopic t;
+        t.id = "qt_sort_filter_proxy";
+        t.framework = "Qt";
+        t.category = "Qt 03. 高性能 Model/View 架构";
+        t.name = "多列实时筛选与虚拟多态排序 (QSortFilterProxyModel)";
+        t.tag = "百万级工件质检数据秒级模糊查询、多维度正逆序重排";
+        t.isVisualInteractive = false;
+        t.apiSignature = "QSortFilterProxyModel *proxy = new QSortFilterProxyModel(this);\nproxy->setSourceModel(sourceModel);\nproxy->setFilterCaseSensitivity(Qt::CaseInsensitive);\nproxy->setFilterKeyColumn(-1); // 全列匹配\ntableView->setModel(proxy);";
+        t.docSummary = "当底层数据源存储了数十万行视觉抽检流水账时，直接在原始 Model 中做数据增删排序会导致全量重绘卡顿。<code>QSortFilterProxyModel</code> 充当数据源与视图之间的轻量级“虚拟光学滤镜”，原始数据不发生任何物理位移，仅通过行号映射建立索引，实现毫秒级正则搜索与任意列点击升降序，代码量几乎为零！";
+        t.docParams = "• <b>setSourceModel:</b> 挂接底层真实业务数据模型。<br>"
+                      "• <b>setFilterRegularExpression:</b> 注入正则表达式进行动态智能过滤。<br>"
+                      "• <b>filterAcceptsRow:</b> 可重写的虚函数，支持组合复杂业务逻辑（如“同时满足孔径超差且检验耗时>5ms”）。";
+        t.usageTiming = "工业质检流水明细表实时多维度筛选（仅看合格、仅看特定产线、按工件批号模糊搜索）。";
+        t.bestPractices = "当在 View 中获取选中项时，行号是经过 Proxy 映射的！如果需要修改底层真实数据，务必调用 `proxy->mapToSource(proxyIndex)` 转换回真实索引，否则会引发严重的数据错位修改 Bug！";
+        t.codeSnippet = 
+            "// 工业级质检流水多列代理过滤与排序集成：\n"
+            "#include <QSortFilterProxyModel>\n"
+            "#include <QTableView>\n"
+            "#include <QLineEdit>\n\n"
+            "void setupFilteredInspectionView(QTableView *view, QAbstractItemModel *rawModel, QLineEdit *searchEdit) {\n"
+            "    auto *proxy = new QSortFilterProxyModel(view);\n"
+            "    proxy->setSourceModel(rawModel);\n"
+            "    proxy->setFilterCaseSensitivity(Qt::CaseInsensitive);\n"
+            "    proxy->setFilterKeyColumn(-1); // -1 代表检索全表所有列数据\n\n"
+            "    view->setModel(proxy);\n"
+            "    view->setSortingEnabled(true); // 开启表头点击自动升降序\n\n"
+            "    // 搜索框输入与模型实时联动过滤\n"
+            "    QObject::connect(searchEdit, &QLineEdit::textChanged, proxy, &QSortFilterProxyModel::setFilterFixedString);\n"
+            "}";
+        m_topics.append(t);
+        m_topicMap[t.id] = t;
+    }
+
+    // ========================================================
+    // 21. Qt 04. 工业网络通信与进程间 IPC (UDP 组播)
+    // ========================================================
+    {
+        KnowledgeTopic t;
+        t.id = "qt_udp_broadcast";
+        t.framework = "Qt";
+        t.category = "Qt 04. 工业网络通信与进程间 IPC";
+        t.name = "局域网设备自发现与组播推流 (QUdpSocket)";
+        t.tag = "GigE 工业相机 IP 自动探测、产线心跳多播与分布式同步";
+        t.isVisualInteractive = false;
+        t.apiSignature = "QUdpSocket *udp = new QUdpSocket(this);\nudp->bind(QHostAddress::AnyIPv4, 8888, QUdpSocket::ShareAddress);\nconnect(udp, &QUdpSocket::readyRead, this, &Discovery::onDatagram);";
+        t.docSummary = "在分布式机器视觉系统中（如 8 台工控机协同拼图），设备之间需要自动寻址握手，并同步传送带编码器触发脉冲。<code>QUdpSocket</code> 提供微秒级低延迟的无连接单播、局域网全网广播（255.255.255.255）与组播（Multicast），零连接开销，是工业现场设备自发现（GenICam 相机探测协议）的标准基石。";
+        t.docParams = "• <b>bind(port, ShareAddress):</b> 监听指定 UDP 端口，允许多个工控进程共享绑定同一端口。<br>"
+                      "• <b>writeDatagram:</b> 发送无连接数据包。<br>"
+                      "• <b>readPendingDatagrams:</b> 提取排队数据包与发送方 IP 和端口号。";
+        t.usageTiming = "工控机多机视觉集群心跳广播、局域网相机设备快速扫描与绑定、产线流水线光电传感器触发同步广播。";
+        t.bestPractices = "UDP 不保证包序与可靠送达，在网络拥堵时可能丢包。用于关键控制信号时，建议在应用层数据包头加入序列号与确认重传（ACK）机制。";
+        t.codeSnippet = 
+            "// 工业级局域网设备自发现心跳广播与监听：\n"
+            "#include <QUdpSocket>\n"
+            "#include <QNetworkDatagram>\n"
+            "#include <QDebug>\n\n"
+            "class VisionDeviceDiscoverer : public QObject {\n"
+            "    Q_OBJECT\n"
+            "public:\n"
+            "    explicit VisionDeviceDiscoverer(quint16 port = 9000, QObject *parent = nullptr) : QObject(parent), m_port(port) {\n"
+            "        m_socket = new QUdpSocket(this);\n"
+            "        m_socket->bind(QHostAddress::AnyIPv4, m_port, QUdpSocket::ShareAddress | QUdpSocket::ReuseAddressHint);\n"
+            "        connect(m_socket, &QUdpSocket::readyRead, this, [this]() {\n"
+            "            while (m_socket->hasPendingDatagrams()) {\n"
+            "                QNetworkDatagram datagram = m_socket->receiveDatagram();\n"
+            "                qDebug() << \"[UDP Heartbeat]:\" << datagram.senderAddress().toString() << datagram.data();\n"
+            "            }\n"
+            "        });\n"
+            "    }\n\n"
+            "    void broadcastPresence(const QString &deviceName) {\n"
+            "        QByteArray msg = QString(\"VISION_AGENT:%1\").arg(deviceName).toUtf8();\n"
+            "        m_socket->writeDatagram(msg, QHostAddress::Broadcast, m_port);\n"
+            "    }\n"
+            "private:\n"
+            "    QUdpSocket *m_socket = nullptr;\n"
+            "    quint16 m_port;\n"
+            "};";
+        m_topics.append(t);
+        m_topicMap[t.id] = t;
+    }
+
+    // ========================================================
+    // 22. Qt 05. 高性能交互与图形视图 (自定义控件规范)
+    // ========================================================
+    {
+        KnowledgeTopic t;
+        t.id = "qt_custom_widget";
+        t.framework = "Qt";
+        t.category = "Qt 05. 高性能交互与图形视图";
+        t.name = "工业自定义控件封装范式 (Q_PROPERTY / QPainter / 独立样式)";
+        t.tag = "可复用工业仪表盘、发光 LED 状态指示灯、可导出 Qt Designer 插件";
+        t.isVisualInteractive = false;
+        t.apiSignature = "class IndustrialStatusLed : public QWidget {\n    Q_OBJECT\n    Q_PROPERTY(QColor ledColor READ ledColor WRITE setLedColor NOTIFY ledColorChanged)\n    Q_PROPERTY(bool isBlinking READ isBlinking WRITE setBlinking)\n};";
+        t.docSummary = "开发工业机器视觉上位机时，标准按钮与标签无法传达设备运行状态。封装具备专业感的高内聚独立控件（如三色报警灯、圆环压力计、双向滑块）是资深 Qt 工程师的看家本领。遵循 <code>Q_PROPERTY</code> 属性系统（便于动效驱动与属性检查器配置）、重写 <code>paintEvent</code> 与 <code>sizeHint</code>，可让自定义控件达到开箱即用的工业级复用标准。";
+        t.docParams = "• <b>Q_PROPERTY:</b> 向元对象系统暴露属性，使得 `QPropertyAnimation` 可以对该控件直接做动效插值。<br>"
+                      "• <b>sizeHint / minimumSizeHint:</b> 声明控件的默认自然尺寸，保证控件在布局管理器中自动合理排布。<br>"
+                      "• <b>paintEvent:</b> 基于 QPainter 的纯矢量自绘渲染。";
+        t.usageTiming = "三色质检工位塔灯（红黄绿状态灯）、相机曝光/增益量测精密微调旋钮、工业温湿度仪表盘。";
+        t.bestPractices = "自绘控件必须适配高 DPI 屏幕缩放。绘制圆弧或图标时切勿硬编码像素数值，应通过 `qMin(width(), height())` 动态求取比例系数。";
+        t.codeSnippet = 
+            "// 工业级发光呼吸状态指示灯 (LED Indicator) 封装范式：\n"
+            "#include <QWidget>\n"
+            "#include <QPainter>\n"
+            "#include <QRadialGradient>\n\n"
+            "class IndustrialStatusLed : public QWidget {\n"
+            "    Q_OBJECT\n"
+            "    Q_PROPERTY(QColor color READ color WRITE setColor)\n"
+            "public:\n"
+            "    explicit IndustrialStatusLed(QWidget *parent = nullptr) : QWidget(parent), m_color(\"#10b981\") {\n"
+            "        setFixedSize(28, 28);\n"
+            "    }\n"
+            "    QColor color() const { return m_color; }\n"
+            "    void setColor(const QColor &c) { m_color = c; update(); }\n\n"
+            "protected:\n"
+            "    void paintEvent(QPaintEvent *) override {\n"
+            "        QPainter p(this);\n"
+            "        p.setRenderHint(QPainter::Antialiasing);\n\n"
+            "        int side = qMin(width(), height());\n"
+            "        QPointF center(width() / 2.0, height() / 2.0);\n"
+            "        qreal radius = side / 2.0 - 2.0;\n\n"
+            "        // 绘制带径向渐变的光晕质感\n"
+            "        QRadialGradient grad(center, radius, center - QPointF(radius * 0.3, radius * 0.3));\n"
+            "        grad.setColorAt(0.0, QColor(255, 255, 255, 220));\n"
+            "        grad.setColorAt(0.4, m_color);\n"
+            "        grad.setColorAt(1.0, m_color.darker(150));\n\n"
+            "        p.setPen(QPen(m_color.darker(200), 1.5));\n"
+            "        p.setBrush(grad);\n"
+            "        p.drawEllipse(center, radius, radius);\n"
+            "    }\n"
+            "private:\n"
+            "    QColor m_color;\n"
+            "};";
+        m_topics.append(t);
+        m_topicMap[t.id] = t;
+    }
 }
+
 

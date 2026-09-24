@@ -1,4 +1,5 @@
 #include "IntegratedToolboxPage.h"
+#include "live_pipeline/LiveScreenPipelinePage.h"
 #include "vision_matcher/VisionMatcherPage.h"
 #include "image_processor/ImageProcessorPage.h"
 #include "dev_toolbox/DevToolboxPage.h"
@@ -30,25 +31,38 @@ IntegratedToolboxPage::IntegratedToolboxPage(QWidget *parent) : IToolPage(parent
     updateTabsStyle(ThemeManager::instance().isDarkMode());
     connect(&ThemeManager::instance(), &ThemeManager::themeChanged, this, updateTabsStyle);
 
+    m_livePipelinePage = new LiveScreenPipelinePage(this);
     m_matcherPage = new VisionMatcherPage(this);
     m_processorPage = new ImageProcessorPage(this);
     m_devPage = new DevToolboxPage(this);
 
+    m_tabWidget->addTab(m_livePipelinePage, "⚡ 实时屏幕流·算子流水线");
     m_tabWidget->addTab(m_matcherPage, "🎯 屏幕找图与模板匹配");
     m_tabWidget->addTab(m_processorPage, "🎨 OpenCV 图像处理工坊");
     m_tabWidget->addTab(m_devPage, "🛠️ 系统与 JSON 实用工具");
+
+    connect(m_tabWidget, &QTabWidget::currentChanged, this, [this](int idx) {
+        if (idx == 0) m_livePipelinePage->onActivated();
+        else m_livePipelinePage->onDeactivated();
+
+        if (idx == 1) m_matcherPage->onActivated();
+        else if (idx == 2) m_processorPage->onActivated();
+        else if (idx == 3) m_devPage->onActivated();
+    });
 
     layout->addWidget(m_tabWidget);
 }
 
 void IntegratedToolboxPage::onActivated() {
     int cur = m_tabWidget->currentIndex();
-    if (cur == 0) m_matcherPage->onActivated();
-    else if (cur == 1) m_processorPage->onActivated();
-    else if (cur == 2) m_devPage->onActivated();
+    if (cur == 0) m_livePipelinePage->onActivated();
+    else if (cur == 1) m_matcherPage->onActivated();
+    else if (cur == 2) m_processorPage->onActivated();
+    else if (cur == 3) m_devPage->onActivated();
 }
 
 void IntegratedToolboxPage::onDeactivated() {
+    m_livePipelinePage->onDeactivated();
     m_matcherPage->onDeactivated();
     m_processorPage->onDeactivated();
     m_devPage->onDeactivated();

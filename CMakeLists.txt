@@ -48,6 +48,8 @@ set(SOURCES
     src/ui/KnowledgeExplorerPage.cpp
     src/modules/IntegratedToolboxPage.h
     src/modules/IntegratedToolboxPage.cpp
+    src/modules/live_pipeline/LiveScreenPipelinePage.h
+    src/modules/live_pipeline/LiveScreenPipelinePage.cpp
     src/modules/vision_matcher/VisionMatcherPage.h
     src/modules/vision_matcher/VisionMatcherPage.cpp
     src/modules/image_processor/ImageProcessorPage.h

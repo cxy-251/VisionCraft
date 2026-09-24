@@ -20,8 +20,35 @@ QImage ScreenCapture::grabScreen(int screenIndex) {
     return pixmap.toImage();
 }
 
+QImage ScreenCapture::grabScreenRegion(int x, int y, int w, int h, int screenIndex) {
+    auto screens = QGuiApplication::screens();
+    if (screens.isEmpty()) {
+        return QImage();
+    }
+    if (screenIndex < 0 || screenIndex >= screens.size()) {
+        screenIndex = 0;
+    }
+    QScreen *screen = screens[screenIndex];
+    if (!screen) return QImage();
+
+    QPixmap pixmap = screen->grabWindow(0, x, y, w, h);
+    return pixmap.toImage();
+}
+
 cv::Mat ScreenCapture::qImageToMat(const QImage &image) {
     if (image.isNull()) return cv::Mat();
+
+    // 零额外拷贝极速路径：Windows 平台 grabWindow 生成的 32 位格式底层即为 BGRA
+    if (image.format() == QImage::Format_RGB32 || 
+        image.format() == QImage::Format_ARGB32 || 
+        image.format() == QImage::Format_ARGB32_Premultiplied) {
+        cv::Mat bgraMat(image.height(), image.width(), CV_8UC4,
+                        const_cast<uchar*>(image.bits()),
+                        static_cast<size_t>(image.bytesPerLine()));
+        cv::Mat bgrMat;
+        cv::cvtColor(bgraMat, bgrMat, cv::COLOR_BGRA2BGR);
+        return bgrMat;
+    }
 
     QImage conv = image.convertToFormat(QImage::Format_RGB888);
     cv::Mat mat(conv.height(), conv.width(), CV_8UC3,

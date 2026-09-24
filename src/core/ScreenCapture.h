@@ -12,6 +12,9 @@ public:
     // 捕获指定屏幕（默认主屏，跨平台支持 Windows/macOS/Linux）
     static QImage grabScreen(int screenIndex = 0);
 
+    // 捕获指定屏幕的局部矩形区域 (用于动态 ROI / 显微跟随)
+    static QImage grabScreenRegion(int x, int y, int w, int h, int screenIndex = 0);
+
     // QImage 转换为 OpenCV cv::Mat (BGR 格式)
     static cv::Mat qImageToMat(const QImage &image);
 

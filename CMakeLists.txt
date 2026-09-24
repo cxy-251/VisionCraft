@@ -77,3 +77,11 @@ target_link_libraries(VisionCraft PRIVATE
     fmt::fmt
     nlohmann_json::nlohmann_json
 )
+
+# 确保 Qt6Concurrent 动态链接库始终自动部署到可执行文件同级目录
+add_custom_command(TARGET VisionCraft POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different
+    "C:/02Programmer/Qt/6.7.3/msvc2019_64/bin/Qt6Concurrent.dll"
+    "$<TARGET_FILE_DIR:VisionCraft>"
+)
+

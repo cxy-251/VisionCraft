@@ -24,12 +24,14 @@ bool ThemeManager::isDarkMode() const {
 }
 
 bool ThemeManager::detectWindowsDarkTheme() const {
-    // 1. 优先使用 Qt 6 官方 cross-platform styleHints
+    // 1. 优先使用 Qt 6.5+ 官方 cross-platform styleHints
+#if QT_VERSION >= QT_VERSION_CHECK(6, 5, 0)
     if (QGuiApplication::styleHints()) {
         if (QGuiApplication::styleHints()->colorScheme() == Qt::ColorScheme::Dark) {
             return true;
         }
     }
+#endif
 
     // 2. Windows 注册表兜底检测
 #ifdef Q_OS_WIN

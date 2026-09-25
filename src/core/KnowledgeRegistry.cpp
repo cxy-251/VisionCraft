@@ -3,6 +3,7 @@
 #include <opencv2/core.hpp>
 #include <opencv2/features2d.hpp>
 #include <opencv2/objdetect.hpp>
+#include <opencv2/video.hpp>
 #include <fmt/format.h>
 #include <vector>
 #include <cmath>
@@ -2345,6 +2346,861 @@ void KnowledgeRegistry::initOpenCVTopics() {
         m_topics.append(t);
         m_topicMap[t.id] = t;
     }
+
+    // ========================================================
+    // OpenCV 06. 工业几何与精密测量 (亚像素一维卡尺边缘测距)
+    // ========================================================
+    {
+        KnowledgeTopic t;
+        t.id = "cv_caliper_measure";
+        t.framework = "OpenCV";
+        t.category = "OpenCV 06. 工业几何与精密测量";
+        t.name = "亚像素一维卡尺边缘测距 (1D Profile Subpixel Caliper)";
+        t.tag = "精密尺寸量测、亚像素边缘轮廓、二次抛物线极值定位";
+        t.isVisualInteractive = true;
+        t.apiSignature = "void measure1DCaliper(const cv::Mat &src, int rowY, int threshold, int polarity, std::vector<double> &subpixelEdges);";
+        t.docSummary = "一维边缘卡尺测量是工业机器视觉检测工件尺寸、装配间隙与线宽的核心技术。通过沿指定测量线（ROI Profile）提取灰度剖面，采用一阶差分算子求导提取边缘梯度峰值，并结合二次抛物线极值插值（Parabolic Subpixel Interpolation），将空间测量精度从 1 像素跨越到 0.05 亚像素级，彻底突破传感器物理分辨率瓶颈。";
+        t.docParams = "• <b>roi_y:</b> 测量线在图像中的垂直像素行坐标 Y。<br>"
+                      "• <b>thresh:</b> 边缘梯度响应阈值，用于消除物体表面轻微纹理杂讯。<br>"
+                      "• <b>polarity:</b> 边缘极性筛选：0=全部极值，1=黑到白过渡 (Dark to Light)，2=白到黑过渡 (Light to Dark)。";
+
+        ParamDesc p1;
+        p1.key = "roi_y";
+        p1.label = "卡尺测量线行高 Y";
+        p1.type = ParamType::SliderInt;
+        p1.minVal = 50.0;
+        p1.maxVal = 440.0;
+        p1.step = 10.0;
+        p1.defaultVal = 240.0;
+
+        ParamDesc p2;
+        p2.key = "thresh";
+        p2.label = "梯度检测阈值";
+        p2.type = ParamType::SliderInt;
+        p2.minVal = 10.0;
+        p2.maxVal = 120.0;
+        p2.step = 5.0;
+        p2.defaultVal = 35.0;
+
+        ParamDesc p3;
+        p3.key = "polarity";
+        p3.label = "边缘过渡极性";
+        p3.type = ParamType::ComboBox;
+        p3.options = {"全部极值 (Any Polarity)", "黑到白 (Dark to Light, 梯度>0)", "白到黑 (Light to Dark, 梯度<0)"};
+        p3.optionValues = {0, 1, 2};
+        p3.defaultVal = 0.0;
+
+        t.params.append(p1);
+        t.params.append(p2);
+        t.params.append(p3);
+
+        t.codeGenerator = [](const QMap<QString, QVariant> &p) -> QString {
+            int rowY = p.value("roi_y", 240).toInt();
+            int thresh = p.value("thresh", 35).toInt();
+            int polarity = p.value("polarity", 0).toInt();
+            return QString(
+                "// 亚像素一维卡尺边缘测距工业实现：\n"
+                "#include <opencv2/imgproc.hpp>\n"
+                "#include <vector>\n"
+                "#include <cmath>\n\n"
+                "std::vector<double> measure1DSubpixelEdges(const cv::Mat &src, int rowY, int threshold, int polarity) {\n"
+                "    cv::Mat gray = src;\n"
+                "    if (src.channels() == 3) cv::cvtColor(src, gray, cv::COLOR_BGR2GRAY);\n"
+                "    std::vector<double> edges;\n"
+                "    int w = gray.cols;\n"
+                "    if (rowY < 1 || rowY >= gray.rows - 1) return edges;\n\n"
+                "    // 提取并平滑一维行灰度分布\n"
+                "    std::vector<float> profile(w);\n"
+                "    const uchar *pRow = gray.ptr<uchar>(rowY);\n"
+                "    for (int x = 1; x < w - 1; ++x) {\n"
+                "        profile[x] = 0.25f * pRow[x - 1] + 0.5f * pRow[x] + 0.25f * pRow[x + 1];\n"
+                "    }\n\n"
+                "    // 计算一阶导数梯度并定位极值点\n"
+                "    for (int x = 2; x < w - 2; ++x) {\n"
+                "        float g = profile[x + 1] - profile[x - 1];\n"
+                "        float g_prev = profile[x] - profile[x - 2];\n"
+                "        float g_next = profile[x + 2] - profile[x];\n"
+                "        if (std::abs(g) < threshold) continue;\n"
+                "        if (polarity == 1 && g < 0) continue; // 黑到白需 g > 0\n"
+                "        if (polarity == 2 && g > 0) continue; // 白到黑需 g < 0\n\n"
+                "        // 局部波峰检测\n"
+                "        if (std::abs(g) > std::abs(g_prev) && std::abs(g) >= std::abs(g_next)) {\n"
+                "            // 二次抛物线插值求亚像素极值偏移 delta\n"
+                "            float denom = 2.0f * (g_prev - 2.0f * g + g_next);\n"
+                "            float delta = 0.0f;\n"
+                "            if (std::abs(denom) > 1e-4f) {\n"
+                "                delta = (g_prev - g_next) / denom;\n"
+                "            }\n"
+                "            edges.push_back(x + delta);\n"
+                "        }\n"
+                "    }\n"
+                "    return edges;\n"
+                "}\n"
+                "// 运行调用: auto edges = measure1DSubpixelEdges(mat, %1, %2, %3);\n"
+            ).arg(rowY).arg(thresh).arg(polarity);
+        };
+
+        t.cvRunner = [](const cv::Mat &src, cv::Mat &dst, const QMap<QString, QVariant> &p, QString &execNote) {
+            dst = src.clone();
+            cv::Mat gray = src;
+            if (src.channels() == 3) cv::cvtColor(src, gray, cv::COLOR_BGR2GRAY);
+
+            int rowY = std::min(std::max(2, p.value("roi_y", 240).toInt()), gray.rows - 3);
+            int thresh = p.value("thresh", 35).toInt();
+            int polarity = p.value("polarity", 0).toInt();
+
+            int w = gray.cols;
+            std::vector<float> profile(w, 0.0f);
+            const uchar *pRow = gray.ptr<uchar>(rowY);
+            for (int x = 1; x < w - 1; ++x) {
+                profile[x] = 0.25f * pRow[x - 1] + 0.5f * pRow[x] + 0.25f * pRow[x + 1];
+            }
+
+            std::vector<double> edges;
+            for (int x = 2; x < w - 2; ++x) {
+                float g = profile[x + 1] - profile[x - 1];
+                float g_prev = profile[x] - profile[x - 2];
+                float g_next = profile[x + 2] - profile[x];
+                if (std::abs(g) < thresh) continue;
+                if (polarity == 1 && g < 0) continue;
+                if (polarity == 2 && g > 0) continue;
+
+                if (std::abs(g) > std::abs(g_prev) && std::abs(g) >= std::abs(g_next)) {
+                    float denom = 2.0f * (g_prev - 2.0f * g + g_next);
+                    float delta = 0.0f;
+                    if (std::abs(denom) > 1e-4f) {
+                        delta = (g_prev - g_next) / denom;
+                    }
+                    edges.push_back(x + delta);
+                }
+            }
+
+            // 绘制卡尺测量基准线与刻度
+            cv::line(dst, cv::Point(0, rowY), cv::Point(w, rowY), cv::Scalar(255, 200, 0), 2);
+            cv::line(dst, cv::Point(0, rowY - 12), cv::Point(w, rowY - 12), cv::Scalar(100, 100, 100), 1);
+            cv::line(dst, cv::Point(0, rowY + 12), cv::Point(w, rowY + 12), cv::Scalar(100, 100, 100), 1);
+
+            // 标记每个检测出的亚像素边缘位置
+            for (size_t i = 0; i < edges.size(); ++i) {
+                int ix = static_cast<int>(std::round(edges[i]));
+                cv::drawMarker(dst, cv::Point(ix, rowY), cv::Scalar(0, 0, 255), cv::MARKER_CROSS, 20, 2);
+                cv::putText(dst, QString("#%1: %2 px").arg(i + 1).arg(edges[i], 0, 'f', 2).toStdString(),
+                            cv::Point(ix - 30, rowY - 18 - (i % 2) * 20),
+                            cv::FONT_HERSHEY_SIMPLEX, 0.45, cv::Scalar(0, 255, 255), 1, cv::LINE_AA);
+            }
+
+            // 若找到至少两个边缘，测量第一和第二个边缘之间的跨度
+            if (edges.size() >= 2) {
+                double dist = std::abs(edges[1] - edges[0]);
+                int x1 = static_cast<int>(std::round(edges[0]));
+                int x2 = static_cast<int>(std::round(edges[1]));
+                cv::line(dst, cv::Point(x1, rowY + 28), cv::Point(x2, rowY + 28), cv::Scalar(0, 255, 0), 2);
+                cv::drawMarker(dst, cv::Point(x1, rowY + 28), cv::Scalar(0, 255, 0), cv::MARKER_TILTED_CROSS, 10, 2);
+                cv::drawMarker(dst, cv::Point(x2, rowY + 28), cv::Scalar(0, 255, 0), cv::MARKER_TILTED_CROSS, 10, 2);
+                cv::putText(dst, QString("Width: %1 px (Subpixel)").arg(dist, 0, 'f', 3).toStdString(),
+                            cv::Point((x1 + x2) / 2 - 60, rowY + 46),
+                            cv::FONT_HERSHEY_SIMPLEX, 0.55, cv::Scalar(0, 255, 0), 2, cv::LINE_AA);
+                execNote = QString("卡尺定位 %1 个亚像素边缘 | 测量跨距: %2 px").arg(edges.size()).arg(dist, 0, 'f', 3);
+            } else {
+                execNote = QString("卡尺定位 %1 个亚像素边缘 (建议降低阈值以检测更多边缘)").arg(edges.size());
+            }
+        };
+
+        m_topics.append(t);
+        m_topicMap[t.id] = t;
+    }
+
+    // ========================================================
+    // OpenCV 04. 特征提取与目标匹配 (金字塔粗到精模板匹配)
+    // ========================================================
+    {
+        KnowledgeTopic t;
+        t.id = "cv_pyramid_matching";
+        t.framework = "OpenCV";
+        t.category = "OpenCV 04. 特征提取与目标匹配";
+        t.name = "金字塔多尺度加速模板匹配 (Pyramid Coarse-to-Fine Matching)";
+        t.tag = "高清图快速搜寻、buildPyramid 降采样加速、局部 ROI 精微搜索";
+        t.isVisualInteractive = true;
+        t.apiSignature = "void pyramidMatchTemplate(const cv::Mat &image, const cv::Mat &templ, cv::Rect &bestMatch, double &score, int maxLevels = 2);";
+        t.docSummary = "全图直接进行滑动窗口模板匹配的时间复杂度与图像面积成正比。在高像素工业相机下，采用图像金字塔粗到精（Coarse-to-Fine）分层搜索：首先在金字塔顶层（分辨率降低 2^N 倍）进行极速粗匹配定位候选 ROI，然后逐层向下将候选框位置映射回原图，并在小范围内进行局部精细匹配，匹配速度提升 5~10 倍且保持亚像素级精准。";
+        t.docParams = "• <b>levels:</b> 金字塔下采样层数 (1~3)。层数越高顶层越小，匹配速度呈几何级数跃升。<br>"
+                      "• <b>method:</b> 匹配算法：TM_CCOEFF_NORMED（抗光照波动推荐）或 TM_CCORR_NORMED。<br>"
+                      "• <b>search_margin:</b> 顶层候选映射到下一层时的局部搜索扩张窗口边距 (px)。";
+
+        ParamDesc p1;
+        p1.key = "levels";
+        p1.label = "金字塔缩减层数 (Levels)";
+        p1.type = ParamType::SliderInt;
+        p1.minVal = 1.0;
+        p1.maxVal = 3.0;
+        p1.step = 1.0;
+        p1.defaultVal = 2.0;
+
+        ParamDesc p2;
+        p2.key = "method";
+        p2.label = "匹配度量准则";
+        p2.type = ParamType::ComboBox;
+        p2.options = {"TM_CCOEFF_NORMED (标准推荐)", "TM_CCORR_NORMED (归一化互相关)"};
+        p2.optionValues = {cv::TM_CCOEFF_NORMED, cv::TM_CCORR_NORMED};
+        p2.defaultVal = static_cast<double>(cv::TM_CCOEFF_NORMED);
+
+        ParamDesc p3;
+        p3.key = "search_margin";
+        p3.label = "逐层精搜膨胀边距 (px)";
+        p3.type = ParamType::SliderInt;
+        p3.minVal = 10.0;
+        p3.maxVal = 60.0;
+        p3.step = 5.0;
+        p3.defaultVal = 25.0;
+
+        t.params.append(p1);
+        t.params.append(p2);
+        t.params.append(p3);
+
+        t.codeGenerator = [](const QMap<QString, QVariant> &p) -> QString {
+            int lvls = p.value("levels", 2).toInt();
+            int margin = p.value("search_margin", 25).toInt();
+            return QString(
+                "// 金字塔粗到精模板匹配生产级架构：\n"
+                "#include <opencv2/imgproc.hpp>\n\n"
+                "cv::Rect pyramidMatch(const cv::Mat &src, const cv::Mat &tpl, int maxLevels = %1, int margin = %2) {\n"
+                "    std::vector<cv::Mat> srcPyr, tplPyr;\n"
+                "    cv::buildPyramid(src, srcPyr, maxLevels);\n"
+                "    cv::buildPyramid(tpl, tplPyr, maxLevels);\n\n"
+                "    // 1. 顶层最小分辨率快速全局粗搜\n"
+                "    cv::Mat res;\n"
+                "    cv::matchTemplate(srcPyr[maxLevels], tplPyr[maxLevels], res, cv::TM_CCOEFF_NORMED);\n"
+                "    double minV, maxV; cv::Point minL, maxL;\n"
+                "    cv::minMaxLoc(res, &minV, &maxV, &minL, &maxL);\n"
+                "    cv::Point candidate = maxL;\n\n"
+                "    // 2. 逐层下推映射并在局部小窗口精搜\n"
+                "    for (int lvl = maxLevels - 1; lvl >= 0; --lvl) {\n"
+                "        candidate *= 2;\n"
+                "        int tW = tplPyr[lvl].cols, tH = tplPyr[lvl].rows;\n"
+                "        cv::Rect roi(candidate.x - margin, candidate.y - margin, tW + margin * 2, tH + margin * 2);\n"
+                "        roi &= cv::Rect(0, 0, srcPyr[lvl].cols, srcPyr[lvl].rows);\n"
+                "        if (roi.width < tW || roi.height < tH) break;\n\n"
+                "        cv::matchTemplate(srcPyr[lvl](roi), tplPyr[lvl], res, cv::TM_CCOEFF_NORMED);\n"
+                "        cv::minMaxLoc(res, nullptr, &maxV, nullptr, &maxL);\n"
+                "        candidate = cv::Point(roi.x + maxL.x, roi.y + maxL.y);\n"
+                "    }\n"
+                "    return cv::Rect(candidate.x, candidate.y, tpl.cols, tpl.rows);\n"
+                "}"
+            ).arg(lvls).arg(margin);
+        };
+
+        t.cvRunner = [](const cv::Mat &src, cv::Mat &dst, const QMap<QString, QVariant> &p, QString &execNote) {
+            dst = src.clone();
+            int lvls = p.value("levels", 2).toInt();
+            int method = p.value("method", cv::TM_CCOEFF_NORMED).toInt();
+            int margin = p.value("search_margin", 25).toInt();
+
+            cv::Rect tplRect(150, 190, 100, 100);
+            tplRect &= cv::Rect(0, 0, src.cols, src.rows);
+            cv::Mat tpl = src(tplRect).clone();
+
+            std::vector<cv::Mat> srcPyr, tplPyr;
+            cv::buildPyramid(src, srcPyr, lvls);
+            cv::buildPyramid(tpl, tplPyr, lvls);
+
+            cv::Mat res;
+            cv::matchTemplate(srcPyr[lvls], tplPyr[lvls], res, method);
+            double minV = 0, maxV = 0;
+            cv::Point minL, maxL;
+            cv::minMaxLoc(res, &minV, &maxV, &minL, &maxL);
+            cv::Point bestPt = (method == cv::TM_SQDIFF_NORMED) ? minL : maxL;
+            double topScore = (method == cv::TM_SQDIFF_NORMED) ? (1.0 - minV) : maxV;
+
+            for (int lvl = lvls - 1; lvl >= 0; --lvl) {
+                bestPt *= 2;
+                int tW = tplPyr[lvl].cols;
+                int tH = tplPyr[lvl].rows;
+                cv::Rect roi(bestPt.x - margin, bestPt.y - margin, tW + margin * 2, tH + margin * 2);
+                roi &= cv::Rect(0, 0, srcPyr[lvl].cols, srcPyr[lvl].rows);
+                if (roi.width < tW || roi.height < tH) break;
+
+                cv::matchTemplate(srcPyr[lvl](roi), tplPyr[lvl], res, method);
+                cv::minMaxLoc(res, &minV, &maxV, &minL, &maxL);
+                cv::Point localBest = (method == cv::TM_SQDIFF_NORMED) ? minL : maxL;
+                bestPt = cv::Point(roi.x + localBest.x, roi.y + localBest.y);
+            }
+
+            cv::Rect finalRect(bestPt.x, bestPt.y, tpl.cols, tpl.rows);
+            finalRect &= cv::Rect(0, 0, src.cols, src.rows);
+
+            cv::rectangle(dst, finalRect, cv::Scalar(0, 255, 0), 3);
+            cv::drawMarker(dst, cv::Point(finalRect.x + finalRect.width / 2, finalRect.y + finalRect.height / 2),
+                           cv::Scalar(0, 255, 0), cv::MARKER_CROSS, 20, 2);
+
+            cv::Mat tplSmall;
+            cv::resize(tpl, tplSmall, cv::Size(70, 70));
+            cv::Rect hudTpl(15, 15, 70, 70);
+            tplSmall.copyTo(dst(hudTpl));
+            cv::rectangle(dst, hudTpl, cv::Scalar(0, 255, 255), 2);
+            cv::putText(dst, "Template", cv::Point(15, 98), cv::FONT_HERSHEY_SIMPLEX, 0.45, cv::Scalar(0, 255, 255), 1, cv::LINE_AA);
+
+            cv::putText(dst, QString("Pyramid Match Lv%1 Score: %2").arg(lvls).arg(topScore, 0, 'f', 3).toStdString(),
+                        cv::Point(finalRect.x, std::max(25, finalRect.y - 10)),
+                        cv::FONT_HERSHEY_SIMPLEX, 0.6, cv::Scalar(0, 255, 0), 2, cv::LINE_AA);
+
+            execNote = QString("金字塔分层粗精匹配成功 (层数: %1, 匹配得分: %2)").arg(lvls).arg(topScore, 0, 'f', 3);
+        };
+
+        m_topics.append(t);
+        m_topicMap[t.id] = t;
+    }
+
+    // ========================================================
+    // OpenCV 03. 轮廓提取与几何测量 (连通域统计与几何矩分析)
+    // ========================================================
+    {
+        KnowledgeTopic t;
+        t.id = "cv_connected_components";
+        t.framework = "OpenCV";
+        t.category = "OpenCV 03. 轮廓提取与几何测量";
+        t.name = "连通域统计与几何矩分析 (connectedComponentsWithStats)";
+        t.tag = "高性价比目标分割、面积/质心/外接框批量提取、高速噪点过滤";
+        t.isVisualInteractive = true;
+        t.apiSignature = "int cv::connectedComponentsWithStats(InputArray image, OutputArray labels, OutputArray stats, OutputArray centroids, int connectivity = 8, int ltype = CV_32S);";
+        t.docSummary = "相比于 <code>cv::findContours</code> 需要构建复杂的点集拓扑链表，<code>cv::connectedComponentsWithStats</code> 拥有数倍的运算速度与工业级规整的数据内存布局。它一次性返回图像中所有独立连通目标的像素面积、外接矩形 `(x, y, width, height)`、以及浮点级几何质心 `(Centroid)`，是流水线缺陷筛选、颗粒统计、元器件计数的核心算子。";
+        t.docParams = "• <b>connectivity:</b> 邻域连通性：8-邻域（包含对角相连）或 4-邻域（仅上下左右正交相连）。<br>"
+                      "• <b>min_area:</b> 最小有效面积阈值 (px)，彻底过滤掉微弱椒盐噪点与反光点。<br>"
+                      "• <b>color_labels:</b> 是否对每个连通目标进行伪彩色标签可视化渲染。";
+
+        ParamDesc p1;
+        p1.key = "connectivity";
+        p1.label = "连通邻域拓扑";
+        p1.type = ParamType::ComboBox;
+        p1.options = {"8-邻域连通 (包含对角相连)", "4-邻域连通 (仅正交十字相连)"};
+        p1.optionValues = {8, 4};
+        p1.defaultVal = 8.0;
+
+        ParamDesc p2;
+        p2.key = "min_area";
+        p2.label = "最小有效面积 (px)";
+        p2.type = ParamType::SliderInt;
+        p2.minVal = 50.0;
+        p2.maxVal = 3000.0;
+        p2.step = 50.0;
+        p2.defaultVal = 250.0;
+
+        ParamDesc p3;
+        p3.key = "color_labels";
+        p3.label = "启用伪彩着色标签";
+        p3.type = ParamType::CheckBox;
+        p3.defaultVal = 1.0;
+
+        t.params.append(p1);
+        t.params.append(p2);
+        t.params.append(p3);
+
+        t.codeGenerator = [](const QMap<QString, QVariant> &p) -> QString {
+            int conn = p.value("connectivity", 8).toInt();
+            int minArea = p.value("min_area", 250).toInt();
+            return QString(
+                "// 连通域统计与几何矩分析工业标准实现：\n"
+                "#include <opencv2/imgproc.hpp>\n\n"
+                "void inspectConnectedComponents(const cv::Mat &src, int minArea = %2, int connectivity = %1) {\n"
+                "    cv::Mat gray, binary;\n"
+                "    if (src.channels() == 3) cv::cvtColor(src, gray, cv::COLOR_BGR2GRAY);\n"
+                "    else gray = src;\n"
+                "    cv::threshold(gray, binary, 0, 255, cv::THRESH_BINARY | cv::THRESH_OTSU);\n\n"
+                "    cv::Mat labels, stats, centroids;\n"
+                "    int nComponents = cv::connectedComponentsWithStats(binary, labels, stats, centroids, connectivity, CV_32S);\n\n"
+                "    for (int i = 1; i < nComponents; ++i) { // 索引 0 为背景\n"
+                "        int area = stats.at<int>(i, cv::CC_STAT_AREA);\n"
+                "        if (area < minArea) continue;\n"
+                "        int x = stats.at<int>(i, cv::CC_STAT_LEFT);\n"
+                "        int y = stats.at<int>(i, cv::CC_STAT_TOP);\n"
+                "        int w = stats.at<int>(i, cv::CC_STAT_WIDTH);\n"
+                "        int h = stats.at<int>(i, cv::CC_STAT_HEIGHT);\n"
+                "        double cx = centroids.at<double>(i, 0);\n"
+                "        double cy = centroids.at<double>(i, 1);\n"
+                "        // 执行工件分类与公差判定...\n"
+                "    }\n"
+                "}"
+            ).arg(conn).arg(minArea);
+        };
+
+        t.cvRunner = [](const cv::Mat &src, cv::Mat &dst, const QMap<QString, QVariant> &p, QString &execNote) {
+            cv::Mat gray, binary;
+            if (src.channels() == 3) cv::cvtColor(src, gray, cv::COLOR_BGR2GRAY);
+            else gray = src;
+
+            cv::threshold(gray, binary, 0, 255, cv::THRESH_BINARY | cv::THRESH_OTSU);
+
+            int conn = p.value("connectivity", 8).toInt();
+            int minArea = p.value("min_area", 250).toInt();
+            bool colorLabels = p.value("color_labels", 1).toInt() > 0;
+
+            cv::Mat labels, stats, centroids;
+            int nComponents = cv::connectedComponentsWithStats(binary, labels, stats, centroids, conn, CV_32S);
+
+            if (colorLabels) {
+                dst = cv::Mat::zeros(src.size(), CV_8UC3);
+                std::vector<cv::Vec3b> colors(nComponents);
+                colors[0] = cv::Vec3b(15, 23, 42);
+                for (int i = 1; i < nComponents; ++i) {
+                    colors[i] = cv::Vec3b(
+                        static_cast<uchar>((i * 67 + 30) % 256),
+                        static_cast<uchar>((i * 131 + 80) % 256),
+                        static_cast<uchar>((i * 197 + 120) % 256)
+                    );
+                }
+                for (int y = 0; y < dst.rows; ++y) {
+                    const int *labelRow = labels.ptr<int>(y);
+                    cv::Vec3b *dstRow = dst.ptr<cv::Vec3b>(y);
+                    for (int x = 0; x < dst.cols; ++x) {
+                        dstRow[x] = colors[labelRow[x]];
+                    }
+                }
+            } else {
+                dst = src.clone();
+            }
+
+            int validCount = 0;
+            for (int i = 1; i < nComponents; ++i) {
+                int area = stats.at<int>(i, cv::CC_STAT_AREA);
+                if (area < minArea) continue;
+                validCount++;
+
+                int x = stats.at<int>(i, cv::CC_STAT_LEFT);
+                int y = stats.at<int>(i, cv::CC_STAT_TOP);
+                int w = stats.at<int>(i, cv::CC_STAT_WIDTH);
+                int h = stats.at<int>(i, cv::CC_STAT_HEIGHT);
+                double cx = centroids.at<double>(i, 0);
+                double cy = centroids.at<double>(i, 1);
+
+                cv::rectangle(dst, cv::Rect(x, y, w, h), cv::Scalar(0, 255, 255), 2);
+                cv::circle(dst, cv::Point(static_cast<int>(cx), static_cast<int>(cy)), 4, cv::Scalar(0, 0, 255), -1);
+                cv::putText(dst, QString("#%1 S:%2").arg(i).arg(area).toStdString(),
+                            cv::Point(x, std::max(18, y - 5)),
+                            cv::FONT_HERSHEY_SIMPLEX, 0.45, cv::Scalar(255, 255, 255), 1, cv::LINE_AA);
+            }
+
+            execNote = QString("统计 %1 个连通域 (有效目标: %2 个, 滤除小噪点: %3 个)").arg(nComponents - 1).arg(validCount).arg(nComponents - 1 - validCount);
+        };
+
+        m_topics.append(t);
+        m_topicMap[t.id] = t;
+    }
+
+    // ========================================================
+    // OpenCV 02. 图像滤波与增强 (频域傅里叶变换与陷波滤波去网纹)
+    // ========================================================
+    {
+        KnowledgeTopic t;
+        t.id = "cv_dft_filtering";
+        t.framework = "OpenCV";
+        t.category = "OpenCV 02. 图像滤波与增强";
+        t.name = "频域傅里叶变换与陷波滤波去网纹 (DFT & Notch Frequency Filtering)";
+        t.tag = "离散傅里叶变换 (DFT)、频域幅度谱分析、周期性条纹与网纹陷波消除";
+        t.isVisualInteractive = true;
+        t.apiSignature = "void cv::dft(InputArray src, OutputArray dst, int flags = 0, int nonzeroRows = 0);\nvoid cv::idft(InputArray src, OutputArray dst, int flags = 0, int nonzeroRows = 0);";
+        t.docSummary = "当工业相机采集带有机械震动周期条纹、传感器摩尔纹 (Moiré) 或空间网格干扰时，空域高斯滤波会导致画面严重模糊。利用二维离散傅里叶变换 (DFT) 将图像投影到频域，周期条纹会汇聚为频谱中离散的高亮频率尖峰对。通过频域陷波滤波器 (Notch Filter) 针对性切除这些尖峰，再执行逆变换 (IDFT)，可近乎完美地擦除周期纹理并 100% 保持主体边缘锐利。";
+        t.docParams = "• <b>filter_mode:</b> 滤波模式：0=陷波滤波去周期纹理 (Notch Reject)，1=频域低通滤波 (Low-pass)，2=频域高通滤波 (High-pass)。<br>"
+                      "• <b>cutoff_radius:</b> 截止半径 (Cutoff Radius) 或陷波阻断半径 (px)。<br>"
+                      "• <b>add_synthetic_moire:</b> 是否注入高频空间干涉条纹以直观演示滤波净化能力。";
+
+        ParamDesc p1;
+        p1.key = "filter_mode";
+        p1.label = "频域滤波模式";
+        p1.type = ParamType::ComboBox;
+        p1.options = {"陷波阻断去除周期条纹 (Notch Reject)", "理想频域低通滤波 (Low-pass)", "理想频域高通滤波 (High-pass)"};
+        p1.optionValues = {0, 1, 2};
+        p1.defaultVal = 0.0;
+
+        ParamDesc p2;
+        p2.key = "cutoff_radius";
+        p2.label = "滤波截止/陷波半径 (px)";
+        p2.type = ParamType::SliderInt;
+        p2.minVal = 15.0;
+        p2.maxVal = 120.0;
+        p2.step = 5.0;
+        p2.defaultVal = 40.0;
+
+        ParamDesc p3;
+        p3.key = "add_synthetic_moire";
+        p3.label = "注入高频空间网纹条纹";
+        p3.type = ParamType::CheckBox;
+        p3.defaultVal = 1.0;
+
+        t.params.append(p1);
+        t.params.append(p2);
+        t.params.append(p3);
+
+        t.codeGenerator = [](const QMap<QString, QVariant> &p) -> QString {
+            int mode = p.value("filter_mode", 0).toInt();
+            int radius = p.value("cutoff_radius", 40).toInt();
+            return QString(
+                "// 频域傅里叶变换与频域滤波工程架构：\n"
+                "#include <opencv2/imgproc.hpp>\n"
+                "#include <opencv2/core.hpp>\n\n"
+                "cv::Mat frequencyDomainFilter(const cv::Mat &gray, int filterMode = %1, int cutoff = %2) {\n"
+                "    // 1. 扩充图像到最优 DFT 尺寸以最大化 FFTW 计算效能\n"
+                "    cv::Mat padded;\n"
+                "    int m = cv::getOptimalDFTSize(gray.rows);\n"
+                "    int n = cv::getOptimalDFTSize(gray.cols);\n"
+                "    cv::copyMakeBorder(gray, padded, 0, m - gray.rows, 0, n - gray.cols, cv::BORDER_CONSTANT, cv::Scalar::all(0));\n\n"
+                "    // 2. 构造双通道复数矩阵 (Real + Imaginary) 并执行正向 DFT\n"
+                "    cv::Mat planes[] = { cv::Mat_<float>(padded), cv::Mat::zeros(padded.size(), CV_32F) };\n"
+                "    cv::Mat complexI;\n"
+                "    cv::merge(planes, 2, complexI);\n"
+                "    cv::dft(complexI, complexI);\n\n"
+                "    // 3. 象限对角置换 (Shift Zero-Frequency to Center)\n"
+                "    // 4. 构建频域掩模 Mask (Notch / Low-pass / High-pass) 并相乘\n"
+                "    // 5. 逆向置换并执行 idft(complexI, complexI, cv::DFT_SCALE | cv::DFT_REAL_OUTPUT)\n"
+                "    return filtered;\n"
+                "}"
+            ).arg(mode).arg(radius);
+        };
+
+        t.cvRunner = [](const cv::Mat &src, cv::Mat &dst, const QMap<QString, QVariant> &p, QString &execNote) {
+            cv::Mat gray;
+            if (src.channels() == 3) cv::cvtColor(src, gray, cv::COLOR_BGR2GRAY);
+            else gray = src.clone();
+
+            bool addNoise = p.value("add_synthetic_moire", 1).toInt() > 0;
+            if (addNoise) {
+                for (int y = 0; y < gray.rows; ++y) {
+                    uchar *row = gray.ptr<uchar>(y);
+                    for (int x = 0; x < gray.cols; ++x) {
+                        int stripe = static_cast<int>(35.0 * std::sin((x + y) * 0.4));
+                        row[x] = cv::saturate_cast<uchar>(row[x] + stripe);
+                    }
+                }
+            }
+
+            int m = cv::getOptimalDFTSize(gray.rows);
+            int n = cv::getOptimalDFTSize(gray.cols);
+            cv::Mat padded;
+            cv::copyMakeBorder(gray, padded, 0, m - gray.rows, 0, n - gray.cols, cv::BORDER_CONSTANT, cv::Scalar::all(0));
+
+            cv::Mat planes[] = { cv::Mat_<float>(padded), cv::Mat::zeros(padded.size(), CV_32F) };
+            cv::Mat complexI;
+            cv::merge(planes, 2, complexI);
+            cv::dft(complexI, complexI);
+
+            int cx = complexI.cols / 2;
+            int cy = complexI.rows / 2;
+            cv::Mat q0(complexI, cv::Rect(0, 0, cx, cy));
+            cv::Mat q1(complexI, cv::Rect(cx, 0, cx, cy));
+            cv::Mat q2(complexI, cv::Rect(0, cy, cx, cy));
+            cv::Mat q3(complexI, cv::Rect(cx, 0, cx, cy));
+            cv::Mat tmp;
+            q0.copyTo(tmp); q3.copyTo(q0); tmp.copyTo(q3);
+            q1.copyTo(tmp); q2.copyTo(q1); tmp.copyTo(q2);
+
+            int filterMode = p.value("filter_mode", 0).toInt();
+            int radius = p.value("cutoff_radius", 40).toInt();
+
+            cv::Mat mask = cv::Mat::ones(complexI.size(), CV_32F);
+            for (int y = 0; y < complexI.rows; ++y) {
+                float *maskRow = mask.ptr<float>(y);
+                for (int x = 0; x < complexI.cols; ++x) {
+                    double d = std::hypot(x - cx, y - cy);
+                    if (filterMode == 0) {
+                        if (std::abs(d - 50.0) < radius / 4.0) maskRow[x] = 0.05f;
+                    } else if (filterMode == 1) {
+                        if (d > radius) maskRow[x] = 0.0f;
+                    } else if (filterMode == 2) {
+                        if (d < radius) maskRow[x] = 0.0f;
+                    }
+                }
+            }
+
+            cv::split(complexI, planes);
+            planes[0] = planes[0].mul(mask);
+            planes[1] = planes[1].mul(mask);
+            cv::merge(planes, 2, complexI);
+
+            q0.copyTo(tmp); q3.copyTo(q0); tmp.copyTo(q3);
+            q1.copyTo(tmp); q2.copyTo(q1); tmp.copyTo(q2);
+
+            cv::Mat invDFT;
+            cv::idft(complexI, invDFT, cv::DFT_SCALE | cv::DFT_REAL_OUTPUT);
+            cv::Mat result8u;
+            invDFT(cv::Rect(0, 0, gray.cols, gray.rows)).convertTo(result8u, CV_8U);
+
+            cv::cvtColor(result8u, dst, cv::COLOR_GRAY2BGR);
+
+            QString modeStr = (filterMode == 0) ? "陷波滤除条纹 (Notch)" : ((filterMode == 1) ? "低通滤波 (Low-pass)" : "高通滤波 (High-pass)");
+            cv::putText(dst, QString("DFT Filter: %1 | Radius: %2 px").arg(modeStr).arg(radius).toStdString(),
+                        cv::Point(15, 30), cv::FONT_HERSHEY_SIMPLEX, 0.6, cv::Scalar(0, 255, 255), 2, cv::LINE_AA);
+
+            execNote = QString("DFT 频域滤波完成 (模式: %1, 截止/陷波半径: %2 px)").arg(modeStr).arg(radius);
+        };
+
+        m_topics.append(t);
+        m_topicMap[t.id] = t;
+    }
+
+    // ========================================================
+    // OpenCV 06. 工业几何与精密测量 (黄金标样差分缺陷排查)
+    // ========================================================
+    {
+        KnowledgeTopic t;
+        t.id = "cv_absdiff_golden";
+        t.framework = "OpenCV";
+        t.category = "OpenCV 06. 工业几何与精密测量";
+        t.name = "黄金标样差分缺陷排查 (Golden Template Difference Inspection)";
+        t.tag = "标准品基准比对、absdiff 绝对差分、PCB/元器件异物与残缺秒级标定";
+        t.isVisualInteractive = true;
+        t.apiSignature = "void cv::absdiff(InputArray src1, InputArray src2, OutputArray dst);";
+        t.docSummary = "在电子 SMT 贴片、印刷品包装及半导体封装中，黄金标样比对（Golden Template Inspection）是最普适高效的品控手段。系统预先录入无缺陷标准件（Golden Sample），在产线检测时，待检件经几何粗定位对齐后，与黄金标样执行 <code>cv::absdiff</code> 逐像素绝对差分，再经动态阈值分割与形态学去噪，即可毫秒级精确定位焊点缺失、划痕、表面脏污与锡珠桥连。";
+        t.docParams = "• <b>diff_thresh:</b> 灰度绝对差分报警阈值 (10~80)。差值超过该阈值即判定为潜在缺陷像素。<br>"
+                      "• <b>min_defect_area:</b> 缺陷最小像素面积，过滤微小对位容差引起的边缘假报警。<br>"
+                      "• <b>morph_size:</b> 形态学开运算核尺寸，用于消除轻微几何对准偏差。";
+
+        ParamDesc p1;
+        p1.key = "diff_thresh";
+        p1.label = "差分判定阈值";
+        p1.type = ParamType::SliderInt;
+        p1.minVal = 10.0;
+        p1.maxVal = 80.0;
+        p1.step = 2.0;
+        p1.defaultVal = 25.0;
+
+        ParamDesc p2;
+        p2.key = "min_defect_area";
+        p2.label = "最小缺陷面积 (px)";
+        p2.type = ParamType::SliderInt;
+        p2.minVal = 20.0;
+        p2.maxVal = 500.0;
+        p2.step = 10.0;
+        p2.defaultVal = 50.0;
+
+        ParamDesc p3;
+        p3.key = "morph_size";
+        p3.label = "形态学滤波核尺寸";
+        p3.type = ParamType::SliderInt;
+        p3.minVal = 1.0;
+        p3.maxVal = 7.0;
+        p3.step = 2.0;
+        p3.defaultVal = 3.0;
+
+        t.params.append(p1);
+        t.params.append(p2);
+        t.params.append(p3);
+
+        t.codeGenerator = [](const QMap<QString, QVariant> &p) -> QString {
+            int th = p.value("diff_thresh", 25).toInt();
+            int area = p.value("min_defect_area", 50).toInt();
+            int k = p.value("morph_size", 3).toInt();
+            return QString(
+                "// 黄金标样差分缺陷排查工业实现：\n"
+                "#include <opencv2/imgproc.hpp>\n\n"
+                "void inspectGoldenDifference(const cv::Mat &golden, const cv::Mat &sample, int threshold = %1, int minArea = %2) {\n"
+                "    cv::Mat diff;\n"
+                "    cv::absdiff(golden, sample, diff);\n\n"
+                "    cv::Mat grayDiff, binaryDiff;\n"
+                "    if (diff.channels() == 3) cv::cvtColor(diff, grayDiff, cv::COLOR_BGR2GRAY);\n"
+                "    else grayDiff = diff;\n\n"
+                "    cv::threshold(grayDiff, binaryDiff, threshold, 255, cv::THRESH_BINARY);\n"
+                "    cv::Mat kernel = cv::getStructuringElement(cv::MORPH_RECT, cv::Size(%3, %3));\n"
+                "    cv::morphologyEx(binaryDiff, binaryDiff, cv::MORPH_OPEN, kernel);\n\n"
+                "    std::vector<std::vector<cv::Point>> contours;\n"
+                "    cv::findContours(binaryDiff, contours, cv::RETR_EXTERNAL, cv::CHAIN_APPROX_SIMPLE);\n"
+                "    for (const auto &c : contours) {\n"
+                "        double a = cv::contourArea(c);\n"
+                "        if (a >= minArea) {\n"
+                "            cv::Rect defectBox = cv::boundingRect(c);\n"
+                "            // 报警缺陷并上传产线 MES 数据库...\n"
+                "        }\n"
+                "    }\n"
+                "}"
+            ).arg(th).arg(area).arg(k);
+        };
+
+        t.cvRunner = [](const cv::Mat &src, cv::Mat &dst, const QMap<QString, QVariant> &p, QString &execNote) {
+            cv::Mat golden = src.clone();
+            cv::Mat sample = src.clone();
+            cv::line(sample, cv::Point(160, 220), cv::Point(260, 290), cv::Scalar(0, 0, 240), 4);
+            cv::circle(sample, cv::Point(450, 200), 22, cv::Scalar(20, 20, 20), -1);
+            cv::rectangle(sample, cv::Rect(400, 260, 45, 35), cv::Scalar(240, 240, 240), -1);
+
+            int th = p.value("diff_thresh", 25).toInt();
+            int minArea = p.value("min_defect_area", 50).toInt();
+            int morphSize = p.value("morph_size", 3).toInt();
+
+            cv::Mat diff;
+            cv::absdiff(golden, sample, diff);
+
+            cv::Mat grayDiff, binaryDiff;
+            cv::cvtColor(diff, grayDiff, cv::COLOR_BGR2GRAY);
+            cv::threshold(grayDiff, binaryDiff, th, 255, cv::THRESH_BINARY);
+
+            if (morphSize > 1) {
+                cv::Mat k = cv::getStructuringElement(cv::MORPH_RECT, cv::Size(morphSize, morphSize));
+                cv::morphologyEx(binaryDiff, binaryDiff, cv::MORPH_OPEN, k);
+            }
+
+            std::vector<std::vector<cv::Point>> contours;
+            cv::findContours(binaryDiff, contours, cv::RETR_EXTERNAL, cv::CHAIN_APPROX_SIMPLE);
+
+            dst = sample.clone();
+            int defectCount = 0;
+            for (size_t i = 0; i < contours.size(); ++i) {
+                double a = cv::contourArea(contours[i]);
+                if (a < minArea) continue;
+                defectCount++;
+
+                cv::Rect r = cv::boundingRect(contours[i]);
+                cv::rectangle(dst, r, cv::Scalar(0, 0, 255), 2);
+                cv::putText(dst, QString("DEFECT #%1 [S:%2]").arg(defectCount).arg(static_cast<int>(a)).toStdString(),
+                            cv::Point(r.x, std::max(20, r.y - 6)),
+                            cv::FONT_HERSHEY_SIMPLEX, 0.5, cv::Scalar(0, 0, 255), 2, cv::LINE_AA);
+            }
+
+            cv::Mat miniMask;
+            cv::resize(binaryDiff, miniMask, cv::Size(120, 90));
+            cv::Mat miniColor;
+            cv::cvtColor(miniMask, miniColor, cv::COLOR_GRAY2BGR);
+            cv::Rect miniRoi(dst.cols - 135, 15, 120, 90);
+            miniColor.copyTo(dst(miniRoi));
+            cv::rectangle(dst, miniRoi, cv::Scalar(0, 255, 255), 1);
+            cv::putText(dst, "Diff Mask", cv::Point(miniRoi.x + 5, miniRoi.y + 15), cv::FONT_HERSHEY_SIMPLEX, 0.4, cv::Scalar(0, 255, 255), 1);
+
+            execNote = QString("黄金标样逐像素差分排查完毕: 检测出 %1 处超差工业缺陷 (阈值: %2)").arg(defectCount).arg(th);
+        };
+
+        m_topics.append(t);
+        m_topicMap[t.id] = t;
+    }
+
+    // ========================================================
+    // OpenCV 05. 视频分析与运动追踪 (动态背景建模与运动目标分离)
+    // ========================================================
+    {
+        KnowledgeTopic t;
+        t.id = "cv_background_subtractor";
+        t.framework = "OpenCV";
+        t.category = "OpenCV 05. 视频分析与运动追踪";
+        t.name = "动态背景建模与前景运动目标分离 (BackgroundSubtractorMOG2)";
+        t.tag = "高斯混合模型 (GMM)、自适应光照补偿、阴影剔除与运动目标追踪";
+        t.isVisualInteractive = true;
+        t.apiSignature = "cv::Ptr<cv::BackgroundSubtractorMOG2> cv::createBackgroundSubtractorMOG2(int history = 500, double varThreshold = 16, bool detectShadows = true);";
+        t.docSummary = "在工业传送带流水线、仓储 AGV 导航及安防监控中，背景往往伴随环境光漫反射与输送带轻微震动。OpenCV 的 MOG2 (Mixture of Gaussians 2) 算法为每个像素自适应维护高斯混合概率分布，能持续吸收环境慢变光照，精准剔除虚假阴影（像素值 127 标识阴影，255 标识真正运动前景），实现高鲁棒性的工件动目标轮廓提取。";
+        t.docParams = "• <b>history:</b> 历史帧学习窗口大小 (100~1000)。数值越大背景模型越迟钝，但对慢速或临时停滞工件包容性更强。<br>"
+                      "• <b>var_threshold:</b> 判断像素是否偏离背景的马氏距离平方阈值。<br>"
+                      "• <b>detect_shadows:</b> 是否启用阴影检测（识别被目标遮挡的投影，防止阴影误判为缺陷）。";
+
+        ParamDesc p1;
+        p1.key = "history";
+        p1.label = "历史帧记忆长度 (History)";
+        p1.type = ParamType::SliderInt;
+        p1.minVal = 100.0;
+        p1.maxVal = 1000.0;
+        p1.step = 50.0;
+        p1.defaultVal = 400.0;
+
+        ParamDesc p2;
+        p2.key = "var_threshold";
+        p2.label = "马氏方差阈值 (VarThreshold)";
+        p2.type = ParamType::SliderInt;
+        p2.minVal = 8.0;
+        p2.maxVal = 64.0;
+        p2.step = 4.0;
+        p2.defaultVal = 16.0;
+
+        ParamDesc p3;
+        p3.key = "detect_shadows";
+        p3.label = "启用自适应阴影剔除";
+        p3.type = ParamType::CheckBox;
+        p3.defaultVal = 1.0;
+
+        t.params.append(p1);
+        t.params.append(p2);
+        t.params.append(p3);
+
+        t.codeGenerator = [](const QMap<QString, QVariant> &p) -> QString {
+            int hist = p.value("history", 400).toInt();
+            int vt = p.value("var_threshold", 16).toInt();
+            bool shadows = p.value("detect_shadows", 1).toInt() > 0;
+            return QString(
+                "// 生产级 MOG2 动态背景建模与前景检测：\n"
+                "#include <opencv2/video.hpp>\n"
+                "#include <opencv2/imgproc.hpp>\n\n"
+                "void processMotionStream() {\n"
+                "    auto pMOG2 = cv::createBackgroundSubtractorMOG2(%1, %2, %3);\n"
+                "    cv::Mat frame, fgMask;\n"
+                "    while (true) {\n"
+                "        // 逐帧更新高斯混合模型并获取前景掩模 (255:目标, 127:阴影, 0:背景)\n"
+                "        pMOG2->apply(frame, fgMask);\n\n"
+                "        // 滤除阴影，仅提取绝对运动前景\n"
+                "        cv::Mat trueForeground;\n"
+                "        cv::inRange(fgMask, 200, 255, trueForeground);\n\n"
+                "        std::vector<std::vector<cv::Point>> contours;\n"
+                "        cv::findContours(trueForeground, contours, cv::RETR_EXTERNAL, cv::CHAIN_APPROX_SIMPLE);\n"
+                "        for (const auto &c : contours) {\n"
+                "            if (cv::contourArea(c) > 200) {\n"
+                "                cv::Rect r = cv::boundingRect(c);\n"
+                "                // 执行运动目标追踪或尺寸检出...\n"
+                "            }\n"
+                "        }\n"
+                "    }\n"
+                "}"
+            ).arg(hist).arg(vt).arg(shadows ? "true" : "false");
+        };
+
+        t.cvRunner = [](const cv::Mat &src, cv::Mat &dst, const QMap<QString, QVariant> &p, QString &execNote) {
+            int hist = p.value("history", 400).toInt();
+            int vt = p.value("var_threshold", 16).toInt();
+            bool shadows = p.value("detect_shadows", 1).toInt() > 0;
+
+            auto pMOG2 = cv::createBackgroundSubtractorMOG2(hist, vt, shadows);
+
+            cv::Mat bg = src.clone();
+            cv::Mat fgMask;
+            for (int f = 0; f < 3; ++f) {
+                pMOG2->apply(bg, fgMask);
+            }
+
+            cv::Mat dynamicFrame = src.clone();
+            cv::Rect movingBox(320, 220, 110, 80);
+            cv::rectangle(dynamicFrame, movingBox, cv::Scalar(50, 120, 220), -1);
+            cv::Rect shadowBox(320 + 80, 220 + 60, 50, 30);
+            cv::Mat shadowRoi = dynamicFrame(shadowBox & cv::Rect(0, 0, dynamicFrame.cols, dynamicFrame.rows));
+            shadowRoi *= 0.5;
+
+            cv::circle(dynamicFrame, cv::Point(180, 160), 38, cv::Scalar(0, 200, 255), -1);
+
+            pMOG2->apply(dynamicFrame, fgMask);
+
+            cv::Mat trueFG;
+            cv::inRange(fgMask, 200, 255, trueFG);
+
+            dst = dynamicFrame.clone();
+            std::vector<std::vector<cv::Point>> contours;
+            cv::findContours(trueFG, contours, cv::RETR_EXTERNAL, cv::CHAIN_APPROX_SIMPLE);
+
+            int targetCount = 0;
+            for (const auto &c : contours) {
+                double a = cv::contourArea(c);
+                if (a < 150) continue;
+                targetCount++;
+                cv::Rect r = cv::boundingRect(c);
+                cv::rectangle(dst, r, cv::Scalar(0, 255, 0), 2);
+                cv::putText(dst, QString("MOVING OBJ #%1").arg(targetCount).toStdString(),
+                            cv::Point(r.x, std::max(20, r.y - 8)),
+                            cv::FONT_HERSHEY_SIMPLEX, 0.5, cv::Scalar(0, 255, 0), 2, cv::LINE_AA);
+            }
+
+            cv::Mat miniMask;
+            cv::resize(fgMask, miniMask, cv::Size(120, 90));
+            cv::Mat miniColor;
+            cv::cvtColor(miniMask, miniColor, cv::COLOR_GRAY2BGR);
+            cv::Rect miniRoi(dst.cols - 135, 15, 120, 90);
+            miniColor.copyTo(dst(miniRoi));
+            cv::rectangle(dst, miniRoi, cv::Scalar(0, 255, 255), 1);
+            cv::putText(dst, "MOG2 Mask", cv::Point(miniRoi.x + 5, miniRoi.y + 15), cv::FONT_HERSHEY_SIMPLEX, 0.4, cv::Scalar(0, 255, 255), 1);
+
+            execNote = QString("MOG2 动态建模分割: 提取运动工件 %1 个 (已剔除自适应阴影)").arg(targetCount);
+        };
+
+        m_topics.append(t);
+        m_topicMap[t.id] = t;
+    }
 }
 
 
@@ -3710,6 +4566,412 @@ void KnowledgeRegistry::initQtTopics() {
             "    }\n"
             "private:\n"
             "    QColor m_color;\n"
+            "};";
+        m_topics.append(t);
+        m_topicMap[t.id] = t;
+    }
+
+    // ========================================================
+    // Qt 06. 工业上位机架构与高级机制 (动态热插拔插件架构)
+    // ========================================================
+    {
+        KnowledgeTopic t;
+        t.id = "qt_plugin_architecture";
+        t.framework = "Qt";
+        t.category = "Qt 06. 工业上位机架构与高级机制";
+        t.name = "工业算子动态热插拔插件架构 (QPluginLoader / Q_DECLARE_INTERFACE)";
+        t.tag = "零重启装载 .dll/.so 算法模块、接口契约解耦、动态算子市场";
+        t.isVisualInteractive = false;
+        t.apiSignature = "Q_DECLARE_INTERFACE(IVisionAlgorithm, \"com.visioncraft.algorithm/1.0\")\nQPluginLoader loader(pluginPath);\nauto *algo = qobject_cast<IVisionAlgorithm*>(loader.instance());";
+        t.docSummary = "现代大型工业机器视觉软件（如 Cognex VisionPro、Halcon）绝不会将所有算法写死在主程序中，而是通过插件化架构实现第三方或自研算法的即插即用与独立发版。Qt 基于元对象系统提供了强大的 <code>QPluginLoader</code> 机制，通过抽象纯虚接口契约与 <code>Q_DECLARE_INTERFACE</code> 宏，实现主程序与算法动态库 (.dll/.so) 的完全二进制解耦，且支持在程序运行期间热扫描、热装载与热卸载。";
+        t.docParams = "• <b>Q_DECLARE_INTERFACE:</b> 声明纯虚接口的全局唯一 URI 标识符与版本号契约。<br>"
+                      "• <b>Q_PLUGIN_METADATA:</b> 插件实现类声明元数据 JSON 文件，提供插件作者、算法类别、算子版本等描述。<br>"
+                      "• <b>qobject_cast:</b> 安全下转型。若插件 ABI 不兼容或未实现该接口，安全返回 nullptr，杜绝进程崩溃。";
+        t.usageTiming = "算法模块独立编译与商业交付、第三方定制检测算法热更新、多机种多工序灵活切换插件库。";
+        t.bestPractices = "① 插件与主程序必须使用相同大版本的 Qt 库和 MSVC 运行时库（Debug/Release 严禁混用）；<br>"
+                          "② 接口类所有公开方法必须是纯虚函数，且绝不能传递包含具体 CRT 内存分配器的裸指针，推荐传递结构体引用或智能指针。";
+        t.codeSnippet =
+            "// 工业视觉插件架构标准工程范式：\n"
+            "// 1. 公共接口契约头文件 (IVisionAlgorithm.h)\n"
+            "#pragma once\n"
+            "#include <QtPlugin>\n"
+            "#include <QString>\n"
+            "#include <opencv2/core.hpp>\n\n"
+            "class IVisionAlgorithm {\n"
+            "public:\n"
+            "    virtual ~IVisionAlgorithm() = default;\n"
+            "    virtual QString pluginName() const = 0;\n"
+            "    virtual QString pluginVersion() const = 0;\n"
+            "    virtual bool execute(const cv::Mat &input, cv::Mat &output, QString &errorMsg) = 0;\n"
+            "};\n"
+            "Q_DECLARE_INTERFACE(IVisionAlgorithm, \"com.visioncraft.algorithm/1.0\")\n\n"
+            "// 2. 独立算法插件实现 (MyCustomCaliperPlugin.cpp -> 生成 .dll)\n"
+            "#include \"IVisionAlgorithm.h\"\n"
+            "#include <QObject>\n\n"
+            "class MyCustomCaliperPlugin : public QObject, public IVisionAlgorithm {\n"
+            "    Q_OBJECT\n"
+            "    Q_PLUGIN_METADATA(IID \"com.visioncraft.algorithm/1.0\")\n"
+            "    Q_INTERFACES(IVisionAlgorithm)\n"
+            "public:\n"
+            "    QString pluginName() const override { return \"HighPrecisionCaliper\"; }\n"
+            "    QString pluginVersion() const override { return \"1.2.0\"; }\n"
+            "    bool execute(const cv::Mat &input, cv::Mat &output, QString &) override {\n"
+            "        output = input.clone();\n"
+            "        return true;\n"
+            "    }\n"
+            "};\n\n"
+            "// 3. 上位机主框架动态热装载逻辑 (PluginHost.cpp)\n"
+            "#include <QPluginLoader>\n"
+            "#include <QDir>\n"
+            "#include <QDebug>\n\n"
+            "void loadAllVisionPlugins(const QString &pluginsDir) {\n"
+            "    QDir dir(pluginsDir);\n"
+            "    for (const QString &fileName : dir.entryList(QDir::Files)) {\n"
+            "        if (!QLibrary::isLibrary(fileName)) continue;\n"
+            "        QPluginLoader loader(dir.absoluteFilePath(fileName));\n"
+            "        QObject *instance = loader.instance();\n"
+            "        if (instance) {\n"
+            "            auto *algo = qobject_cast<IVisionAlgorithm*>(instance);\n"
+            "            if (algo) {\n"
+            "                qInfo() << \"成功载入算子插件:\" << algo->pluginName() << \"版本:\" << algo->pluginVersion();\n"
+            "            }\n"
+            "        } else {\n"
+            "            qWarning() << \"插件加载失败:\" << loader.errorString();\n"
+            "        }\n"
+            "    }\n"
+            "}";
+        m_topics.append(t);
+        m_topicMap[t.id] = t;
+    }
+
+    // ========================================================
+    // Qt 02. 多线程与并发 (Concurrent) (图像帧无锁环形队列)
+    // ========================================================
+    {
+        KnowledgeTopic t;
+        t.id = "qt_lockfree_ringbuffer";
+        t.framework = "Qt";
+        t.category = "Qt 02. 多线程与并发 (Concurrent)";
+        t.name = "图像帧无锁环形队列 (Lock-free SPSC Ring Buffer / std::atomic)";
+        t.tag = "工业高速相机 500FPS 采图、零互斥锁无竞争争用、纳秒级跨线程传递";
+        t.isVisualInteractive = false;
+        t.apiSignature = "template<typename T, size_t Capacity>\nclass SPSCLockFreeRingBuffer {\n    alignas(64) std::atomic<size_t> m_head{0};\n    alignas(64) std::atomic<size_t> m_tail{0};\n    std::array<T, Capacity> m_ring;\n};";
+        t.docSummary = "在千兆网 (GigE) 或 CoaXPress 高速工业相机以数百 FPS 连续采图的高吞吐场景下，传统的 `QMutex + QWaitCondition` 会引发严重的线程上下文切换损耗与 CPU 锁竞争。单生产者单消费者 (SPSC) 无锁环形缓冲通过现代 C++ `std::atomic` 配合松弛/获取/释放内存序 (`memory_order_acquire / release`)，消除所有内核锁开销，实现微秒/纳秒级的图像指针交接，彻底消除采图丢帧风险。";
+        t.docParams = "• <b>alignas(64):</b> 核心性能硬件法则！将 head 与 tail 指针强制对齐到不同 CPU 缓存行 (Cache Line)，彻底根除伪共享 (False Sharing) 导致的缓存行抖动。<br>"
+                      "• <b>memory_order_acquire / release:</b> 建立跨核同步屏障，保证图像数据在被消费者读取前已经完全写入内存。<br>"
+                      "• <b>Capacity 必须为 2 的幂次方:</b> 使得求模运算 (index % Capacity) 转换为高效位与运算 (index & (Capacity - 1))。";
+        t.usageTiming = "工业相机采集回调线程将图像帧迅速投递给后台视觉算法推断线程，保证采图线程 0 阻塞。";
+        t.bestPractices = "仅适用于 Single-Producer Single-Consumer 场景；若需多工作线程消费，需使用 MPMC 队列或派发中心。";
+        t.codeSnippet =
+            "// 工业级 SPSC 零锁高性能环形图像队列实现：\n"
+            "#include <atomic>\n"
+            "#include <array>\n"
+            "#include <optional>\n"
+            "#include <opencv2/core.hpp>\n\n"
+            "template <typename T, size_t Capacity>\n"
+            "class SPSCLockFreeQueue {\n"
+            "    static_assert((Capacity & (Capacity - 1)) == 0, \"Capacity 必须为 2 的整数次幂\");\n"
+            "public:\n"
+            "    SPSCLockFreeQueue() = default;\n\n"
+            "    // 采图线程调用：尝试无锁入队 (Producer)\n"
+            "    bool tryPush(T item) {\n"
+            "        const size_t tail = m_tail.load(std::memory_order_relaxed);\n"
+            "        const size_t head = m_head.load(std::memory_order_acquire);\n"
+            "        if ((tail - head) >= Capacity) {\n"
+            "            return false; // 队列已满，丢帧防内存暴涨\n"
+            "        }\n"
+            "        m_ring[tail & BufferMask] = std::move(item);\n"
+            "        m_tail.store(tail + 1, std::memory_order_release);\n"
+            "        return true;\n"
+            "    }\n\n"
+            "    // 算法处理线程调用：尝试无锁出队 (Consumer)\n"
+            "    std::optional<T> tryPop() {\n"
+            "        const size_t head = m_head.load(std::memory_order_relaxed);\n"
+            "        const size_t tail = m_tail.load(std::memory_order_acquire);\n"
+            "        if (head == tail) {\n"
+            "            return std::nullopt; // 队列为空\n"
+            "        }\n"
+            "        T item = std::move(m_ring[head & BufferMask]);\n"
+            "        m_head.store(head + 1, std::memory_order_release);\n"
+            "        return item;\n"
+            "    }\n\n"
+            "    size_t size() const {\n"
+            "        return m_tail.load(std::memory_order_relaxed) - m_head.load(std::memory_order_relaxed);\n"
+            "    }\n\n"
+            "private:\n"
+            "    static constexpr size_t BufferMask = Capacity - 1;\n"
+            "    std::array<T, Capacity> m_ring;\n\n"
+            "    // 强制按 64 字节缓存行独立对齐，彻底隔离 CPU Cache Line 伪共享！\n"
+            "    alignas(64) std::atomic<size_t> m_head{0};\n"
+            "    alignas(64) std::atomic<size_t> m_tail{0};\n"
+            "};\n\n"
+            "// 典型应用：SPSCLockFreeQueue<cv::Mat, 64> g_cameraFrameQueue;";
+        m_topics.append(t);
+        m_topicMap[t.id] = t;
+    }
+
+    // ========================================================
+    // Qt 06. 工业上位机架构与高级机制 (机台有限状态机引擎)
+    // ========================================================
+    {
+        KnowledgeTopic t;
+        t.id = "qt_state_machine";
+        t.framework = "Qt";
+        t.category = "Qt 06. 工业上位机架构与高级机制";
+        t.name = "工业机台有限状态机引擎 (QStateMachine / QState / QSignalTransition)";
+        t.tag = "自动化机台生命周期管理 (复位/就绪/运行/报警/急停)、信号驱动解耦";
+        t.isVisualInteractive = false;
+        t.apiSignature = "auto *machine = new QStateMachine(this);\nauto *idle = new QState(machine);\nidle->addTransition(startBtn, &QPushButton::clicked, runningState);\nmachine->start();";
+        t.docSummary = "工业控制最忌讳使用布尔变量群 (`bool isRunning, isHoming, isAlarm...`) 与数百行嵌套 `if-else` 来控制机台运转，极易引发非法状态越界与机械碰撞事故。Qt 官方提供了符合 SCXML 国际标准的 <code>QStateMachine</code> 状态机框架，将机台的「空闲、回原点、高速质检、物料报警、紧急停止」封装为强隔离的状态节点，跳转完全由 Qt 信号与条件约束驱动，状态转移严密可靠。";
+        t.docParams = "• <b>QState::assignProperty:</b> 状态激活时自动原子修改 UI 属性（例如进入 Running 状态自动禁用配置按钮、点亮绿灯）。<br>"
+                      "• <b>QSignalTransition:</b> 监听外部信号（如传感器触发、按钮点击、PLC心跳超时）并驱动状态跃迁。<br>"
+                      "• <b>全局急停跃迁:</b> 在顶层状态上绑定急停信号，无论当前处于哪一子状态，均可瞬间无条件熔断切入 Emergency 状态。";
+        t.usageTiming = "自动化视觉点胶机、半导体分选机、锂电池极片质检机的主控调度循环。";
+        t.bestPractices = "善用复合状态（Hierarchical States）与并行状态（Parallel States），保持单个状态类的专注度。";
+        t.codeSnippet =
+            "// 工业检测机台有限状态机 (FSM) 生产级实现：\n"
+            "#include <QStateMachine>\n"
+            "#include <QState>\n"
+            "#include <QPushButton>\n"
+            "#include <QLabel>\n"
+            "#include <QDebug>\n\n"
+            "void setupMachineFSM(QWidget *parent, QPushButton *startBtn, QPushButton *stopBtn, QPushButton *eStopBtn, QLabel *statusLabel) {\n"
+            "    auto *machine = new QStateMachine(parent);\n\n"
+            "    // 1. 定义机台核心状态\n"
+            "    auto *idleState = new QState(machine);\n"
+            "    auto *runningState = new QState(machine);\n"
+            "    auto *alarmState = new QState(machine);\n"
+            "    auto *emergencyState = new QState(machine);\n\n"
+            "    // 2. 状态进入时自动联动修改 UI 属性\n"
+            "    idleState->assignProperty(statusLabel, \"text\", \"机台就绪 (IDLE)\");\n"
+            "    idleState->assignProperty(startBtn, \"enabled\", true);\n"
+            "    idleState->assignProperty(stopBtn, \"enabled\", false);\n\n"
+            "    runningState->assignProperty(statusLabel, \"text\", \"高速质检中 (RUNNING)\");\n"
+            "    runningState->assignProperty(startBtn, \"enabled\", false);\n"
+            "    runningState->assignProperty(stopBtn, \"enabled\", true);\n\n"
+            "    emergencyState->assignProperty(statusLabel, \"text\", \"紧急停机 (E-STOP)\");\n"
+            "    emergencyState->assignProperty(startBtn, \"enabled\", false);\n"
+            "    emergencyState->assignProperty(stopBtn, \"enabled\", false);\n\n"
+            "    // 3. 配置信号驱动跃迁\n"
+            "    idleState->addTransition(startBtn, &QPushButton::clicked, runningState);\n"
+            "    runningState->addTransition(stopBtn, &QPushButton::clicked, idleState);\n\n"
+            "    // 4. 全局最高优先级急停跳转：任何状态点击 E-Stop 瞬间切入 Emergency 状态\n"
+            "    idleState->addTransition(eStopBtn, &QPushButton::clicked, emergencyState);\n"
+            "    runningState->addTransition(eStopBtn, &QPushButton::clicked, emergencyState);\n"
+            "    alarmState->addTransition(eStopBtn, &QPushButton::clicked, emergencyState);\n\n"
+            "    // 5. 监听状态进出日志\n"
+            "    QObject::connect(runningState, &QState::entered, []() {\n"
+            "        qInfo() << \"机台进入质检状态，开启相机高频采集...\";\n"
+            "    });\n\n"
+            "    machine->setInitialState(idleState);\n"
+            "    machine->start();\n"
+            "}";
+        m_topics.append(t);
+        m_topicMap[t.id] = t;
+    }
+
+    // ========================================================
+    // Qt 06. 工业上位机架构与高级机制 (Windows 崩溃拦截与转储)
+    // ========================================================
+    {
+        KnowledgeTopic t;
+        t.id = "qt_crash_dump";
+        t.framework = "Qt";
+        t.category = "Qt 06. 工业上位机架构与高级机制";
+        t.name = "Windows 崩溃拦截与全自动 MiniDump 转储 (SetUnhandledExceptionFilter)";
+        t.tag = "7x24 工业现场黑匣子、非法内存访问 0xC0000005 抓取、WinDbg 毫秒定位";
+        t.isVisualInteractive = false;
+        t.apiSignature = "LONG WINAPI GlobalCrashHandler(EXCEPTION_POINTERS *pException);\nSetUnhandledExceptionFilter(GlobalCrashHandler);";
+        t.docSummary = "在 7×24 小时无人值守的自动化工厂车间，野指针、空指针解引用或第三方相机底层 SDK 内存越界可能导致上位机瞬间闪退，造成整条流水线停摆。通过注册 Windows 结构化异常处理 (SEH) 拦截未捕获异常，并在进程崩溃濒死时刻调用 `DbgHelp.dll` 的 `MiniDumpWriteDump` 写入 `.dmp` 转储文件，配合符号文件 (.pdb) 可在 WinDbg 或 Visual Studio 中精准还原崩溃发生时的调用堆栈与变量上下文。";
+        t.docParams = "• <b>EXCEPTION_POINTERS:</b> 包含发生崩溃时的 CPU 寄存器上下文 (ContextRecord) 与异常记录 (ExceptionRecord)。<br>"
+                      "• <b>MiniDumpWithFullMemory / MiniDumpNormal:</b> 转储级别。Normal 转储仅约数十 MB，包含全部线程堆栈与加载模块，适合网络回传。<br>"
+                      "• <b>安全原则:</b> 崩溃回调函数中严禁调用 malloc、new 或 Qt GUI 弹窗，因为进程堆空间可能已被破坏。";
+        t.usageTiming = "所有发布到工业生产现场的 Qt/C++ 上位机软件标配基石架构。";
+        t.bestPractices = "随每个正式发布的版本归档当次编译生成的 `.pdb` 符号文件，否则 dump 文件无法还原行号和局部变量。";
+        t.codeSnippet =
+            "// Windows 工业级崩溃捕获与 MiniDump 全自动落盘：\n"
+            "#ifdef _WIN32\n"
+            "#include <windows.h>\n"
+            "#include <DbgHelp.h>\n"
+            "#pragma comment(lib, \"dbghelp.lib\")\n\n"
+            "LONG WINAPI VisionCraftCrashFilter(EXCEPTION_POINTERS *pExceptionInfo) {\n"
+            "    SYSTEMTIME st;\n"
+            "    GetLocalTime(&st);\n"
+            "    wchar_t dumpPath[MAX_PATH];\n"
+            "    wsprintfW(dumpPath, L\"CrashDump_%04d%02d%02d_%02d%02d%02d.dmp\", \n"
+            "              st.wYear, st.wMonth, st.wDay, st.wHour, st.wMinute, st.wSecond);\n\n"
+            "    HANDLE hFile = CreateFileW(dumpPath, GENERIC_WRITE, 0, NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);\n"
+            "    if (hFile != INVALID_HANDLE_VALUE) {\n"
+            "        MINIDUMP_EXCEPTION_INFORMATION mei;\n"
+            "        mei.ThreadId = GetCurrentThreadId();\n"
+            "        mei.ExceptionPointers = pExceptionInfo;\n"
+            "        mei.ClientPointers = TRUE;\n\n"
+            "        // 写入 MiniDump (包含线程调用堆栈、加载的模块与句柄信息)\n"
+            "        MiniDumpWriteDump(\n"
+            "            GetCurrentProcess(),\n"
+            "            GetCurrentProcessId(),\n"
+            "            hFile,\n"
+            "            MiniDumpNormal,\n"
+            "            &mei,\n"
+            "            NULL,\n"
+            "            NULL\n"
+            "        );\n"
+            "        CloseHandle(hFile);\n"
+            "    }\n"
+            "    return EXCEPTION_EXECUTE_HANDLER;\n"
+            "}\n\n"
+            "void installCrashDumper() {\n"
+            "    SetUnhandledExceptionFilter(VisionCraftCrashFilter);\n"
+            "}\n"
+            "#endif";
+        m_topics.append(t);
+        m_topicMap[t.id] = t;
+    }
+
+    // ========================================================
+    // Qt 01. 核心机制与底层哲学 (多语言国际化热更体系)
+    // ========================================================
+    {
+        KnowledgeTopic t;
+        t.id = "qt_i18n_translator";
+        t.framework = "Qt";
+        t.category = "Qt 01. 核心机制与底层哲学";
+        t.name = "多语言国际化免重启热更体系 (QTranslator / tr() / 动态翻译加载)";
+        t.tag = "工业设备全球化交付、中/英/德/日/韩免重启无缝热更、changeEvent 监听";
+        t.isVisualInteractive = false;
+        t.apiSignature = "bool QTranslator::load(const QString &filename);\nqApp->installTranslator(&m_translator);\nvoid changeEvent(QEvent *event) override;";
+        t.docSummary = "面向全球交付的工业视觉检测设备，必须支持现场随时切换语言环境（如中文操作工与外籍驻厂工程师交接），且严禁要求产线停机重启软件。Qt 拥有世界级的国际化架构：通过在每个窗口重写 `changeEvent(QEvent *event)` 并捕获 `QEvent::LanguageChange`，配合全局 `QTranslator` 的安装与卸载，可实现主窗口及所有嵌套子组件在毫秒内静默无缝刷新全部文本标签。";
+        t.docParams = "• <b>tr(\"Text\"):</b> 标记待翻译文本。注意参数必须是字面常量字符串，严禁在 tr 内做字符串拼接。<br>"
+                      "• <b>QEvent::LanguageChange:</b> 语言包变更事件。接收到此事件后调用内部 retranslateUi() 更新所有 label、button 文本。<br>"
+                      "• <b>lupdate / lrelease:</b> Qt 自带命令行工具，一键提取源码中所有 tr() 文本生成 .ts 并编译为二进制 .qm 文件。";
+        t.usageTiming = "任何出口欧洲、北美、东南亚的高端工业装备人机界面 (HMI)。";
+        t.bestPractices = "动态文本应使用带占位符的 `tr(\"Found %1 defects in %2 ms\").arg(count).arg(time)`，绝不可将前后词汇拆开翻译，否则无法适应德语、日语的不同语序。";
+        t.codeSnippet =
+            "// 工业上位机无重启多语言热更标准工程实现：\n"
+            "#include <QApplication>\n"
+            "#include <QTranslator>\n"
+            "#include <QWidget>\n"
+            "#include <QLabel>\n"
+            "#include <QPushButton>\n"
+            "#include <QEvent>\n\n"
+            "class LanguageManager : public QObject {\n"
+            "    Q_OBJECT\n"
+            "public:\n"
+            "    static LanguageManager& instance() {\n"
+            "        static LanguageManager s;\n"
+            "        return s;\n"
+            "    }\n"
+            "    void switchLanguage(const QString &qmPath) {\n"
+            "        qApp->removeTranslator(&m_translator);\n"
+            "        if (m_translator.load(qmPath)) {\n"
+            "            qApp->installTranslator(&m_translator);\n"
+            "            // installTranslator 触发全局向所有 QWidget 发送 QEvent::LanguageChange\n"
+            "        }\n"
+            "    }\n"
+            "private:\n"
+            "    QTranslator m_translator;\n"
+            "};\n\n"
+            "class InspectionPanel : public QWidget {\n"
+            "    Q_OBJECT\n"
+            "public:\n"
+            "    explicit InspectionPanel(QWidget *parent = nullptr) : QWidget(parent) {\n"
+            "        m_title = new QLabel(this);\n"
+            "        m_startBtn = new QPushButton(this);\n"
+            "        retranslateUi();\n"
+            "    }\n"
+            "protected:\n"
+            "    void changeEvent(QEvent *event) override {\n"
+            "        if (event->type() == QEvent::LanguageChange) {\n"
+            "            retranslateUi(); // 捕获语言变更事件，刷新 UI 文本\n"
+            "        }\n"
+            "        QWidget::changeEvent(event);\n"
+            "    }\n"
+            "private:\n"
+            "    void retranslateUi() {\n"
+            "        m_title->setText(tr(\"工业机器视觉精密质检站\"));\n"
+            "        m_startBtn->setText(tr(\"启动全自动检测\"));\n"
+            "    }\n"
+            "    QLabel *m_title;\n"
+            "    QPushButton *m_startBtn;\n"
+            "};";
+        m_topics.append(t);
+        m_topicMap[t.id] = t;
+    }
+
+    // ========================================================
+    // Qt 02. 多线程与并发 (Concurrent) (异步双缓冲日志系统)
+    // ========================================================
+    {
+        KnowledgeTopic t;
+        t.id = "qt_async_logger";
+        t.framework = "Qt";
+        t.category = "Qt 02. 多线程与并发 (Concurrent)";
+        t.name = "工业级异步双缓冲日志系统 (qInstallMessageHandler / 双缓冲分卷落盘)";
+        t.tag = "高频质检日志零卡顿、qInstallMessageHandler 重定向、双缓冲无锁交换落盘";
+        t.isVisualInteractive = false;
+        t.apiSignature = "void qInstallMessageHandler(QtMessageHandler handler);\nclass AsyncLogEngine : public QThread { ... };";
+        t.docSummary = "在每秒检测 30 个工件的视觉产线上，每次检测都会输出尺寸公差、OK/NG 判定、算子耗时等日志。若在 UI 线程直接调用同步文件 I/O，遇到机械硬盘或工业固态写入抖动时，主界面会直接冻结卡顿。基于双缓冲队列 (Double Buffering) 的异步日志引擎：业务线程仅将日志对象推入前台内存缓冲区（微秒级），后台落盘线程定期原子交换前后缓冲区并批量写入磁盘，提供超高并发与零 GUI 阻塞体验。";
+        t.docParams = "• <b>qInstallMessageHandler:</b> Qt 全局消息重定向钩子，将所有 qDebug(), qInfo(), qWarning() 统一转入异步管道。<br>"
+                      "• <b>双缓冲区 (Active/Back Buffer):</b> 写入与落盘分离。交换指针仅需极短暂的一次互斥锁保护，随后磁盘写入全程无需加锁。<br>"
+                      "• <b>自动分卷与清理:</b> 按天或者按单个文件大小 (如 50MB) 自动切分新日志，并自动清理 30 天以前的过期历史日志。";
+        t.usageTiming = "高频流水线连续质检、多相机并发运行、需留存审计日志的医疗/汽车工业场景。";
+        t.bestPractices = "程序退出或异常崩溃时，务必调用 flush() 强制将前台内存中尚未落盘的剩余日志写入文件。";
+        t.codeSnippet =
+            "// 工业级异步双缓冲日志落盘引擎实现：\n"
+            "#include <QThread>\n"
+            "#include <QMutex>\n"
+            "#include <QWaitCondition>\n"
+            "#include <QFile>\n"
+            "#include <QTextStream>\n"
+            "#include <QDateTime>\n"
+            "#include <vector>\n\n"
+            "struct LogItem {\n"
+            "    QString time;\n"
+            "    QtMsgType type;\n"
+            "    QString message;\n"
+            "};\n\n"
+            "class AsyncLogWorker : public QThread {\n"
+            "    Q_OBJECT\n"
+            "public:\n"
+            "    void append(const LogItem &item) {\n"
+            "        QMutexLocker locker(&m_mutex);\n"
+            "        m_activeBuffer.push_back(item);\n"
+            "        m_cond.wakeOne();\n"
+            "    }\n"
+            "    void stop() {\n"
+            "        m_running = false;\n"
+            "        m_cond.wakeAll();\n"
+            "        wait();\n"
+            "    }\n"
+            "protected:\n"
+            "    void run() override {\n"
+            "        std::vector<LogItem> writeBuffer;\n"
+            "        QFile file(\"visioncraft_system.log\");\n"
+            "        file.open(QIODevice::WriteOnly | QIODevice::Append | QIODevice::Text);\n"
+            "        QTextStream out(&file);\n\n"
+            "        while (m_running) {\n"
+            "            {\n"
+            "                QMutexLocker locker(&m_mutex);\n"
+            "                if (m_activeBuffer.empty()) {\n"
+            "                    m_cond.wait(&m_mutex, 100);\n"
+            "                }\n"
+            "                // 微秒级指针交换 (Double Buffer Swap)\n"
+            "                writeBuffer.swap(m_activeBuffer);\n"
+            "            }\n"
+            "            if (!writeBuffer.empty()) {\n"
+            "                for (const auto &it : writeBuffer) {\n"
+            "                    out << \"[\" << it.time << \"] \" << it.message << \"\\n\";\n"
+            "                }\n"
+            "                out.flush();\n"
+            "                writeBuffer.clear();\n"
+            "            }\n"
+            "        }\n"
+            "    }\n"
+            "private:\n"
+            "    QMutex m_mutex;\n"
+            "    QWaitCondition m_cond;\n"
+            "    std::vector<LogItem> m_activeBuffer;\n"
+            "    bool m_running = true;\n"
             "};";
         m_topics.append(t);
         m_topicMap[t.id] = t;

@@ -36,6 +36,7 @@ private slots:
     void openImageSource();
     void resetSyntheticSource();
     void copyCodeToClipboard();
+    void exportCodeToFile();
     void copyApiSignature();
     void resetCurrentParams();
     void onParamChanged();
@@ -69,6 +70,7 @@ private:
     // 代码生成区
     QTextEdit *m_codeEdit = nullptr;
     QPushButton *m_copyCodeBtn = nullptr;
+    QPushButton *m_exportCodeBtn = nullptr;
 
     // 中下部视窗堆叠：分为「视觉实时算法对比页」与「深度架构与使用时机指南页」
     QStackedWidget *m_contentStack = nullptr;

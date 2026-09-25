@@ -31,6 +31,7 @@ struct ParamDescriptor {
     QList<int> optionValues;    // ComboBox 候选对应的整数值
     QString tooltip;            // 悬停提示解释
 };
+using ParamDesc = ParamDescriptor;
 
 // 知识点与方法元数据（数据驱动的核心单元）
 struct KnowledgeTopic {

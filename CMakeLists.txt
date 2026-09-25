@@ -15,7 +15,9 @@ endif()
 find_package(Qt6 REQUIRED COMPONENTS Core Gui Widgets Concurrent)
 
 # 2. OpenCV 4
-if(WIN32 AND EXISTS "C:/02Programmer/opencv/build")
+if(WIN32 AND EXISTS "C:/02Programmer/opencv/build/x64/vc16/lib")
+    set(OpenCV_DIR "C:/02Programmer/opencv/build/x64/vc16/lib")
+elseif(WIN32 AND EXISTS "C:/02Programmer/opencv/build")
     set(OpenCV_DIR "C:/02Programmer/opencv/build")
 endif()
 find_package(OpenCV REQUIRED)

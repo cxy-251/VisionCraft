@@ -1,5 +1,6 @@
 #include "KnowledgeExplorerPage.h"
 #include "ThemeManager.h"
+#include "CppSyntaxHighlighter.h"
 #include "core/KnowledgeRegistry.h"
 #include "core/ScreenCapture.h"
 #include <QVBoxLayout>
@@ -33,18 +34,18 @@ void KnowledgeExplorerPage::setupUI() {
     auto *mainSplitter = new QSplitter(Qt::Horizontal, this);
 
     // ========================================================
-    // 1. 左侧：系统化知识树与搜索栏 (宽度 ~280)
+    // 1. 左侧：科学分级体系大纲树 (纯索引驱动导航，彻底移除搜索框)
     // ========================================================
     auto *leftNavWidget = new QWidget(mainSplitter);
-    leftNavWidget->setMinimumWidth(260);
-    leftNavWidget->setMaximumWidth(320);
+    leftNavWidget->setMinimumWidth(270);
+    leftNavWidget->setMaximumWidth(340);
 
     auto *leftNavLayout = new QVBoxLayout(leftNavWidget);
     leftNavLayout->setContentsMargins(10, 10, 10, 10);
     leftNavLayout->setSpacing(10);
 
     auto *searchHeaderRow = new QHBoxLayout();
-    auto *searchHeader = new QLabel("📚 知识体系大纲", leftNavWidget);
+    auto *searchHeader = new QLabel("📚 知识体系索引", leftNavWidget);
     searchHeader->setStyleSheet("font-size: 15px; font-weight: 700;");
     m_topicCountBadge = new QLabel(leftNavWidget);
     m_topicCountBadge->setStyleSheet("font-size: 11px; padding: 2px 7px; border-radius: 4px; background: #0284c7; color: #ffffff; font-weight: bold;");
@@ -53,7 +54,7 @@ void KnowledgeExplorerPage::setupUI() {
     searchHeaderRow->addWidget(m_topicCountBadge);
     leftNavLayout->addLayout(searchHeaderRow);
 
-    // 分类快速筛选 Pill 按钮栏
+    // 体系快速过滤 Pill 按钮栏 (纯章节与形态索引)
     auto *pillRow = new QHBoxLayout();
     pillRow->setSpacing(3);
     auto makeFilterBtn = [this, pillRow, leftNavWidget](const QString &text, int mode) {
@@ -75,17 +76,10 @@ void KnowledgeExplorerPage::setupUI() {
     makeFilterBtn("📖指南", 4);
     leftNavLayout->addLayout(pillRow);
 
-    m_searchEdit = new QLineEdit(leftNavWidget);
-    m_searchEdit->setPlaceholderText("🔍 检索 API / 机制 (如 Canny, 信号槽)...");
-    m_searchEdit->setStyleSheet(
-        "QLineEdit { padding: 8px 10px; border-radius: 6px; font-size: 12px; }"
-    );
-    connect(m_searchEdit, &QLineEdit::textChanged, this, &KnowledgeExplorerPage::onSearchTextChanged);
-    leftNavLayout->addWidget(m_searchEdit);
-
     m_treeWidget = new QTreeWidget(leftNavWidget);
     m_treeWidget->setHeaderHidden(true);
     m_treeWidget->setIndentation(16);
+    m_treeWidget->setAnimated(true);
     connect(m_treeWidget, &QTreeWidget::itemClicked, this, &KnowledgeExplorerPage::onTreeItemClicked);
     leftNavLayout->addWidget(m_treeWidget, 1);
 
@@ -156,7 +150,7 @@ void KnowledgeExplorerPage::setupUI() {
 
     wbLayout->addWidget(docCard);
 
-    // --- 中间：实时动态 C++ 代码生成区 (仅针对视觉交互模式显示) ---
+    // --- 中间：实时动态 C++ 代码生成区 (带专业 C++ 语法高亮) ---
     auto *codeCard = new QFrame(rightWorkbench);
     codeCard->setObjectName("PanelCard");
     auto *codeLayout = new QVBoxLayout(codeCard);
@@ -164,7 +158,7 @@ void KnowledgeExplorerPage::setupUI() {
     codeLayout->setSpacing(6);
 
     auto *codeHeader = new QHBoxLayout();
-    auto *codeTitle = new QLabel("💻 实时 C++ 调用代码 (参数联动 / 即拷即用)", codeCard);
+    auto *codeTitle = new QLabel("💻 实时 C++ 调用代码 (参数联动 / 语法高亮 / 即拷即用)", codeCard);
     codeTitle->setStyleSheet("font-size: 13px; font-weight: 600;");
     m_copyCodeBtn = new QPushButton("📋 复制代码", codeCard);
     m_copyCodeBtn->setCursor(Qt::PointingHandCursor);
@@ -182,10 +176,11 @@ void KnowledgeExplorerPage::setupUI() {
 
     m_codeEdit = new QTextEdit(codeCard);
     m_codeEdit->setReadOnly(true);
-    m_codeEdit->setFixedHeight(85);
+    m_codeEdit->setFixedHeight(90);
     m_codeEdit->setStyleSheet(
-        "QTextEdit { font-family: 'Consolas', 'Courier New', monospace; font-size: 12px; background: #0b1329; color: #a5f3fc; border: 1px solid #334155; border-radius: 6px; padding: 6px; }"
+        "QTextEdit { font-family: 'Consolas', 'Courier New', monospace; font-size: 12px; background: #0b1329; color: #f8fafc; border: 1px solid #334155; border-radius: 6px; padding: 6px; }"
     );
+    m_codeHighlighter = new CppSyntaxHighlighter(m_codeEdit->document());
     codeLayout->addWidget(m_codeEdit);
     wbLayout->addWidget(codeCard);
 
@@ -337,7 +332,7 @@ void KnowledgeExplorerPage::setupUI() {
     codeFullLay->setContentsMargins(14, 12, 14, 12);
 
     auto *codeFullHeader = new QHBoxLayout();
-    auto *codeFullTitle = new QLabel("📖 生产级完整 C++ 工程代码范式", codeFullCard);
+    auto *codeFullTitle = new QLabel("📖 生产级完整 C++ 工程代码范式 (语法高亮)", codeFullCard);
     codeFullTitle->setStyleSheet("font-size: 14px; font-weight: 700; color: #10b981;");
     auto *copyFullBtn = new QPushButton("📋 复制范式代码", codeFullCard);
     copyFullBtn->setCursor(Qt::PointingHandCursor);
@@ -381,8 +376,9 @@ void KnowledgeExplorerPage::setupUI() {
     m_fullCodeEdit->setReadOnly(true);
     m_fullCodeEdit->setMinimumHeight(240);
     m_fullCodeEdit->setStyleSheet(
-        "QTextEdit { font-family: 'Consolas', 'Courier New', monospace; font-size: 12px; background: #0b1329; color: #a5f3fc; border: 1px solid #334155; border-radius: 6px; padding: 6px; }"
+        "QTextEdit { font-family: 'Consolas', 'Courier New', monospace; font-size: 12px; background: #0b1329; color: #f8fafc; border: 1px solid #334155; border-radius: 6px; padding: 6px; }"
     );
+    m_fullCodeHighlighter = new CppSyntaxHighlighter(m_fullCodeEdit->document());
     codeFullLay->addWidget(m_fullCodeEdit);
     gLayout->addWidget(codeFullCard);
 
@@ -395,6 +391,12 @@ void KnowledgeExplorerPage::setupUI() {
     mainSplitter->setStretchFactor(0, 0);
     mainSplitter->setStretchFactor(1, 1);
     rootLayout->addWidget(mainSplitter);
+
+    // 初始化防抖定时器 (35ms 聚合，消除滑块高频卡顿)
+    m_debounceTimer = new QTimer(this);
+    m_debounceTimer->setSingleShot(true);
+    m_debounceTimer->setInterval(35);
+    connect(m_debounceTimer, &QTimer::timeout, this, &KnowledgeExplorerPage::runCurrentAlgorithm);
 }
 
 void KnowledgeExplorerPage::generateSyntheticImage() {
@@ -425,18 +427,39 @@ void KnowledgeExplorerPage::populateKnowledgeTree() {
         m_topicCountBadge->setText(QString("收录 %1 专题").arg(totalCount));
     }
 
+    // 构建顶层两大体系 Framework 根节点
+    auto *cvRoot = new QTreeWidgetItem(m_treeWidget);
+    cvRoot->setText(0, "🎓 OpenCV 工业视觉算法库");
+    cvRoot->setFont(0, QFont("", -1, QFont::Bold));
+    cvRoot->setFlags(cvRoot->flags() & ~Qt::ItemIsSelectable);
+
+    auto *qtRoot = new QTreeWidgetItem(m_treeWidget);
+    qtRoot->setText(0, "🎓 Qt 现代上位机架构与机制");
+    qtRoot->setFont(0, QFont("", -1, QFont::Bold));
+    qtRoot->setFlags(qtRoot->flags() & ~Qt::ItemIsSelectable);
+
     QTreeWidgetItem *firstTopicItem = nullptr;
+    int cvCount = 0;
+    int qtCount = 0;
 
     for (auto it = grouped.begin(); it != grouped.end(); ++it) {
-        auto *categoryItem = new QTreeWidgetItem(m_treeWidget);
-        categoryItem->setText(0, it.key());
-        categoryItem->setFlags(categoryItem->flags() & ~Qt::ItemIsSelectable);
-        categoryItem->setFont(0, QFont("", -1, QFont::Bold));
+        bool isOpenCV = it.key().contains("OpenCV", Qt::CaseInsensitive);
+        auto *parentRoot = isOpenCV ? cvRoot : qtRoot;
 
+        // 第二级：篇章 / 小节目录 (如 📁 OpenCV 01. 图像滤波与增强)
+        auto *categoryItem = new QTreeWidgetItem(parentRoot);
+        categoryItem->setText(0, QString("📁 %1 (%2)").arg(it.key()).arg(it.value().size()));
+        categoryItem->setFlags(categoryItem->flags() & ~Qt::ItemIsSelectable);
+        categoryItem->setFont(0, QFont("", -1, QFont::DemiBold));
+
+        // 第三级：具体知识点与算子
         for (const auto &topic : it.value()) {
             auto *topicItem = new QTreeWidgetItem(categoryItem);
             topicItem->setText(0, QString("%1  [%2]").arg(topic.name, topic.tag));
             topicItem->setData(0, Qt::UserRole, topic.id);
+
+            if (isOpenCV) cvCount++;
+            else qtCount++;
 
             if (!firstTopicItem) {
                 firstTopicItem = topicItem;
@@ -444,6 +467,12 @@ void KnowledgeExplorerPage::populateKnowledgeTree() {
         }
         categoryItem->setExpanded(true);
     }
+
+    cvRoot->setText(0, QString("🎓 OpenCV 工业视觉算法库 (%1)").arg(cvCount));
+    qtRoot->setText(0, QString("🎓 Qt 现代上位机架构与机制 (%1)").arg(qtCount));
+
+    cvRoot->setExpanded(true);
+    qtRoot->setExpanded(true);
 
     if (firstTopicItem) {
         m_treeWidget->setCurrentItem(firstTopicItem);
@@ -453,38 +482,40 @@ void KnowledgeExplorerPage::populateKnowledgeTree() {
 
 void KnowledgeExplorerPage::filterTreeCategory(int filterMode) {
     m_currentTreeFilter = filterMode;
-    QString q = m_searchEdit->text().trimmed();
 
     for (int i = 0; i < m_treeWidget->topLevelItemCount(); ++i) {
-        auto *catItem = m_treeWidget->topLevelItem(i);
-        QString catName = catItem->text(0);
-        bool catMatchMode = true;
-        if (filterMode == 1 && !catName.contains("OpenCV", Qt::CaseInsensitive)) catMatchMode = false;
-        if (filterMode == 2 && !catName.contains("Qt", Qt::CaseInsensitive)) catMatchMode = false;
+        auto *rootItem = m_treeWidget->topLevelItem(i);
+        bool isCvRoot = (i == 0);
 
-        bool anyChildVisible = false;
-        for (int j = 0; j < catItem->childCount(); ++j) {
-            auto *child = catItem->child(j);
-            QString topicId = child->data(0, Qt::UserRole).toString();
-            const auto *topic = KnowledgeRegistry::instance().findTopic(topicId);
-            bool topicModeMatch = catMatchMode;
-            if (topic) {
-                if (filterMode == 3 && !topic->isVisualInteractive) topicModeMatch = false;
-                if (filterMode == 4 && topic->isVisualInteractive) topicModeMatch = false;
+        bool rootVisible = true;
+        if (filterMode == 1 && !isCvRoot) rootVisible = false; // OpenCV only
+        if (filterMode == 2 && isCvRoot) rootVisible = false;  // Qt only
+
+        bool anyCatVisible = false;
+        for (int c = 0; c < rootItem->childCount(); ++c) {
+            auto *catItem = rootItem->child(c);
+            bool anyTopicVisible = false;
+
+            for (int t = 0; t < catItem->childCount(); ++t) {
+                auto *topicItem = catItem->child(t);
+                QString topicId = topicItem->data(0, Qt::UserRole).toString();
+                const auto *topic = KnowledgeRegistry::instance().findTopic(topicId);
+
+                bool visible = rootVisible;
+                if (topic) {
+                    if (filterMode == 3 && !topic->isVisualInteractive) visible = false;
+                    if (filterMode == 4 && topic->isVisualInteractive) visible = false;
+                }
+                topicItem->setHidden(!visible);
+                if (visible) anyTopicVisible = true;
             }
-            bool textMatch = q.isEmpty() || child->text(0).contains(q, Qt::CaseInsensitive);
-            bool visible = topicModeMatch && textMatch;
-            child->setHidden(!visible);
-            if (visible) anyChildVisible = true;
+            catItem->setHidden(!anyTopicVisible);
+            if (anyTopicVisible) anyCatVisible = true;
         }
-        catItem->setHidden(!anyChildVisible);
-        if (anyChildVisible) catItem->setExpanded(true);
-    }
-}
 
-void KnowledgeExplorerPage::onSearchTextChanged(const QString &text) {
-    Q_UNUSED(text);
-    filterTreeCategory(m_currentTreeFilter);
+        rootItem->setHidden(!anyCatVisible);
+        if (anyCatVisible) rootItem->setExpanded(true);
+    }
 }
 
 void KnowledgeExplorerPage::copyApiSignature() {
@@ -510,6 +541,9 @@ void KnowledgeExplorerPage::onTreeItemClicked(QTreeWidgetItem *item, int column)
     QString topicId = item->data(0, Qt::UserRole).toString();
     if (!topicId.isEmpty()) {
         loadTopic(topicId);
+    } else {
+        // 点击章节目录或大类根节点时，折叠/展开当前项
+        item->setExpanded(!item->isExpanded());
     }
 }
 
@@ -624,14 +658,22 @@ void KnowledgeExplorerPage::buildDynamicParamWidgets(const KnowledgeTopic &topic
 }
 
 void KnowledgeExplorerPage::onParamChanged() {
-    runCurrentAlgorithm();
+    // 立即刷新 C++ 动态生成的调用代码 (纳秒级字符串格式化，即刻响应)
+    const auto *topic = KnowledgeRegistry::instance().findTopic(m_currentTopicId);
+    if (topic && topic->codeGenerator) {
+        m_codeEdit->setPlainText(topic->codeGenerator(m_currentParams));
+    }
+    // 启动 35ms 图像计算防抖，杜绝高频拖动时的 UI 主线程卡顿
+    if (m_debounceTimer) {
+        m_debounceTimer->start();
+    }
 }
 
 void KnowledgeExplorerPage::runCurrentAlgorithm() {
     const auto *topic = KnowledgeRegistry::instance().findTopic(m_currentTopicId);
     if (!topic || !topic->isVisualInteractive) return;
 
-    if (topic->codeGenerator) {
+    if (topic->codeGenerator && m_codeEdit->toPlainText().isEmpty()) {
         m_codeEdit->setPlainText(topic->codeGenerator(m_currentParams));
     }
 
@@ -648,8 +690,10 @@ void KnowledgeExplorerPage::runCurrentAlgorithm() {
         QImage dstImg = ScreenCapture::matToQImage(m_resultMat);
 
         QSize viewSize = m_srcPreviewLabel->parentWidget()->size() - QSize(10, 30);
-        m_srcPreviewLabel->setPixmap(QPixmap::fromImage(srcImg).scaled(viewSize, Qt::KeepAspectRatio, Qt::SmoothTransformation));
-        m_dstPreviewLabel->setPixmap(QPixmap::fromImage(dstImg).scaled(viewSize, Qt::KeepAspectRatio, Qt::SmoothTransformation));
+        if (viewSize.width() > 10 && viewSize.height() > 10) {
+            m_srcPreviewLabel->setPixmap(QPixmap::fromImage(srcImg).scaled(viewSize, Qt::KeepAspectRatio, Qt::SmoothTransformation));
+            m_dstPreviewLabel->setPixmap(QPixmap::fromImage(dstImg).scaled(viewSize, Qt::KeepAspectRatio, Qt::SmoothTransformation));
+        }
     }
 }
 

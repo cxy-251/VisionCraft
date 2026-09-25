@@ -17,10 +17,17 @@ public:
     // 按分类聚合获取
     QMap<QString, QList<KnowledgeTopic>> topicsByCategory() const;
 
+    // 核心算子/机制注册接口
+    void registerTopic(const KnowledgeTopic &topic);
+
 private:
     KnowledgeRegistry();
-    void initOpenCVTopics();
-    void initQtTopics();
+
+    // 模块化子集构建器 (消灭巨石单体文件)
+    void registerOpenCVVisionTopics();
+    void registerOpenCVIndustrialTopics();
+    void registerQtCoreTopics();
+    void registerQtArchitectureTopics();
 
     QList<KnowledgeTopic> m_topics;
     QMap<QString, KnowledgeTopic> m_topicMap;

@@ -3,7 +3,6 @@
 #include "core/IToolPage.h"
 #include "core/KnowledgeModel.h"
 #include <QTreeWidget>
-#include <QLineEdit>
 #include <QLabel>
 #include <QTextEdit>
 #include <QPushButton>
@@ -11,7 +10,10 @@
 #include <QVBoxLayout>
 #include <QStackedWidget>
 #include <QMap>
+#include <QTimer>
 #include <opencv2/core.hpp>
+
+class CppSyntaxHighlighter;
 
 class KnowledgeExplorerPage : public IToolPage {
     Q_OBJECT
@@ -29,7 +31,6 @@ public:
     void onActivated() override;
 
 private slots:
-    void onSearchTextChanged(const QString &text);
     void onTreeItemClicked(QTreeWidgetItem *item, int column);
     void filterTreeCategory(int filterMode);
     void captureScreenSource();
@@ -49,11 +50,13 @@ private:
     void runCurrentAlgorithm();
     void generateSyntheticImage();
 
-    // 搜索、分类筛选与知识树
-    QLineEdit *m_searchEdit = nullptr;
+    // 体系分类筛选与多级索引大纲树
     QTreeWidget *m_treeWidget = nullptr;
     QLabel *m_topicCountBadge = nullptr;
     int m_currentTreeFilter = 0; // 0: All, 1: OpenCV, 2: Qt, 3: Interactive, 4: Guide
+
+    // 计算防抖定时器 (保证滑块 60 FPS 满帧顺滑)
+    QTimer *m_debounceTimer = nullptr;
 
     // 当前选中的知识点数据
     QString m_currentTopicId;
@@ -67,10 +70,11 @@ private:
     QLabel *m_docSummaryLabel = nullptr;
     QLabel *m_docParamsLabel = nullptr;
 
-    // 代码生成区
+    // 代码生成与语法高亮区
     QTextEdit *m_codeEdit = nullptr;
     QPushButton *m_copyCodeBtn = nullptr;
     QPushButton *m_exportCodeBtn = nullptr;
+    CppSyntaxHighlighter *m_codeHighlighter = nullptr;
 
     // 中下部视窗堆叠：分为「视觉实时算法对比页」与「深度架构与使用时机指南页」
     QStackedWidget *m_contentStack = nullptr;
@@ -90,4 +94,5 @@ private:
     QLabel *m_timingLabel = nullptr;
     QLabel *m_pitfallsLabel = nullptr;
     QTextEdit *m_fullCodeEdit = nullptr;
+    CppSyntaxHighlighter *m_fullCodeHighlighter = nullptr;
 };

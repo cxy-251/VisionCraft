@@ -38,6 +38,11 @@ set(SOURCES
     src/core/KnowledgeModel.h
     src/core/KnowledgeRegistry.h
     src/core/KnowledgeRegistry.cpp
+    src/core/KnowledgeRegistry_OpenCV_Vision.cpp
+    src/core/KnowledgeRegistry_OpenCV_Industrial.cpp
+    src/core/KnowledgeRegistry_Qt_Core.cpp
+    src/core/KnowledgeRegistry_Qt_Architecture.cpp
+    src/ui/CppSyntaxHighlighter.h
     src/ui/ThemeManager.h
     src/ui/ThemeManager.cpp
     src/ui/HomePage.h

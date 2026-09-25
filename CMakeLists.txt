@@ -9,16 +9,20 @@ set(CMAKE_AUTORCC ON)
 set(CMAKE_AUTOUIC ON)
 
 # 1. Qt 6
-list(APPEND CMAKE_PREFIX_PATH "C:/02Programmer/Qt/6.7.3/msvc2019_64")
+if(WIN32 AND EXISTS "C:/02Programmer/Qt/6.7.3/msvc2019_64")
+    list(APPEND CMAKE_PREFIX_PATH "C:/02Programmer/Qt/6.7.3/msvc2019_64")
+endif()
 find_package(Qt6 REQUIRED COMPONENTS Core Gui Widgets Concurrent)
 
 # 2. OpenCV 4
-set(OpenCV_DIR "C:/02Programmer/opencv/build")
+if(WIN32 AND EXISTS "C:/02Programmer/opencv/build")
+    set(OpenCV_DIR "C:/02Programmer/opencv/build")
+endif()
 find_package(OpenCV REQUIRED)
 
-# 3. vcpkg: fmt & nlohmann_json
-find_package(fmt CONFIG REQUIRED)
-find_package(nlohmann_json CONFIG REQUIRED)
+# 3. Dependencies: fmt & nlohmann_json
+find_package(fmt REQUIRED)
+find_package(nlohmann_json REQUIRED)
 
 # 头文件搜索路径
 include_directories(
@@ -71,7 +75,11 @@ set(SOURCES
     src/modules/batch_inspector/BatchInspectorPage.cpp
 )
 
-add_executable(VisionCraft WIN32 ${SOURCES})
+if(WIN32)
+    add_executable(VisionCraft WIN32 ${SOURCES})
+else()
+    add_executable(VisionCraft ${SOURCES})
+endif()
 
 target_link_libraries(VisionCraft PRIVATE
     Qt6::Core
@@ -83,10 +91,12 @@ target_link_libraries(VisionCraft PRIVATE
     nlohmann_json::nlohmann_json
 )
 
-# 确保 Qt6Concurrent 动态链接库始终自动部署到可执行文件同级目录
-add_custom_command(TARGET VisionCraft POST_BUILD
-    COMMAND ${CMAKE_COMMAND} -E copy_if_different
-    "C:/02Programmer/Qt/6.7.3/msvc2019_64/bin/Qt6Concurrent.dll"
-    "$<TARGET_FILE_DIR:VisionCraft>"
-)
+# 确保 Windows 下 Qt6Concurrent 动态链接库始终自动部署到可执行文件同级目录
+if(WIN32 AND EXISTS "C:/02Programmer/Qt/6.7.3/msvc2019_64/bin/Qt6Concurrent.dll")
+    add_custom_command(TARGET VisionCraft POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different
+        "C:/02Programmer/Qt/6.7.3/msvc2019_64/bin/Qt6Concurrent.dll"
+        "$<TARGET_FILE_DIR:VisionCraft>"
+    )
+endif()
 

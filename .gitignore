@@ -1,20 +1,100 @@
-# Build directories
-build/
-bin/
-out/
+# =========================================================================
+# VisionCraft - Comprehensive Git Ignore
+# =========================================================================
 
-# Visual Studio files
-.vs/
-*.sln.docstates
-*.user
-*.suo
+# Build directories & output artifacts
+build/
+build*/
+bin/
+bin*/
+out/
+out*/
+dist/
+dist*/
+target/
 
 # CMake generated files
 CMakeUserPresets.json
 CMakeCache.txt
 CMakeFiles/
+cmake_install.cmake
+Makefile
+*.cmake
+!CMakeLists.txt
 
-# Temporary files
+# Qt artifacts & generated files
+*.moc
+moc_*.cpp
+moc_*.h
+ui_*.h
+qrc_*.cpp
+*.qrc.depends
+.qmake.stash
+.qmake.cache
+*.autosave
+
+# C/C++ compiled objects & libraries
+*.o
+*.obj
+*.ko
+*.lib
+*.a
+*.la
+*.lo
+*.so
+*.so.*
+*.dylib
+*.dll
+*.exe
+*.exp
+*.ilk
+*.pdb
+*.idb
+
+# Visual Studio & MSVC
+.vs/
+*.sln.docstates
+*.user
+*.suo
+*.VC.db
+*.VC.opendb
+*.ipch
+*.aps
+*.ncb
+*.opensdf
+*.sdf
+*.tlog
 *.log
+
+# VS Code / JetBrains / IDEs
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+.idea/
+*.sublime-project
+*.sublime-workspace
+
+# Temporary & Crash Dumps
 *.tmp
+*.temp
 *.bak
+*.swp
+*~
+*.dmp
+*.crash
+
+# OS-generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+Desktop.ini
+
+# Package manager local caches
+vcpkg_installed/
+.cache/

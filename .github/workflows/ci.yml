@@ -1,0 +1,109 @@
+name: VisionCraft Cross-Platform CI
+
+on:
+  push:
+    branches: [ "main", "master" ]
+  pull_request:
+    branches: [ "main", "master" ]
+  workflow_dispatch:
+
+jobs:
+  build-linux:
+    name: Build on Ubuntu (Linux)
+    runs-on: ubuntu-24.04
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            build-essential \
+            cmake \
+            ninja-build \
+            qt6-base-dev \
+            qt6-base-dev-tools \
+            libopencv-dev \
+            libfmt-dev \
+            nlohmann-json3-dev \
+            libgl1-mesa-dev \
+            libxkbcommon-dev
+
+      - name: Configure CMake
+        run: |
+          cmake -B build \
+            -G Ninja \
+            -DCMAKE_BUILD_TYPE=Release
+
+      - name: Build VisionCraft
+        run: |
+          cmake --build build --config Release --parallel
+
+      - name: Upload Linux Binary
+        uses: actions/upload-artifact@v4
+        with:
+          name: VisionCraft-Linux-x86_64
+          path: build/VisionCraft
+          if-no-files-found: warn
+
+  build-windows:
+    name: Build on Windows (MSVC)
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Qt 6
+        uses: jurplel/install-qt-action@v4
+        with:
+          version: '6.7.3'
+          host: 'windows'
+          target: 'desktop'
+          arch: 'win64_msvc2022_64'
+          modules: 'qtconcurrent'
+
+      - name: Cache OpenCV 4.10.0
+        id: cache-opencv
+        uses: actions/cache@v4
+        with:
+          path: C:/opencv
+          key: opencv-4.10.0-windows-v1
+
+      - name: Download & Extract OpenCV
+        if: steps.cache-opencv.outputs.cache-hit != 'true'
+        shell: pwsh
+        run: |
+          $url = "https://github.com/opencv/opencv/releases/download/4.10.0/opencv-4.10.0-windows.exe"
+          Write-Host "Downloading OpenCV 4.10.0 from $url..."
+          Invoke-WebRequest -Uri $url -OutFile "opencv-installer.exe"
+          Write-Host "Extracting OpenCV..."
+          7z x opencv-installer.exe -y -oC:\
+          Remove-Item opencv-installer.exe -Force
+
+      - name: Install vcpkg dependencies (fmt, nlohmann-json)
+        shell: pwsh
+        run: |
+          vcpkg install fmt:x64-windows nlohmann-json:x64-windows
+
+      - name: Configure CMake
+        shell: pwsh
+        run: |
+          cmake -B build `
+            -DCMAKE_BUILD_TYPE=Release `
+            -DCMAKE_TOOLCHAIN_FILE="$env:VCPKG_INSTALLATION_ROOT/scripts/buildsystems/vcpkg.cmake" `
+            -DOpenCV_DIR="C:/opencv/build"
+
+      - name: Build VisionCraft
+        shell: pwsh
+        run: |
+          cmake --build build --config Release --parallel
+
+      - name: Upload Windows Binary
+        uses: actions/upload-artifact@v4
+        with:
+          name: VisionCraft-Windows-x64
+          path: build/Release/VisionCraft.exe
+          if-no-files-found: warn

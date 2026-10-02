@@ -1,0 +1,2 @@
+qt_add_executable(example_qt_signals_slots main.cpp)
+target_link_libraries(example_qt_signals_slots PRIVATE Qt6::Core)

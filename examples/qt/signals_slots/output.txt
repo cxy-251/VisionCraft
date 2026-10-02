@@ -1,0 +1,19 @@
+==== DirectConnection ====
+[工作线程] emit measured(42)
+[工作线程] 槽 show(42)
+[工作线程] emit 返回
+
+==== QueuedConnection ====
+[工作线程] emit measured(42)
+[工作线程] emit 返回
+[主线程]   槽 show(42)
+
+==== BlockingQueuedConnection ====
+[工作线程] emit measured(42)
+[主线程]   槽 show(42)
+[工作线程] emit 返回
+
+==== AutoConnection ====
+[工作线程] emit measured(42)
+[工作线程] emit 返回
+[主线程]   槽 show(42)

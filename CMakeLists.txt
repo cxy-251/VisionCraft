@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.16)
+cmake_minimum_required(VERSION 3.21)
 project(VisionCraft LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 17)
@@ -12,7 +12,8 @@ set(CMAKE_AUTOUIC ON)
 if(WIN32 AND EXISTS "C:/02Programmer/Qt/6.7.3/msvc2019_64")
     list(APPEND CMAKE_PREFIX_PATH "C:/02Programmer/Qt/6.7.3/msvc2019_64")
 endif()
-find_package(Qt6 REQUIRED COMPONENTS Core Gui Widgets Concurrent SerialPort)
+find_package(Qt6 6.7 REQUIRED COMPONENTS Core Gui Widgets Concurrent SerialPort Qml Quick QuickControls2)
+qt_standard_project_setup(REQUIRES 6.7)
 
 # 2. OpenCV 4
 if(WIN32 AND EXISTS "C:/02Programmer/opencv/build/x64/vc16/lib")
@@ -82,12 +83,72 @@ set(SOURCES
 )
 
 if(WIN32)
-    add_executable(VisionCraft WIN32 ${SOURCES})
+    qt_add_executable(VisionCraft WIN32 ${SOURCES})
 else()
-    add_executable(VisionCraft ${SOURCES})
+    qt_add_executable(VisionCraft ${SOURCES})
 endif()
 
+# ============================================================
+# 新版界面（QML 外壳 + 手册）。旧 Widgets 代码通过「实验室」入口打开，迁移完成后删除。
+# ============================================================
+# 单例标记必须在 qt_add_qml_module 之前设置
+set_source_files_properties(qml/Theme.qml PROPERTIES QT_QML_SINGLETON_TYPE TRUE)
+qt_add_qml_module(VisionCraft
+    URI VisionCraft
+    # 默认输出到 build/VisionCraft/，会和同名的可执行文件冲突
+    OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/qml/VisionCraft
+    QML_FILES
+        qml/Main.qml
+        qml/Theme.qml
+        qml/shell/NavRail.qml
+        qml/shell/PlaceholderPage.qml
+        qml/shell/LabPage.qml
+        qml/handbook/HandbookPage.qml
+        qml/handbook/HandbookIndex.qml
+        qml/handbook/Volume.qml
+        qml/handbook/Chapter.qml
+        qml/handbook/Entry.qml
+        qml/handbook/Section.qml
+        qml/handbook/Para.qml
+        qml/handbook/Why.qml
+        qml/handbook/KeyPoints.qml
+        qml/handbook/CodeRef.qml
+        qml/handbook/Demo.qml
+        qml/handbook/Pitfall.qml
+        qml/handbook/Try.qml
+        qml/handbook/InSystem.qml
+        qml/handbook/Block.qml
+        qml/demos/qt/SignalTraceView.qml
+        qml/demos/qt/DeadlockView.qml
+    SOURCES
+        src/handbook/SourceProvider.h
+        src/handbook/SourceProvider.cpp
+        src/handbook/CodeHighlighter.h
+        src/handbook/CodeHighlighter.cpp
+        src/legacy/LegacyLab.h
+        src/legacy/LegacyLab.cpp
+        src/demos/qt/SignalTraceDemo.h
+        src/demos/qt/SignalTraceDemo.cpp
+        src/demos/qt/DeadlockDemo.h
+        src/demos/qt/DeadlockDemo.cpp
+)
+
+# 手册正文、示例代码与被引用的源码：打包进资源，CodeRef 运行时按文件路径读取
+file(GLOB_RECURSE VC_HANDBOOK_FILES CONFIGURE_DEPENDS
+    RELATIVE ${CMAKE_CURRENT_SOURCE_DIR}
+    handbook/*.qml
+    examples/*.cpp examples/*.h examples/*.c examples/*.txt
+    src/*.cpp src/*.h)
+qt_add_resources(VisionCraft "vc_handbook_content" PREFIX "/" FILES ${VC_HANDBOOK_FILES})
+
+target_compile_definitions(VisionCraft PRIVATE VC_SOURCE_DIR="${CMAKE_CURRENT_SOURCE_DIR}")
+# qmltyperegistrar 生成的注册代码按文件名 #include 头文件，这些目录必须在搜索路径里
+target_include_directories(VisionCraft PRIVATE src/handbook src/legacy src/demos/qt)
+
 target_link_libraries(VisionCraft PRIVATE
+    Qt6::Qml
+    Qt6::Quick
+    Qt6::QuickControls2
     Qt6::Core
     Qt6::Gui
     Qt6::Widgets
@@ -107,3 +168,16 @@ if(WIN32 AND EXISTS "C:/02Programmer/Qt/6.7.3/msvc2019_64/bin/Qt6Concurrent.dll"
     )
 endif()
 
+
+# 手册引用的独立示例程序
+option(VC_BUILD_EXAMPLES "Build handbook examples" ON)
+if(VC_BUILD_EXAMPLES)
+    add_subdirectory(examples)
+endif()
+
+# 测试（ctest --test-dir build）
+option(VC_BUILD_TESTS "Build tests" ON)
+if(VC_BUILD_TESTS)
+    enable_testing()
+    add_subdirectory(tests)
+endif()

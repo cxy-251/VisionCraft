@@ -19,6 +19,8 @@ int main(int argc, char *argv[])
     const QString mode = argc > 1 ? QString::fromLocal8Bit(argv[1]) : QStringLiteral("rtt");
     // 第二个参数 soak：只做一次长时间吞吐测试（2000 个 512 字节 PING）
     const bool soak = argc > 2 && QByteArray(argv[2]) == "soak";
+    // 第二个参数 flash <elf>：先经 DeviceLink 烧录，重新连上后再跑后面的步骤
+    const QString flashElf = argc > 3 && QByteArray(argv[2]) == "flash" ? QString::fromLocal8Bit(argv[3]) : QString();
 
     DeviceLink link;
     QObject::connect(&link, &DeviceLink::logLine, [](const QString &kind, const QString &text) {
@@ -49,6 +51,22 @@ int main(int argc, char *argv[])
             app.exit(0);
     };
 
+    if (!flashElf.isEmpty()) {
+        steps << [&] {
+            const QString before = link.info().value("build").toString();
+            QObject::connect(&link, &DeviceLink::flashFinished, [&, before](bool ok, const QString &msg) {
+                say(QStringLiteral("[flash ] %1：%2").arg(ok ? "成功" : "失败", msg));
+                if (!ok) { app.exit(4); return; }
+                // 等重新连上并读到新的固件信息
+                QObject::connect(&link, &DeviceLink::infoChanged, &link, [&, before] {
+                    const QString after = link.info().value("build").toString();
+                    say(QStringLiteral("[flash ] 烧录前编译时间 %1，烧录后 %2").arg(before, after));
+                    QTimer::singleShot(300, next);
+                }, Qt::SingleShotConnection);
+            });
+            link.flashFirmware(flashElf);
+        };
+    }
     if (soak) {
         steps << [&] {
             QObject::connect(&link, &DeviceLink::throughputFinished, [&](const QVariantMap &r) {
@@ -81,10 +99,15 @@ int main(int argc, char *argv[])
         next();
     };
 
+    bool started = false;
+    QObject::connect(&link, &DeviceLink::infoChanged, &link, [&] {
+        if (started || link.info().isEmpty())
+            return;
+        started = true;
+        QTimer::singleShot(200, next);   // 连上并第一次读到固件信息后开始
+    });
     QObject::connect(&link, &DeviceLink::stateChanged, [&] {
-        if (link.state() == DeviceLink::Connected && stepIndex == 0)
-            QTimer::singleShot(400, next);   // 先等自动 GET_INFO 回来
-        else if (link.state() == DeviceLink::Disconnected && !link.statusText().isEmpty() && stepIndex == 0) {
+        if (link.state() == DeviceLink::Disconnected && !link.statusText().isEmpty() && stepIndex == 0) {
             say(QStringLiteral("[fail  ] ") + link.statusText());
             app.exit(1);
         }

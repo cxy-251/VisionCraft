@@ -20,8 +20,6 @@ RttTransport::RttTransport(QObject *parent)
 
     connect(&m_tclSocket, &QTcpSocket::connected, this, [this] {
         emit progress(tr("已连上 OpenOCD，开始查找 RTT 控制块"));
-        tcl(QStringLiteral("rtt setup 0x20000000 0x20000 {SEGGER RTT}"));
-        tcl(QStringLiteral("rtt polling_interval 1"));   // 默认 100 ms 轮询一次，太慢
         startRtt(false);
     });
     connect(&m_tclSocket, &QTcpSocket::readyRead, this, &RttTransport::onTclReadyRead);
@@ -180,6 +178,10 @@ QString RttTransport::bootFromFlashCommand() const
 void RttTransport::startRtt(bool afterBoot)
 {
     m_controlBlockFound = false;
+    // 每次都重新 setup：OpenOCD 0.12 在 rtt stop 之后直接 rtt start 不会重新搜索控制块
+    tcl(QStringLiteral("rtt setup 0x20000000 0x20000 {SEGGER RTT}"));
+    // 默认 100 ms 轮询一次，太慢。必须在 rtt setup 之后设置：之前设置会让 OpenOCD 0.12 崩溃
+    tcl(QStringLiteral("rtt polling_interval 1"));
     tcl(QStringLiteral("rtt start"), [this, afterBoot](bool, const QString &) {
         // 「找到控制块」写在 OpenOCD 的日志里，稍等日志到达再判断
         QTimer::singleShot(300, this, [this, afterBoot] {

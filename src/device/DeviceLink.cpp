@@ -79,6 +79,7 @@ void DeviceLink::connectWith(Transport *transport)
     m_transport = transport;
     transport->setParent(this);
     vc_decoder_init(&m_decoder);
+    m_infoPending = false;
     m_txFrames = m_txBytes = m_rxBytes = 0;
     m_info.clear();
     m_telemetry.clear();
@@ -121,6 +122,14 @@ void DeviceLink::disconnectDevice()
     m_tp.running = false;
     if (!m_transport)
         return;
+    // 断开前让板子停止遥测：否则它会一直往没人读的缓冲区里写，写满后每帧都要等超时再丢弃
+    if (m_state == Connected) {
+        QByteArray stop(2, 0);
+        QByteArray frame(VC_MAX_FRAME, Qt::Uninitialized);
+        const size_t n = vc_encode(reinterpret_cast<uint8_t *>(frame.data()), size_t(frame.size()),
+                                   VC_CMD_SUB_TEL, 0, reinterpret_cast<const uint8_t *>(stop.constData()), 2);
+        m_transport->write(frame.left(qsizetype(n)));
+    }
     Transport *t = m_transport;
     m_transport = nullptr;
     t->disconnect(this);
@@ -301,7 +310,11 @@ int DeviceLink::ping()
 
 int DeviceLink::getInfo()
 {
+    if (m_infoPending)
+        return -1;
+    m_infoPending = true;
     return request(VC_CMD_GET_INFO, {}, [this](bool ok, int, const QByteArray &payload) {
+        m_infoPending = false;
         vc_info info;
         if (!ok || vc_info_read(&info, reinterpret_cast<const uint8_t *>(payload.constData()), size_t(payload.size())) != 0)
             return;

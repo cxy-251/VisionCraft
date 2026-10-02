@@ -9,6 +9,7 @@
 #include <string.h>
 
 static vc_decoder s_decoder;
+extern const char app_build_stamp[];   /* build_stamp.c，每次编译生成 */
 
 uint32_t app_rx_frames(void) { return s_decoder.frames; }
 uint32_t app_rx_errors(void) { return s_decoder.errors; }
@@ -23,7 +24,7 @@ static size_t make_info(uint8_t *dst)
     info.fw_patch = APP_FW_PATCH;
     info.uptime_ms = HAL_GetTick();
     memcpy(info.uid, (const void *)UID_BASE, sizeof(info.uid));   /* 芯片出厂烧录的 96 位唯一 ID */
-    strncpy(info.build, __DATE__ " " __TIME__, sizeof(info.build) - 1);
+    strncpy(info.build, app_build_stamp, sizeof(info.build) - 1);
     return vc_info_write(dst, &info);
 }
 

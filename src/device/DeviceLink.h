@@ -111,6 +111,7 @@ private:
 
     vc_decoder m_decoder;
     uint8_t m_nextSeq = 1;
+    bool m_infoPending = false;   // 连上时和收到 HELLO 时都会读信息，避免重复请求
     QHash<uint8_t, Pending> m_pending;
     QTimer m_timeoutTimer;
 

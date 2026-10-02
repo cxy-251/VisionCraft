@@ -16,12 +16,14 @@ class SourceProvider : public QObject {
     QML_SINGLETON
     Q_PROPERTY(bool devMode READ devMode CONSTANT)
     Q_PROPERTY(QString monoFont READ monoFont CONSTANT)
+    Q_PROPERTY(QString sourceDir READ sourceDir CONSTANT)
 
 public:
     explicit SourceProvider(QObject *parent = nullptr);
 
     bool devMode() const { return m_devMode; }
     QString monoFont() const;
+    QString sourceDir() const { return QStringLiteral(VC_SOURCE_DIR); }   // 编译时的源码目录
 
     // path 一律相对于项目根目录，例如 "examples/qt/signals_slots/main.cpp"
     Q_INVOKABLE QString read(const QString &path) const;

@@ -1,5 +1,6 @@
 #include <QApplication>
 #include <QWidget>
+#include "DeviceLink.h"
 #include "LegacyLab.h"
 #include <QQmlApplicationEngine>
 #include <QQuickStyle>
@@ -86,7 +87,22 @@ int main(int argc, char *argv[])
     QQmlApplicationEngine engine;
     QObject::connect(&engine, &QQmlApplicationEngine::objectCreationFailed, &app,
                      [] { QCoreApplication::exit(1); }, Qt::QueuedConnection);
+    // 开发辅助：VC_PAGE=0..4 指定启动页；VC_AUTOCONNECT=sim|rtt 启动后自动连接设备
+    if (qEnvironmentVariableIsSet("VC_PAGE"))
+        engine.setInitialProperties({{QStringLiteral("startPage"), qEnvironmentVariableIntValue("VC_PAGE")}});
     engine.loadFromModule("VisionCraft", "Main");
+    if (const QString mode = qEnvironmentVariable("VC_AUTOCONNECT"); !mode.isEmpty()) {
+        if (auto *link = engine.singletonInstance<DeviceLink *>("VisionCraft", "DeviceLink")) {
+            if (mode == QLatin1String("rtt"))
+                link->connectRtt();
+            else
+                link->connectSimulator();
+            QObject::connect(link, &DeviceLink::stateChanged, link, [link] {
+                if (link->state() == DeviceLink::Connected)
+                    link->subscribeTelemetry(300);
+            });
+        }
+    }
     scheduleSnapshot(engine);
 
     return app.exec();

@@ -19,6 +19,8 @@ void app_set_telemetry_period(uint16_t ms)
     s_periodMs = ms;
 }
 
+#define OVERSAMPLE 8u   /* 每个读数取 8 次平均：单次读数的噪声有十几个 LSB，温度会跳 ±1.5 °C */
+
 static uint32_t read_channel(ADC_HandleTypeDef *hadc, uint32_t channel)
 {
     ADC_ChannelConfTypeDef c = {0};
@@ -26,12 +28,14 @@ static uint32_t read_channel(ADC_HandleTypeDef *hadc, uint32_t channel)
     c.Rank = 1;
     c.SamplingTime = ADC_SAMPLETIME_480CYCLES;   /* 内部通道要求较长的采样时间 */
     HAL_ADC_ConfigChannel(hadc, &c);
-    HAL_ADC_Start(hadc);
-    uint32_t v = 0;
-    if (HAL_ADC_PollForConversion(hadc, 10) == HAL_OK)
-        v = HAL_ADC_GetValue(hadc);
-    HAL_ADC_Stop(hadc);
-    return v;
+    uint32_t sum = 0;
+    for (uint32_t i = 0; i < OVERSAMPLE; ++i) {
+        HAL_ADC_Start(hadc);
+        if (HAL_ADC_PollForConversion(hadc, 10) == HAL_OK)
+            sum += HAL_ADC_GetValue(hadc);
+        HAL_ADC_Stop(hadc);
+    }
+    return sum / OVERSAMPLE;
 }
 
 static void sample(vc_tel_env *t)

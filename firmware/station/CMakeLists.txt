@@ -42,9 +42,17 @@ target_link_directories(${CMAKE_PROJECT_NAME} PRIVATE
     # Add user defined library search paths
 )
 
+# 编译时间戳：一个总是「过期」的目标，每次编译都重新生成 build_stamp.c
+add_custom_target(build_stamp
+    COMMAND ${CMAKE_COMMAND} -DOUT=${CMAKE_CURRENT_BINARY_DIR}/build_stamp.c -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/build_stamp.cmake
+    BYPRODUCTS ${CMAKE_CURRENT_BINARY_DIR}/build_stamp.c
+)
+add_dependencies(${CMAKE_PROJECT_NAME} build_stamp)
+
 # Add sources to executable
 target_sources(${CMAKE_PROJECT_NAME} PRIVATE
     # Add user sources here
+    ${CMAKE_CURRENT_BINARY_DIR}/build_stamp.c
     App/app.c
     App/link.c
     App/station.c

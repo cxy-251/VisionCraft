@@ -13,6 +13,9 @@ ApplicationWindow {
     title: "VisionCraft"
     color: Theme.bg
 
+    // 启动时显示哪一页（main.cpp 可以通过环境变量 VC_PAGE 指定）
+    property int startPage: 3
+
     // 旧界面是独立的 Widgets 窗口，主窗口关闭时一并退出
     onClosing: Qt.quit()
 
@@ -30,7 +33,7 @@ ApplicationWindow {
                 { key: "handbook", label: qsTr("手册") },
                 { key: "lab",      label: qsTr("实验室") }
             ]
-            currentIndex: 3
+            currentIndex: window.startPage
         }
 
         StackLayout {
@@ -47,17 +50,7 @@ ApplicationWindow {
                     qsTr("统计：计数、良率、检测准确率")
                 ]
             }
-            PlaceholderPage {
-                title: qsTr("设备")
-                summary: qsTr("通过 ST-Link 与 F407 通信（RTT），同一根线完成烧录、复位和数据收发。")
-                planned: [
-                    qsTr("连接：OpenOCD 进程管理与 RTT 通道"),
-                    qsTr("面板：蜂鸣、背光、对时、读传感器"),
-                    qsTr("示波器：DAC → ADC 回环采集"),
-                    qsTr("配方与日志：存在板子上的 EEPROM / SD 卡"),
-                    qsTr("固件：烧录、版本校验")
-                ]
-            }
+            DevicePage { }
             PlaceholderPage {
                 title: qsTr("数据")
                 summary: qsTr("板子上报的环境遥测与检测结果的历史曲线。")

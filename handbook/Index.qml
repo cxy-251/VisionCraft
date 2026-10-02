@@ -170,7 +170,7 @@ HandbookIndex {
             Entry { title: qsTr("卡尺测量"); from: "亚像素一维卡尺边缘测距" }
             Entry { title: qsTr("标准样差分"); from: "黄金标样差分缺陷排查" }
             Entry { title: qsTr("二维码与条码"); from: "工业二维码与条形码全自动定位与解码" }
-            Entry { title: qsTr("怎样评价一个检测算法") }
+            Entry { title: qsTr("怎样评价一个检测算法"); file: "handbook/opencv/industrial/Evaluation.qml" }
         }
         Chapter {
             title: qsTr("视频与运动")
@@ -224,7 +224,7 @@ HandbookIndex {
             Entry { title: qsTr("UART：轮询、中断、DMA"); from: "Linux 串口终端与调试波特率监测" }
             Entry { title: qsTr("RS232"); from: "SP3232 RS232 串口与 DB9 接口" }
             Entry { title: qsTr("RS485"); from: "SP3485 差分 RS485 通信与半双工控制" }
-            Entry { title: qsTr("RTT：经调试口通信") }
+            Entry { title: qsTr("RTT：经调试口通信"); file: "handbook/f407/serial/Rtt.qml" }
         }
         Chapter {
             title: qsTr("显示")
@@ -276,7 +276,7 @@ HandbookIndex {
         }
         Chapter {
             title: qsTr("通信")
-            Entry { title: qsTr("二进制协议：帧、校验与重同步") }
+            Entry { title: qsTr("二进制协议：帧、校验与重同步"); file: "handbook/system/communication/Protocol.qml" }
             Entry { title: qsTr("DeviceLink 与模拟器") }
             Entry { title: qsTr("图像下发到板子屏幕"); from: "F407 屏幕驱动与 OpenCV 图像交互桥接" }
         }

@@ -102,6 +102,18 @@ PartGenerator::Part PartGenerator::make(vc_defect defect, double difficulty)
         break;
     }
 
+    // ---- 无害的加工痕迹：每件都可能有几道很浅的短纹，它们不算缺陷 ----
+    // 真实工件的表面不会完美干净。没有这些痕迹，阈值调得再低也不会误报，「漏检和误报此消彼长」就体现不出来
+    std::uniform_int_distribution<int> markCount(0, 4);
+    for (int i = markCount(m_rng); i > 0; --i) {
+        const double a = uni(0, 2 * kPi), rr = uni(r + 14, R - 14);
+        const cv::Point2d mid = c + cv::Point2d(rr * std::cos(a), rr * std::sin(a));
+        const double dir = uni(0, kPi), len = uni(5, 12);
+        const cv::Point2d d(std::cos(dir) * len / 2, std::sin(dir) * len / 2);
+        const double v = 196 - uni(12, 30);   // 比金属本色暗 12~30 级，比真缺陷浅得多
+        cv::line(img, mid - d, mid + d, cv::Scalar(v, v, v), 1, cv::LINE_AA);
+    }
+
     // ---- 成像噪声：轻微模糊 + 高斯噪声 ----
     cv::GaussianBlur(img, img, cv::Size(3, 3), 0.8);
     cv::Mat noise(img.size(), CV_16SC3);

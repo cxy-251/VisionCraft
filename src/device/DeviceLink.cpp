@@ -150,6 +150,7 @@ int DeviceLink::request(uint8_t type, const QByteArray &payload, Reply reply, in
             reply(false, -1, {});
         return -1;
     }
+    // [region seq]
     // seq 只有 1 字节：跳过 0 和仍在等待应答的序号
     uint8_t seq = m_nextSeq;
     for (int i = 0; i < 255 && (seq == 0 || m_pending.contains(seq)); ++i)
@@ -170,6 +171,7 @@ int DeviceLink::request(uint8_t type, const QByteArray &payload, Reply reply, in
     p.sent.start();
     m_pending.insert(seq, std::move(p));
     m_transport->write(frame);
+    // [endregion]
     m_txFrames++;
     m_txBytes += quint64(n);
     m_statsTimer.start();
@@ -191,6 +193,7 @@ void DeviceLink::onFrame(const vc_frame &f)
 {
     const QByteArray payload(reinterpret_cast<const char *>(f.payload), f.len);
 
+    // [region match]
     if (VC_IS_RSP(f.type)) {
         auto it = m_pending.find(f.seq);
         if (it == m_pending.end() || VC_RSP(it->type) != f.type)
@@ -203,6 +206,7 @@ void DeviceLink::onFrame(const vc_frame &f)
             p.reply(status == VC_OK, status, payload.mid(1));
         return;
     }
+    // [endregion]
 
     if (f.type == VC_TEL_ENV) {
         vc_tel_env t;

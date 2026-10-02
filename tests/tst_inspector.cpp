@@ -49,6 +49,31 @@ private slots:
         for (int t = 0; t <= VC_DEFECT_OFFSET; ++t)
             QVERIFY2(m[t][t] >= perClass * required, names[t]);
     }
+
+    // 阈值扫描：同一批「接近阈值」的工件，表面阈值从低到高，看漏检和误报怎么变化（只打印，不判定）
+    void thresholdSweep()
+    {
+        const int perClass = 120;
+        std::printf("\n难度 0.8，表面阈值扫描（每类 %d 件）\n阈值  判对率  漏检率  误报率\n", perClass);
+        for (int threshold : {14, 16, 17, 18, 19, 20, 22, 25, 30, 40, 60}) {
+            PartGenerator gen(2026);
+            Inspector inspector;
+            inspector.params.surfaceThreshold = threshold;
+            // [region sweep]
+            int correct = 0, escape = 0, falseReject = 0;
+            for (int t = VC_DEFECT_NONE; t <= VC_DEFECT_OFFSET; ++t) {
+                for (int i = 0; i < perClass; ++i) {
+                    const auto r = inspector.inspect(gen.make(static_cast<vc_defect>(t), 0.8).image);
+                    correct += r.defect == t;
+                    if (t != VC_DEFECT_NONE && r.ok) escape++;
+                    if (t == VC_DEFECT_NONE && !r.ok) falseReject++;
+                }
+            }
+            // [endregion]
+            std::printf("%4d  %5.1f%%  %5.1f%%  %5.1f%%\n", threshold, 100.0 * correct / (5 * perClass),
+                        100.0 * escape / (4 * perClass), 100.0 * falseReject / perClass);
+        }
+    }
 };
 
 QTEST_GUILESS_MAIN(TstInspector)

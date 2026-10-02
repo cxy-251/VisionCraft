@@ -28,6 +28,7 @@ uint16_t vc_crc16(const uint8_t *data, size_t len, uint16_t crc)
 
 /* ---------------- 组帧 ---------------- */
 
+// [region encode]
 size_t vc_encode(uint8_t *dst, size_t cap, uint8_t type, uint8_t seq, const uint8_t *payload, uint16_t len)
 {
     const size_t total = VC_HEADER_SIZE + len + VC_TRAILER_SIZE;
@@ -46,6 +47,7 @@ size_t vc_encode(uint8_t *dst, size_t cap, uint8_t type, uint8_t seq, const uint
     vc_put_u16(&dst[VC_HEADER_SIZE + len], vc_crc16(&dst[2], 6u + len, 0xFFFFu));
     return total;
 }
+// [endregion]
 
 /* ---------------- 拆帧 ---------------- */
 
@@ -63,6 +65,7 @@ static void reset(vc_decoder *d)
     d->pos = 0;
 }
 
+// [region decoder]
 int vc_decoder_feed(vc_decoder *d, uint8_t byte, vc_frame *out)
 {
     switch (d->state) {
@@ -120,6 +123,7 @@ int vc_decoder_feed(vc_decoder *d, uint8_t byte, vc_frame *out)
     reset(d);
     return 0;
 }
+// [endregion]
 
 /* ---------------- 负载 ---------------- */
 

@@ -36,6 +36,7 @@ Inspector::Result Inspector::inspect(const cv::Mat &bgr) const
         return res;
     };
 
+    // [region segment]
     // ---- 1. 分割：工件比传送带亮得多，大津法自动选阈值 ----
     cv::Mat gray, blurred, bin;
     cv::cvtColor(bgr, gray, cv::COLOR_BGR2GRAY);
@@ -61,6 +62,7 @@ Inspector::Result Inspector::inspect(const cv::Mat &bgr) const
     if (outer < 0 || outerArea < 5000)
         return finish(VC_DEFECT_MISSING);
 
+// [endregion]
     int hole = -1;
     double holeArea = 0;
     for (int child = hierarchy[outer][2]; child >= 0; child = hierarchy[child][0]) {
@@ -92,6 +94,7 @@ Inspector::Result Inspector::inspect(const cv::Mat &bgr) const
     cv::drawMarker(res.annotated, oc, green, cv::MARKER_CROSS, 10);
     cv::drawMarker(res.annotated, hc, yellow, cv::MARKER_CROSS, 10);
 
+    // [region chip]
     // ---- 4. 缺口：外轮廓的凸缺陷（轮廓凹进去的地方）有多深 ----
     std::vector<int> hullIdx;
     cv::convexHull(contours[outer], hullIdx, false, false);
@@ -114,12 +117,14 @@ Inspector::Result Inspector::inspect(const cv::Mat &bgr) const
         cv::circle(res.annotated, chipAt, 22, red, 2, cv::LINE_AA);
         return finish(VC_DEFECT_CHIP);
     }
+// [endregion]
 
     if (offset > params.maxCenterOffset) {
         cv::line(res.annotated, oc, hc, red, 2, cv::LINE_AA);
         return finish(VC_DEFECT_OFFSET);
     }
 
+    // [region surface]
     // ---- 5. 表面：只看环面，离两条边各留几个像素，免得边缘被当成缺陷 ----
     cv::Mat ring(gray.size(), CV_8UC1, cv::Scalar(0));
     cv::circle(ring, oc, int(outerR - 7), cv::Scalar(255), cv::FILLED);
@@ -161,4 +166,5 @@ Inspector::Result Inspector::inspect(const cv::Mat &bgr) const
     for (int i = 0; i < 4; ++i)
         cv::line(res.annotated, corners[i], corners[(i + 1) % 4], red, 2, cv::LINE_AA);
     return finish(elongation > params.scratchElongation ? VC_DEFECT_SCRATCH : VC_DEFECT_SPOT);
+// [endregion]
 }

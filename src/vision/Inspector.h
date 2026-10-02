@@ -22,7 +22,7 @@ public:
     struct Params {
         double maxCenterOffset = 6.0;     // 内孔圆心与外圆圆心距离超过它算偏心
         double minChipDepth = 5.0;        // 外轮廓凸缺陷深度超过它算缺口
-        int    surfaceThreshold = 40;     // 黑帽变换后亮度差超过它算表面异常
+        int    surfaceThreshold = 18;     // 黑帽变换后亮度差超过它算表面异常（取值见手册「怎样评价一个检测算法」里的扫描）
         int    minDefectArea = 12;        // 表面异常面积小于它忽略（噪声）
         double scratchElongation = 3.0;   // 长宽比超过它算划痕，否则算污点
     };

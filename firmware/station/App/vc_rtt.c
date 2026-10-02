@@ -8,6 +8,7 @@
 #define UP_SIZE   8192u
 #define DOWN_SIZE 8192u   /* 上位机可能一次发来多个最大帧（4 × 1034 字节），放不下的部分 OpenOCD 会直接丢弃 */
 
+// [region layout]
 /* 布局必须和 SEGGER RTT 完全一致，调试器按固定偏移读取这些字段 */
 typedef struct {
     const char *name;
@@ -25,12 +26,14 @@ typedef struct {
     rtt_buffer up[1];
     rtt_buffer down[1];
 } rtt_control_block;
+// [endregion]
 
 static rtt_control_block s_cb;
 static char s_up[UP_SIZE];
 static char s_down[DOWN_SIZE];
 static volatile uint32_t s_dropped;
 
+// [region init]
 void vc_rtt_init(void)
 {
     s_cb.max_up = 1;
@@ -46,6 +49,7 @@ void vc_rtt_init(void)
     memcpy(&s_cb.id[0], "SEGGER ", 7);
     __DMB();
 }
+// [endregion]
 
 static uint32_t up_free(void)
 {
@@ -55,6 +59,7 @@ static uint32_t up_free(void)
     return rd > wr ? rd - wr - 1u : UP_SIZE - (wr - rd) - 1u;
 }
 
+// [region write]
 size_t vc_rtt_write(const void *data, size_t len, uint32_t timeout_ms)
 {
     if (len >= UP_SIZE)
@@ -79,6 +84,7 @@ size_t vc_rtt_write(const void *data, size_t len, uint32_t timeout_ms)
     s_cb.up[0].wr_off = wr;
     return len;
 }
+// [endregion]
 
 size_t vc_rtt_read(void *dst, size_t cap)
 {

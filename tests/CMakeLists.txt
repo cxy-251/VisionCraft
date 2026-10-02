@@ -37,3 +37,11 @@ qt_add_executable(tst_inspector tst_inspector.cpp
 target_include_directories(tst_inspector PRIVATE ${PROJECT_SOURCE_DIR}/src/vision ${PROJECT_SOURCE_DIR}/protocol ${OpenCV_INCLUDE_DIRS})
 target_link_libraries(tst_inspector PRIVATE Qt6::Core Qt6::Test ${OpenCV_LIBS})
 add_test(NAME tst_inspector COMMAND tst_inspector)
+
+# 手册「二进制协议」一节的演示
+qt_add_executable(tst_frame_demo tst_frame_demo.cpp
+    ${PROJECT_SOURCE_DIR}/src/demos/system/FrameDemo.cpp
+    ${PROJECT_SOURCE_DIR}/protocol/vc_protocol.c)
+target_include_directories(tst_frame_demo PRIVATE ${PROJECT_SOURCE_DIR}/src/demos/system ${PROJECT_SOURCE_DIR}/protocol)
+target_link_libraries(tst_frame_demo PRIVATE Qt6::Core Qt6::Qml Qt6::Test)
+add_test(NAME tst_frame_demo COMMAND tst_frame_demo)

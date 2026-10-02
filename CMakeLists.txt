@@ -126,6 +126,8 @@ qt_add_qml_module(VisionCraft
         qml/handbook/Block.qml
         qml/demos/qt/SignalTraceView.qml
         qml/demos/qt/DeadlockView.qml
+        qml/demos/system/FrameDemoView.qml
+        qml/demos/opencv/EvalView.qml
     SOURCES
         src/handbook/SourceProvider.h
         src/handbook/SourceProvider.cpp
@@ -137,6 +139,10 @@ qt_add_qml_module(VisionCraft
         src/demos/qt/SignalTraceDemo.cpp
         src/demos/qt/DeadlockDemo.h
         src/demos/qt/DeadlockDemo.cpp
+        src/demos/system/FrameDemo.h
+        src/demos/system/FrameDemo.cpp
+        src/demos/opencv/EvalDemo.h
+        src/demos/opencv/EvalDemo.cpp
         src/device/DeviceLink.h
         src/device/DeviceLink.cpp
         src/app/ImageView.h
@@ -171,12 +177,16 @@ file(GLOB_RECURSE VC_HANDBOOK_FILES CONFIGURE_DEPENDS
     RELATIVE ${CMAKE_CURRENT_SOURCE_DIR}
     handbook/*.qml
     examples/*.cpp examples/*.h examples/*.c examples/*.txt
-    src/*.cpp src/*.h)
+    src/*.cpp src/*.h
+    protocol/*.c protocol/*.h
+    firmware/station/App/*.c firmware/station/App/*.h
+    firmware/station/station.ioc
+    tests/*.cpp)
 qt_add_resources(VisionCraft "vc_handbook_content" PREFIX "/" FILES ${VC_HANDBOOK_FILES})
 
 target_compile_definitions(VisionCraft PRIVATE VC_SOURCE_DIR="${CMAKE_CURRENT_SOURCE_DIR}")
 # qmltyperegistrar 生成的注册代码按文件名 #include 头文件，这些目录必须在搜索路径里
-target_include_directories(VisionCraft PRIVATE src/handbook src/legacy src/demos/qt src/device src/app src/vision protocol)
+target_include_directories(VisionCraft PRIVATE src/handbook src/legacy src/demos/qt src/demos/system src/demos/opencv src/device src/app src/vision protocol)
 
 target_link_libraries(VisionCraft PRIVATE
     Qt6::Network

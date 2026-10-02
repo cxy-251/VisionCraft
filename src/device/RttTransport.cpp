@@ -165,6 +165,7 @@ void RttTransport::onTclReadyRead()
 
 // ---- RTT 启动 ----
 
+// [region boot]
 QString RttTransport::bootFromFlashCommand() const
 {
     // 板子的 BOOT0 被拉高时，复位后跑的是芯片内置的 bootloader 而不是 Flash 里的程序。
@@ -174,7 +175,9 @@ QString RttTransport::bootFromFlashCommand() const
                           "set v [read_memory 0x08000000 32 2]; "
                           "reg msp [lindex $v 0]; reg pc [lindex $v 1]; resume");
 }
+// [endregion]
 
+// [region start]
 void RttTransport::startRtt(bool afterBoot)
 {
     m_controlBlockFound = false;
@@ -207,6 +210,7 @@ void RttTransport::startRtt(bool afterBoot)
         });
     });
 }
+// [endregion]
 
 void RttTransport::flash(const QString &elfPath, std::function<void(bool, const QString &)> done)
 {

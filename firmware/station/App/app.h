@@ -24,5 +24,21 @@ void app_set_telemetry_period(uint16_t ms);
 /* 统计：LinkTask 收到的有效帧 / 丢弃的坏帧 */
 uint32_t app_rx_frames(void);
 uint32_t app_rx_errors(void);
+/* 最近一次收到有效帧的时刻（HAL_GetTick），用来判断上位机是否在线 */
+uint32_t app_last_rx_tick(void);
+
+/* 最近一次传感器读数（EnvTask 每 500 ms 更新一次，屏幕和遥测共用） */
+typedef struct {
+    int16_t  cpu_temp_c100;
+    uint16_t light_permille;
+    uint16_t vdda_mv;
+    uint8_t  valid;
+} app_sensors;
+app_sensors app_latest_sensors(void);
+
+/* 屏幕（station_ui.c，只由 StationTask 调用） */
+void ui_init(void);
+void ui_update(void);
+void ui_key(uint8_t key, uint8_t down);
 
 #endif

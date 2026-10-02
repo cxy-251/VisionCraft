@@ -133,6 +133,7 @@ Item {
                     value: DeviceLink.telemetry.cpuTemp !== undefined ? DeviceLink.telemetry.cpuTemp.toFixed(1) : "—"
                     unit: "°C"
                     history: page.tempHistory
+                    minRange: 8
                     tone: Theme.pitfall
                 }
                 StatCard {
@@ -140,6 +141,7 @@ Item {
                     value: DeviceLink.telemetry.light !== undefined ? DeviceLink.telemetry.light.toFixed(1) : "—"
                     unit: "%"
                     history: page.lightHistory
+                    minRange: 20
                     tone: Theme.workerLane
                 }
                 StatCard {
@@ -351,6 +353,7 @@ Item {
         property string unit
         property string footnote
         property var history: []
+        property real minRange: 1      // 纵轴最少显示这么大的范围，避免把噪声放大成剧烈波动
         property color tone: Theme.accent
         Layout.fillWidth: true
         implicitHeight: 128
@@ -390,12 +393,16 @@ Item {
                 const h = stat.history
                 if (h.length < 2) return
                 let lo = Math.min(...h), hi = Math.max(...h)
-                if (hi - lo < 1e-6) { lo -= 1; hi += 1 }
+                if (hi - lo < stat.minRange) {
+                    const mid = (hi + lo) / 2
+                    lo = mid - stat.minRange / 2
+                    hi = mid + stat.minRange / 2
+                }
                 ctx.strokeStyle = stat.tone
                 ctx.lineWidth = 2
                 ctx.beginPath()
                 for (let i = 0; i < h.length; i++) {
-                    const x = width * i / (page.historySize - 1)
+                    const x = width * i / (h.length - 1)
                     const y = height - (h[i] - lo) / (hi - lo) * height
                     if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y)
                 }

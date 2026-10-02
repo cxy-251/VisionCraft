@@ -1,9 +1,9 @@
 /* USER CODE BEGIN Header */
 /**
   ******************************************************************************
-  * @file    tim.h
-  * @brief   This file contains all the function prototypes for
-  *          the tim.c file
+  * File Name          : FSMC.h
+  * Description        : This file provides code for the configuration
+  *                      of the FSMC peripheral.
   ******************************************************************************
   * @attention
   *
@@ -18,11 +18,10 @@
   */
 /* USER CODE END Header */
 /* Define to prevent recursive inclusion -------------------------------------*/
-#ifndef __TIM_H__
-#define __TIM_H__
-
+#ifndef __FSMC_H
+#define __FSMC_H
 #ifdef __cplusplus
-extern "C" {
+ extern "C" {
 #endif
 
 /* Includes ------------------------------------------------------------------*/
@@ -32,18 +31,15 @@ extern "C" {
 
 /* USER CODE END Includes */
 
-extern TIM_HandleTypeDef htim12;
-
-extern TIM_HandleTypeDef htim13;
+extern SRAM_HandleTypeDef hsram1;
 
 /* USER CODE BEGIN Private defines */
 
 /* USER CODE END Private defines */
 
-void MX_TIM12_Init(void);
-void MX_TIM13_Init(void);
-
-void HAL_TIM_MspPostInit(TIM_HandleTypeDef *htim);
+void MX_FSMC_Init(void);
+void HAL_SRAM_MspInit(SRAM_HandleTypeDef* hsram);
+void HAL_SRAM_MspDeInit(SRAM_HandleTypeDef* hsram);
 
 /* USER CODE BEGIN Prototypes */
 
@@ -52,6 +48,12 @@ void HAL_TIM_MspPostInit(TIM_HandleTypeDef *htim);
 #ifdef __cplusplus
 }
 #endif
+#endif /*__FSMC_H */
 
-#endif /* __TIM_H__ */
+/**
+  * @}
+  */
 
+/**
+  * @}
+  */

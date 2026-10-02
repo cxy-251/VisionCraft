@@ -11,7 +11,10 @@
 static vc_decoder s_decoder;
 extern const char app_build_stamp[];   /* build_stamp.c，每次编译生成 */
 
+static volatile uint32_t s_lastRxTick;
+
 uint32_t app_rx_frames(void) { return s_decoder.frames; }
+uint32_t app_last_rx_tick(void) { return s_lastRxTick; }
 uint32_t app_rx_errors(void) { return s_decoder.errors; }
 
 static size_t make_info(uint8_t *dst)
@@ -88,8 +91,10 @@ void LinkTask(void *argument)
         const size_t n = vc_rtt_read(chunk, sizeof(chunk));
         vc_frame f;
         for (size_t i = 0; i < n; ++i) {
-            if (vc_decoder_feed(&s_decoder, chunk[i], &f))
+            if (vc_decoder_feed(&s_decoder, chunk[i], &f)) {
+                s_lastRxTick = HAL_GetTick();
                 handle(&f);
+            }
         }
         if (n == 0)
             osDelay(1);   /* 没数据就让出 CPU；调试器每毫秒左右轮询一次，再快也没意义 */

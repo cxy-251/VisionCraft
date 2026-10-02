@@ -42,6 +42,7 @@ static void scan_keys(void)
         k->count = 0;
         const uint8_t ev[2] = {i, now ? VC_KEY_DOWN : VC_KEY_UP};
         app_send(VC_EVT_KEY, seq++, ev, sizeof(ev));
+        ui_key(i, now);
         if (now)
             app_beep(15);   /* 按键音 */
     }
@@ -52,6 +53,8 @@ void StationTask(void *argument)
     (void)argument;
     uint32_t beepUntil = 0;
     int beeping = 0;
+    uint32_t lastUi = 0;
+    ui_init();
 
     for (;;) {
         uint16_t ms;
@@ -67,5 +70,9 @@ void StationTask(void *argument)
             beeping = 0;
         }
         scan_keys();
+        if (HAL_GetTick() - lastUi >= 250) {   /* 屏幕每 250 ms 刷新一次动态内容 */
+            lastUi = HAL_GetTick();
+            ui_update();
+        }
     }
 }

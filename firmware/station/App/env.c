@@ -56,30 +56,48 @@ static void sample(vc_tel_env *t)
     t->light_permille = (uint16_t)((4095u - (light > 4095u ? 4095u : light)) * 1000u / 4095u);
 }
 
+static app_sensors s_latest;
+
+app_sensors app_latest_sensors(void)
+{
+    /* 结构体只有几个字节，读的时候短暂关调度，避免读到一半被 EnvTask 改掉 */
+    osKernelLock();
+    const app_sensors copy = s_latest;
+    osKernelUnlock();
+    return copy;
+}
+
+#define SAMPLE_MS 500u   /* 屏幕显示用的采样周期，与遥测订阅无关 */
+
 void EnvTask(void *argument)
 {
     (void)argument;
     uint8_t seq = 0;
-    uint32_t next = osKernelGetTickCount();
+    uint32_t lastSample = 0, lastTel = 0;
 
     for (;;) {
+        const uint32_t now = osKernelGetTickCount();
         const uint16_t period = s_periodMs;
-        if (period == 0) {
-            osDelay(50);
-            next = osKernelGetTickCount();
-            continue;
-        }
-        vc_tel_env t;
-        sample(&t);
-        t.uptime_ms = HAL_GetTick();
-        t.rx_frames = app_rx_frames();
-        t.rx_errors = app_rx_errors();
-        uint8_t buf[VC_TEL_ENV_SIZE];
-        app_send(VC_TEL_ENV, seq++, buf, (uint16_t)vc_tel_env_write(buf, &t));
+        const int sampleDue = (now - lastSample) >= SAMPLE_MS || !s_latest.valid;
+        const int telDue = period && (now - lastTel) >= period;
 
-        next += period;
-        if ((int32_t)(next - osKernelGetTickCount()) <= 0)
-            next = osKernelGetTickCount();   /* 落后太多就别追了 */
-        osDelayUntil(next);
+        if (sampleDue || telDue) {
+            vc_tel_env t;
+            sample(&t);
+            osKernelLock();
+            s_latest = (app_sensors){t.cpu_temp_c100, t.light_permille, t.vref_mv, 1};
+            osKernelUnlock();
+            lastSample = now;
+
+            if (telDue) {
+                t.uptime_ms = HAL_GetTick();
+                t.rx_frames = app_rx_frames();
+                t.rx_errors = app_rx_errors();
+                uint8_t buf[VC_TEL_ENV_SIZE];
+                app_send(VC_TEL_ENV, seq++, buf, (uint16_t)vc_tel_env_write(buf, &t));
+                lastTel = now;
+            }
+        }
+        osDelay(10);
     }
 }

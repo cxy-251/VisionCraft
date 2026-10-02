@@ -21,9 +21,9 @@ DeviceLink::DeviceLink(QObject *parent)
 
 DeviceLink::~DeviceLink()
 {
+    // 走正常断开流程：会先让板子停止遥测，否则程序退出后板子还在往没人读的缓冲区里写
     if (m_transport) {
-        m_transport->disconnect(this);
-        delete m_transport;
+        disconnectDevice();
     }
 }
 

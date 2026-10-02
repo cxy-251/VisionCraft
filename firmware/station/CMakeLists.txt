@@ -58,6 +58,9 @@ target_sources(${CMAKE_PROJECT_NAME} PRIVATE
     App/station.c
     App/env.c
     App/vc_rtt.c
+    App/lcd.c
+    App/lcd_font.c
+    App/station_ui.c
     # 与上位机共用的协议代码
     ${CMAKE_CURRENT_SOURCE_DIR}/../../protocol/vc_protocol.c
 )

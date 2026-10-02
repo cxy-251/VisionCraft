@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.21)
-project(VisionCraft LANGUAGES CXX)
+project(VisionCraft LANGUAGES C CXX)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -12,7 +12,7 @@ set(CMAKE_AUTOUIC ON)
 if(WIN32 AND EXISTS "C:/02Programmer/Qt/6.7.3/msvc2019_64")
     list(APPEND CMAKE_PREFIX_PATH "C:/02Programmer/Qt/6.7.3/msvc2019_64")
 endif()
-find_package(Qt6 6.7 REQUIRED COMPONENTS Core Gui Widgets Concurrent SerialPort Qml Quick QuickControls2)
+find_package(Qt6 6.7 REQUIRED COMPONENTS Core Gui Widgets Concurrent SerialPort Network Qml Quick QuickControls2)
 qt_standard_project_setup(REQUIRES 6.7)
 
 # 2. OpenCV 4
@@ -91,6 +91,10 @@ endif()
 # ============================================================
 # 新版界面（QML 外壳 + 手册）。旧 Widgets 代码通过「实验室」入口打开，迁移完成后删除。
 # ============================================================
+# Qt 6.8 起：给 qml/ 下每个子目录也生成 qmldir（6.7 没有这条策略）
+if(QT_KNOWN_POLICY_QTP0004)
+    qt_policy(SET QTP0004 NEW)
+endif()
 # 单例标记必须在 qt_add_qml_module 之前设置
 set_source_files_properties(qml/Theme.qml PROPERTIES QT_QML_SINGLETON_TYPE TRUE)
 qt_add_qml_module(VisionCraft
@@ -131,6 +135,21 @@ qt_add_qml_module(VisionCraft
         src/demos/qt/SignalTraceDemo.cpp
         src/demos/qt/DeadlockDemo.h
         src/demos/qt/DeadlockDemo.cpp
+        src/device/DeviceLink.h
+        src/device/DeviceLink.cpp
+)
+
+# 设备通信：协议（与固件共用的 C 代码）+ 通道
+target_sources(VisionCraft PRIVATE
+    protocol/vc_protocol.h
+    protocol/vc_protocol.c
+    src/device/Transport.h
+    src/device/SimTransport.h
+    src/device/SimTransport.cpp
+    src/device/SerialTransport.h
+    src/device/SerialTransport.cpp
+    src/device/RttTransport.h
+    src/device/RttTransport.cpp
 )
 
 # 手册正文、示例代码与被引用的源码：打包进资源，CodeRef 运行时按文件路径读取
@@ -143,9 +162,10 @@ qt_add_resources(VisionCraft "vc_handbook_content" PREFIX "/" FILES ${VC_HANDBOO
 
 target_compile_definitions(VisionCraft PRIVATE VC_SOURCE_DIR="${CMAKE_CURRENT_SOURCE_DIR}")
 # qmltyperegistrar 生成的注册代码按文件名 #include 头文件，这些目录必须在搜索路径里
-target_include_directories(VisionCraft PRIVATE src/handbook src/legacy src/demos/qt)
+target_include_directories(VisionCraft PRIVATE src/handbook src/legacy src/demos/qt src/device protocol)
 
 target_link_libraries(VisionCraft PRIVATE
+    Qt6::Network
     Qt6::Qml
     Qt6::Quick
     Qt6::QuickControls2

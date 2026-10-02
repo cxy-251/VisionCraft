@@ -9,3 +9,22 @@ qt_add_executable(tst_qt_demos
 target_include_directories(tst_qt_demos PRIVATE ${PROJECT_SOURCE_DIR}/src/demos/qt)
 target_link_libraries(tst_qt_demos PRIVATE Qt6::Core Qt6::Qml Qt6::Test)
 add_test(NAME tst_qt_demos COMMAND tst_qt_demos)
+
+# 协议编解码（与固件共用的 C 代码）
+qt_add_executable(tst_protocol tst_protocol.cpp ${PROJECT_SOURCE_DIR}/protocol/vc_protocol.c)
+target_include_directories(tst_protocol PRIVATE ${PROJECT_SOURCE_DIR}/protocol)
+target_link_libraries(tst_protocol PRIVATE Qt6::Core Qt6::Test)
+add_test(NAME tst_protocol COMMAND tst_protocol)
+
+# DeviceLink + 模拟器：整条上位机链路（组帧、配对、超时、事件、遥测、吞吐）
+qt_add_executable(tst_devicelink tst_devicelink.cpp
+    ${PROJECT_SOURCE_DIR}/protocol/vc_protocol.c
+    ${PROJECT_SOURCE_DIR}/src/device/DeviceLink.cpp
+    ${PROJECT_SOURCE_DIR}/src/device/SimTransport.cpp
+    ${PROJECT_SOURCE_DIR}/src/device/SerialTransport.cpp
+    ${PROJECT_SOURCE_DIR}/src/device/RttTransport.cpp
+    ${PROJECT_SOURCE_DIR}/src/device/Transport.h
+)
+target_include_directories(tst_devicelink PRIVATE ${PROJECT_SOURCE_DIR}/protocol ${PROJECT_SOURCE_DIR}/src/device)
+target_link_libraries(tst_devicelink PRIVATE Qt6::Core Qt6::Network Qt6::SerialPort Qt6::Qml Qt6::Test)
+add_test(NAME tst_devicelink COMMAND tst_devicelink)

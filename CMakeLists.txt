@@ -131,6 +131,7 @@ qt_add_qml_module(VisionCraft
         qml/demos/system/FrameDemoView.qml
         qml/demos/opencv/EvalView.qml
         qml/demos/opencv/MatView.qml
+        qml/demos/opencv/ThresholdView.qml
     SOURCES
         src/handbook/SourceProvider.h
         src/handbook/SourceProvider.cpp
@@ -148,6 +149,8 @@ qt_add_qml_module(VisionCraft
         src/demos/opencv/EvalDemo.cpp
         src/demos/opencv/MatDemo.h
         src/demos/opencv/MatDemo.cpp
+        src/demos/opencv/ThresholdDemo.h
+        src/demos/opencv/ThresholdDemo.cpp
         src/device/DeviceLink.h
         src/device/DeviceLink.cpp
         src/app/ImageView.h

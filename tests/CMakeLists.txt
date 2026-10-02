@@ -51,3 +51,12 @@ qt_add_executable(tst_mat_demo tst_mat_demo.cpp ${PROJECT_SOURCE_DIR}/src/demos/
 target_include_directories(tst_mat_demo PRIVATE ${PROJECT_SOURCE_DIR}/src/demos/opencv ${OpenCV_INCLUDE_DIRS})
 target_link_libraries(tst_mat_demo PRIVATE Qt6::Core Qt6::Gui Qt6::Qml Qt6::Test ${OpenCV_LIBS})
 add_test(NAME tst_mat_demo COMMAND tst_mat_demo)
+
+# 手册「全局阈值与 OTSU」的演示
+qt_add_executable(tst_threshold_demo tst_threshold_demo.cpp
+    ${PROJECT_SOURCE_DIR}/src/demos/opencv/ThresholdDemo.cpp
+    ${PROJECT_SOURCE_DIR}/src/vision/PartGenerator.cpp)
+target_include_directories(tst_threshold_demo PRIVATE ${PROJECT_SOURCE_DIR}/src/demos/opencv ${PROJECT_SOURCE_DIR}/src/vision
+                           ${PROJECT_SOURCE_DIR}/protocol ${OpenCV_INCLUDE_DIRS})
+target_link_libraries(tst_threshold_demo PRIVATE Qt6::Core Qt6::Gui Qt6::Qml Qt6::Test ${OpenCV_LIBS})
+add_test(NAME tst_threshold_demo COMMAND tst_threshold_demo)

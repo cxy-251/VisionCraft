@@ -116,7 +116,7 @@ HandbookIndex {
         Chapter {
             title: qsTr("色彩与阈值")
             Entry { title: qsTr("HSV 颜色提取"); from: "HSV 颜色区间提取；HSV 色彩空间颜色阈值提取" }
-            Entry { title: qsTr("全局阈值与 OTSU"); from: "阈值化与 OTSU 大津法" }
+            Entry { title: qsTr("全局阈值与 OTSU"); file: "handbook/opencv/threshold/Otsu.qml"; from: "阈值化与 OTSU 大津法" }
             Entry { title: qsTr("自适应阈值"); from: "自适应局部阈值" }
         }
         Chapter {

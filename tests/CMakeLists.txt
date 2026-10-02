@@ -60,3 +60,13 @@ target_include_directories(tst_threshold_demo PRIVATE ${PROJECT_SOURCE_DIR}/src/
                            ${PROJECT_SOURCE_DIR}/protocol ${OpenCV_INCLUDE_DIRS})
 target_link_libraries(tst_threshold_demo PRIVATE Qt6::Core Qt6::Gui Qt6::Qml Qt6::Test ${OpenCV_LIBS})
 add_test(NAME tst_threshold_demo COMMAND tst_threshold_demo)
+
+# 手册「QtConcurrent 与 QFuture」的演示
+qt_add_executable(tst_concurrency_demo tst_concurrency_demo.cpp
+    ${PROJECT_SOURCE_DIR}/src/demos/qt/ConcurrencyDemo.cpp
+    ${PROJECT_SOURCE_DIR}/src/vision/PartGenerator.cpp
+    ${PROJECT_SOURCE_DIR}/src/vision/Inspector.cpp)
+target_include_directories(tst_concurrency_demo PRIVATE ${PROJECT_SOURCE_DIR}/src/demos/qt ${PROJECT_SOURCE_DIR}/src/vision
+                           ${PROJECT_SOURCE_DIR}/protocol ${OpenCV_INCLUDE_DIRS})
+target_link_libraries(tst_concurrency_demo PRIVATE Qt6::Core Qt6::Concurrent Qt6::Qml Qt6::Test ${OpenCV_LIBS})
+add_test(NAME tst_concurrency_demo COMMAND tst_concurrency_demo)

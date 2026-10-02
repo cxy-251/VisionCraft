@@ -81,6 +81,7 @@ void DeviceLink::connectWith(Transport *transport)
     transport->setParent(this);
     vc_decoder_init(&m_decoder);
     m_infoPending = false;
+    m_uptimeOffsetValid = false;
     m_txFrames = m_txBytes = m_rxBytes = 0;
     m_info.clear();
     m_telemetry.clear();
@@ -97,6 +98,7 @@ void DeviceLink::connectWith(Transport *transport)
         emit logLine(QStringLiteral("link"), m_statusText);
         m_timeoutTimer.start();
         getInfo();
+        subscribeTelemetry(1000);   // 默认每秒一条遥测：「数据」页的历史曲线靠它
     });
     connect(transport, &Transport::failed, this, [this](const QString &why) {
         failAllPending(tr("连接失败"));
@@ -210,6 +212,9 @@ void DeviceLink::onFrame(const vc_frame &f)
     // [endregion]
 
     if (f.type == VC_TEL_ENV) {
+        // 还没拿到时间换算（GET_INFO 应答之前）时收到的遥测，是连接之前就积压在板子缓冲区里的旧数据，丢掉
+        if (!m_uptimeOffsetValid)
+            return;
         vc_tel_env t;
         if (vc_tel_env_read(&t, f.payload, f.len) == 0) {
             m_telemetry = {
@@ -219,7 +224,7 @@ void DeviceLink::onFrame(const vc_frame &f)
                 {QStringLiteral("uptimeMs"), t.uptime_ms},
                 {QStringLiteral("deviceRxFrames"), t.rx_frames},
                 {QStringLiteral("deviceRxErrors"), t.rx_errors},
-                {QStringLiteral("hostTime"), QDateTime::currentMSecsSinceEpoch()},
+                {QStringLiteral("hostTime"), m_uptimeOffsetMs + qint64(t.uptime_ms)},
             };
             emit telemetryChanged();
         }
@@ -324,6 +329,9 @@ int DeviceLink::getInfo()
         vc_info info;
         if (!ok || vc_info_read(&info, reinterpret_cast<const uint8_t *>(payload.constData()), size_t(payload.size())) != 0)
             return;
+        // 应答在路上花了约半个往返时间，板子报 uptime 的时刻大约是「现在 - 半个往返」
+        m_uptimeOffsetMs = QDateTime::currentMSecsSinceEpoch() - qint64(m_lastRttMs / 2) - qint64(info.uptime_ms);
+        m_uptimeOffsetValid = true;
         QString uid;
         for (uint8_t b : info.uid)
             uid += QStringLiteral("%1").arg(b, 2, 16, QLatin1Char('0'));

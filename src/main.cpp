@@ -103,10 +103,7 @@ int main(int argc, char *argv[])
                 link->connectRtt();
             else
                 link->connectSimulator();
-            QObject::connect(link, &DeviceLink::stateChanged, link, [link] {
-                if (link->state() == DeviceLink::Connected)
-                    link->subscribeTelemetry(300);
-            });
+
         }
     }
     scheduleSnapshot(engine);

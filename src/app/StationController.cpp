@@ -2,6 +2,7 @@
 
 #include "DeviceLink.h"
 
+#include <QDateTime>
 #include <QtConcurrent/QtConcurrentRun>
 #include <opencv2/imgproc.hpp>
 
@@ -101,6 +102,11 @@ void StationController::onInspected()
         {QStringLiteral("ms"), r.ms},
         {QStringLiteral("measures"), r.measures},
     };
+    m_timeline.append(QVariantMap{{QStringLiteral("t"), QDateTime::currentMSecsSinceEpoch()},
+                                  {QStringLiteral("ok"), r.ok},
+                                  {QStringLiteral("correct"), correct}});
+    if (m_timeline.size() > 2000)
+        m_timeline.removeFirst();
     m_history.prepend(m_lastResult);
     while (m_history.size() > 14)
         m_history.removeLast();
@@ -140,5 +146,6 @@ void StationController::resetStats()
     m_total = m_ng = m_correct = 0;
     std::fill(&m_confusion[0][0], &m_confusion[0][0] + VC_DEFECT_COUNT * VC_DEFECT_COUNT, 0);
     m_history.clear();
+    m_timeline.clear();
     emit statsChanged();
 }

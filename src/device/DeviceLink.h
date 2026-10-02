@@ -113,6 +113,10 @@ private:
     vc_decoder m_decoder;
     uint8_t m_nextSeq = 1;
     bool m_infoPending = false;   // 连上时和收到 HELLO 时都会读信息，避免重复请求
+    // 板子运行时间与电脑时间的换算：电脑时间 = 板子 uptime + m_uptimeOffsetMs（由 GET_INFO 应答确定）。
+    // 遥测按板子的采样时刻打时间戳，连上时一下子收到的积压数据也能落在正确的时间点上
+    qint64 m_uptimeOffsetMs = 0;
+    bool m_uptimeOffsetValid = false;
     QHash<uint8_t, Pending> m_pending;
     QTimer m_timeoutTimer;
 

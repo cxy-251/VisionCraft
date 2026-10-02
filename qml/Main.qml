@@ -46,14 +46,7 @@ ApplicationWindow {
 
             StationPage { }
             DevicePage { }
-            PlaceholderPage {
-                title: qsTr("数据")
-                summary: qsTr("板子上报的环境遥测与检测结果的历史曲线。")
-                planned: [
-                    qsTr("温度、光照实时曲线"),
-                    qsTr("检测结果时间线")
-                ]
-            }
+            DataPage { }
             HandbookPage { }
             LabPage { }
         }

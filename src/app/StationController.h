@@ -28,6 +28,7 @@ class StationController : public QObject {
     Q_PROPERTY(QVariantMap lastResult READ lastResult NOTIFY resultChanged)
     Q_PROPERTY(QVariantMap stats READ stats NOTIFY statsChanged)
     Q_PROPERTY(QVariantList history READ history NOTIFY statsChanged)
+    Q_PROPERTY(QVariantList timeline READ timeline NOTIFY statsChanged)   // 全部结果 [{t, ok, correct}]，最多 2000 条
     Q_PROPERTY(bool running READ running WRITE setRunning NOTIFY runningChanged)
     Q_PROPERTY(bool busy READ busy NOTIFY busyChanged)
     Q_PROPERTY(int intervalMs MEMBER m_intervalMs NOTIFY settingsChanged)
@@ -43,6 +44,7 @@ public:
     QVariantMap lastResult() const { return m_lastResult; }
     QVariantMap stats() const;
     QVariantList history() const { return m_history; }
+    QVariantList timeline() const { return m_timeline; }
     bool running() const { return m_running; }
     void setRunning(bool on);
     bool busy() const { return m_busy; }
@@ -75,6 +77,7 @@ private:
     QImage m_resultImage;
     QVariantMap m_lastResult;
     QVariantList m_history;
+    QVariantList m_timeline;
     QFutureWatcher<Inspector::Result> m_watcher;
     QTimer m_lineTimer;
     QPointer<DeviceLink> m_link;

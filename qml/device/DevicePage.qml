@@ -207,14 +207,16 @@ Item {
                     ActionButton { text: qsTr("读一次信息"); enabled: page.connected; onClicked: DeviceLink.getInfo() }
                     ActionButton { text: qsTr("对时"); enabled: page.connected; onClicked: DeviceLink.setTimeNow() }
                     ActionButton {
+                        // 连上时 DeviceLink 已自动订阅每秒一条；点一下在 1 s → 200 ms → 停止 之间切换
                         id: telButton
-                        property bool on: false
-                        text: on ? qsTr("停止遥测") : qsTr("订阅遥测（每 500 ms）")
+                        property var periods: [1000, 200, 0]
+                        property int idx: 0
+                        text: [qsTr("遥测：每秒"), qsTr("遥测：每 200 ms"), qsTr("遥测：已停止")][idx]
                         enabled: page.connected
-                        onClicked: { on = !on; DeviceLink.subscribeTelemetry(on ? 500 : 0) }
+                        onClicked: { idx = (idx + 1) % 3; DeviceLink.subscribeTelemetry(periods[idx]) }
                         Connections {
                             target: DeviceLink
-                            function onStateChanged() { if (DeviceLink.state !== DeviceLink.Connected) telButton.on = false }
+                            function onStateChanged() { if (DeviceLink.state === DeviceLink.Connected) telButton.idx = 0 }
                         }
                     }
                     ActionButton {

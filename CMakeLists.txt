@@ -105,10 +105,11 @@ qt_add_qml_module(VisionCraft
         qml/Main.qml
         qml/Theme.qml
         qml/shell/NavRail.qml
-        qml/shell/PlaceholderPage.qml
         qml/shell/LabPage.qml
         qml/device/DevicePage.qml
         qml/station/StationPage.qml
+        qml/data/DataPage.qml
+        qml/data/TimeChart.qml
         qml/handbook/HandbookPage.qml
         qml/handbook/HandbookIndex.qml
         qml/handbook/Volume.qml

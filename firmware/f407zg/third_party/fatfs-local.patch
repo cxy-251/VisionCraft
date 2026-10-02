@@ -1,0 +1,414 @@
+diff --git a/source/diskio.c b/source/diskio.c
+index 130148f..c58e57e 100644
+--- a/source/diskio.c
++++ b/source/diskio.c
+@@ -1,233 +1,121 @@
+-/*-----------------------------------------------------------------------*/
+-/* Low level disk I/O module SKELETON for FatFs     (C)ChaN, 2025        */
+-/*-----------------------------------------------------------------------*/
+-/* If a working storage control module is available, it should be        */
+-/* attached to the FatFs via a glue function rather than modifying it.   */
+-/* This is an example of glue functions to attach various exsisting      */
+-/* storage control modules to the FatFs module with a defined API.       */
+-/*-----------------------------------------------------------------------*/
+-
+-#include "ff.h"			/* Basic definitions of FatFs */
+-#include "diskio.h"		/* Declarations FatFs MAI */
+-
+-/* Example: Declarations of the platform and disk functions in the project */
+-#include "platform.h"
+-#include "storage.h"
+-
+-/* Example: Mapping of physical drive number for each drive */
+-#define DEV_FLASH	0	/* Map FTL to physical drive 0 */
+-#define DEV_MMC		1	/* Map MMC/SD card to physical drive 1 */
+-#define DEV_USB		2	/* Map USB MSD to physical drive 2 */
+-
+-
+-/*-----------------------------------------------------------------------*/
+-/* Get Drive Status                                                      */
+-/*-----------------------------------------------------------------------*/
+-
+-DSTATUS disk_status (
+-	BYTE pdrv		/* Physical drive nmuber to identify the drive */
+-)
+-{
+-	DSTATUS stat;
+-	int result;
+-
+-	switch (pdrv) {
+-	case DEV_RAM :
+-		result = RAM_disk_status();
+-
+-		// translate the reslut code here
+-
+-		return stat;
+-
+-	case DEV_MMC :
+-		result = MMC_disk_status();
+-
+-		// translate the reslut code here
+-
+-		return stat;
+-
+-	case DEV_USB :
+-		result = USB_disk_status();
+-
+-		// translate the reslut code here
+-
+-		return stat;
+-	}
+-	return STA_NOINIT;
+-}
+-
+-
+-
+-/*-----------------------------------------------------------------------*/
+-/* Inidialize a Drive                                                    */
+-/*-----------------------------------------------------------------------*/
+-
+-DSTATUS disk_initialize (
+-	BYTE pdrv				/* Physical drive nmuber to identify the drive */
+-)
+-{
+-	DSTATUS stat;
+-	int result;
+-
+-	switch (pdrv) {
+-	case DEV_RAM :
+-		result = RAM_disk_initialize();
+-
+-		// translate the reslut code here
+-
+-		return stat;
+-
+-	case DEV_MMC :
+-		result = MMC_disk_initialize();
+-
+-		// translate the reslut code here
+-
+-		return stat;
+-
+-	case DEV_USB :
+-		result = USB_disk_initialize();
+-
+-		// translate the reslut code here
+-
+-		return stat;
+-	}
+-	return STA_NOINIT;
+-}
+-
+-
+-
+-/*-----------------------------------------------------------------------*/
+-/* Read Sector(s)                                                        */
+-/*-----------------------------------------------------------------------*/
+-
+-DRESULT disk_read (
+-	BYTE pdrv,		/* Physical drive nmuber to identify the drive */
+-	BYTE *buff,		/* Data buffer to store read data */
+-	LBA_t sector,	/* Start sector in LBA */
+-	UINT count		/* Number of sectors to read */
+-)
+-{
+-	DRESULT res;
+-	int result;
+-
+-	switch (pdrv) {
+-	case DEV_RAM :
+-		// translate the arguments here
+-
+-		result = RAM_disk_read(buff, sector, count);
+-
+-		// translate the reslut code here
+-
+-		return res;
+-
+-	case DEV_MMC :
+-		// translate the arguments here
+-
+-		result = MMC_disk_read(buff, sector, count);
+-
+-		// translate the reslut code here
+-
+-		return res;
+-
+-	case DEV_USB :
+-		// translate the arguments here
+-
+-		result = USB_disk_read(buff, sector, count);
+-
+-		// translate the reslut code here
+-
+-		return res;
+-	}
+-
+-	return RES_PARERR;
+-}
+-
+-
+-
+-/*-----------------------------------------------------------------------*/
+-/* Write Sector(s)                                                       */
+-/*-----------------------------------------------------------------------*/
+-
+-#if FF_FS_READONLY == 0
+-
+-DRESULT disk_write (
+-	BYTE pdrv,			/* Physical drive nmuber to identify the drive */
+-	const BYTE *buff,	/* Data to be written */
+-	LBA_t sector,		/* Start sector in LBA */
+-	UINT count			/* Number of sectors to write */
+-)
+-{
+-	DRESULT res;
+-	int result;
+-
+-	switch (pdrv) {
+-	case DEV_RAM :
+-		// translate the arguments here
+-
+-		result = RAM_disk_write(buff, sector, count);
+-
+-		// translate the reslut code here
+-
+-		return res;
+-
+-	case DEV_MMC :
+-		// translate the arguments here
+-
+-		result = MMC_disk_write(buff, sector, count);
+-
+-		// translate the reslut code here
+-
+-		return res;
+-
+-	case DEV_USB :
+-		// translate the arguments here
+-
+-		result = USB_disk_write(buff, sector, count);
+-
+-		// translate the reslut code here
+-
+-		return res;
+-	}
+-
+-	return RES_PARERR;
+-}
+-
+-#endif
+-
+-
+-/*-----------------------------------------------------------------------*/
+-/* Miscellaneous Functions                                               */
+-/*-----------------------------------------------------------------------*/
+-
+-DRESULT disk_ioctl (
+-	BYTE pdrv,		/* Physical drive nmuber (0..) */
+-	BYTE cmd,		/* Control code */
+-	void *buff		/* Buffer to send/receive control data */
+-)
+-{
+-	DRESULT res;
+-	int result;
+-
+-	switch (pdrv) {
+-	case DEV_RAM :
+-
+-		// Process of the command for the RAM drive
+-
+-		return res;
+-
+-	case DEV_MMC :
+-
+-		// Process of the command for the MMC/SD card
+-
+-		return res;
+-
+-	case DEV_USB :
+-
+-		// Process of the command the USB drive
+-
+-		return res;
+-	}
+-
+-	return RES_PARERR;
+-}
+-
++#include "ff.h"
++#include "diskio.h"
++#include "bsp_sdio_sd.h"
++#include "bsp_spi_flash.h"
++
++#define DEV_SD      0   // 逻辑盘 0: MicroSD (SDIO)
++#define DEV_FLASH   1   // 逻辑盘 1: 板载 W25Q128 Flash (12MB 分区)
++
++#define FLASH_FAT_BASE_ADDR   0x00400000UL // 4MB 偏移处开始，预留前 4MB 给裸机字库/测试
++#define FLASH_FAT_SECTOR_SIZE 4096         // 匹配 W25Q128 最小 4KB 擦除扇区
++#define FLASH_FAT_SECTOR_NUM  3072         // 12MB / 4KB = 3072 扇区
++
++DSTATUS disk_status(BYTE pdrv) {
++    switch (pdrv) {
++    case DEV_SD:
++        return Bsp_Sd_GetInfo()->is_initialized ? 0 : STA_NOINIT;
++
++    case DEV_FLASH:
++        return Bsp_SpiFlash_GetInfo()->is_detected ? 0 : STA_NOINIT;
++
++    default:
++        return STA_NOINIT;
++    }
++}
++
++DSTATUS disk_initialize(BYTE pdrv) {
++    switch (pdrv) {
++    case DEV_SD:
++        return (Bsp_Sd_Init() == SD_OK) ? 0 : STA_NOINIT;
++
++    case DEV_FLASH:
++        return Bsp_SpiFlash_GetInfo()->is_detected ? 0 : STA_NOINIT;
++
++    default:
++        return STA_NOINIT;
++    }
++}
++
++DRESULT disk_read(BYTE pdrv, BYTE *buff, LBA_t sector, UINT count) {
++    switch (pdrv) {
++    case DEV_SD:
++        if (Bsp_Sd_ReadBlocks(buff, (uint32_t)sector, count, 2000) != SD_OK) {
++            return RES_ERROR;
++        }
++        return RES_OK;
++
++    case DEV_FLASH: {
++        uint32_t addr = FLASH_FAT_BASE_ADDR + ((uint32_t)sector * FLASH_FAT_SECTOR_SIZE);
++        uint32_t total_bytes = count * FLASH_FAT_SECTOR_SIZE;
++        Bsp_SpiFlash_Read(addr, buff, total_bytes);
++        return RES_OK;
++    }
++
++    default:
++        return RES_PARERR;
++    }
++}
++
++DRESULT disk_write(BYTE pdrv, const BYTE *buff, LBA_t sector, UINT count) {
++    switch (pdrv) {
++    case DEV_SD:
++        if (Bsp_Sd_WriteBlocks(buff, (uint32_t)sector, count, 2000) != SD_OK) {
++            return RES_ERROR;
++        }
++        return RES_OK;
++
++    case DEV_FLASH: {
++        uint32_t addr = FLASH_FAT_BASE_ADDR + ((uint32_t)sector * FLASH_FAT_SECTOR_SIZE);
++        for (UINT i = 0; i < count; i++) {
++            uint32_t sec_addr = addr + (i * FLASH_FAT_SECTOR_SIZE);
++            Bsp_SpiFlash_EraseSector(sec_addr);
++            Bsp_SpiFlash_Write(sec_addr, buff + (i * FLASH_FAT_SECTOR_SIZE), FLASH_FAT_SECTOR_SIZE);
++        }
++        return RES_OK;
++    }
++
++    default:
++        return RES_PARERR;
++    }
++}
++
++DRESULT disk_ioctl(BYTE pdrv, BYTE cmd, void *buff) {
++    switch (pdrv) {
++    case DEV_SD:
++        switch (cmd) {
++        case CTRL_SYNC:
++            return RES_OK;
++        case GET_SECTOR_COUNT:
++            *(LBA_t *)buff = (LBA_t)Bsp_Sd_GetInfo()->block_count;
++            return RES_OK;
++        case GET_SECTOR_SIZE:
++            *(WORD *)buff = (WORD)Bsp_Sd_GetInfo()->block_size;
++            return RES_OK;
++        case GET_BLOCK_SIZE:
++            *(DWORD *)buff = 1;
++            return RES_OK;
++        default:
++            return RES_PARERR;
++        }
++
++    case DEV_FLASH:
++        switch (cmd) {
++        case CTRL_SYNC:
++            return RES_OK;
++        case GET_SECTOR_COUNT:
++            *(LBA_t *)buff = FLASH_FAT_SECTOR_NUM;
++            return RES_OK;
++        case GET_SECTOR_SIZE:
++            *(WORD *)buff = FLASH_FAT_SECTOR_SIZE;
++            return RES_OK;
++        case GET_BLOCK_SIZE:
++            *(DWORD *)buff = 1;
++            return RES_OK;
++        default:
++            return RES_PARERR;
++        }
++
++    default:
++        return RES_PARERR;
++    }
++}
+diff --git a/source/ffconf.h b/source/ffconf.h
+index 1009a2d..96ec300 100644
+--- a/source/ffconf.h
++++ b/source/ffconf.h
+@@ -30,7 +30,7 @@
+ /  f_findnext(). (0:Disable, 1:Enable 2:Enable with matching altname[] too) */
+ 
+ 
+-#define FF_USE_MKFS		0
++#define FF_USE_MKFS		1
+ /* This option switches f_mkfs(). (0:Disable or 1:Enable) */
+ 
+ 
+@@ -84,7 +84,7 @@
+ / Locale and Namespace Configurations
+ /---------------------------------------------------------------------------*/
+ 
+-#define FF_CODE_PAGE	932
++#define FF_CODE_PAGE	437
+ /* This option specifies the OEM code page to be used on the target system.
+ /  Incorrect code page setting can cause a file open failure.
+ /
+@@ -178,7 +178,7 @@
+ / Drive/Volume Configurations
+ /---------------------------------------------------------------------------*/
+ 
+-#define FF_VOLUMES		1
++#define FF_VOLUMES		2
+ /* Number of volumes (logical drives) to be used. (1-10) */
+ 
+ 
+@@ -206,7 +206,7 @@
+ 
+ 
+ #define FF_MIN_SS		512
+-#define FF_MAX_SS		512
++#define FF_MAX_SS		4096
+ /* This set of options configures the range of sector size to be supported. (512,
+ /  1024, 2048 or 4096) Always set both 512 for most systems, generic memory card and
+ /  harddisk, but a larger value may be required for on-board flash memory and some
+@@ -249,10 +249,10 @@
+ /  Note that enabling exFAT discards ANSI C (C89) compatibility. */
+ 
+ 
+-#define FF_FS_NORTC		0
+-#define FF_NORTC_MON	1
+-#define FF_NORTC_MDAY	1
+-#define FF_NORTC_YEAR	2025
++#define FF_FS_NORTC		1
++#define FF_NORTC_MON	10
++#define FF_NORTC_MDAY	2
++#define FF_NORTC_YEAR	2026
+ /* The option FF_FS_NORTC switches timestamp feature. If the system does not have
+ /  an RTC or valid timestamp is not needed, set FF_FS_NORTC = 1 to disable the
+ /  timestamp feature. Every object modified by FatFs will have a fixed timestamp

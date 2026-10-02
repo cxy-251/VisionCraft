@@ -98,6 +98,29 @@ cmake --build build --config Release --parallel
 ./build/VisionCraft
 ```
 
+### Linux (SteamOS / 用户空间免 Root 构建)
+
+适用于 Steam Deck（SteamOS）等只读根系统，依赖工具链与库均部署在 `/home/deck/Applications/devkit`：
+
+```bash
+# 1. 注入 devkit 环境变量
+export DEVKIT_DIR="/home/deck/Applications/devkit"
+export PATH="$DEVKIT_DIR/usr/bin:$PATH"
+
+# 2. 通过 CMake 配置（指向 devkit 的 sysroot 与前缀路径）
+cmake -B build -G Ninja \
+  -DCMAKE_BUILD_TYPE=Release \
+  -DCMAKE_SYSROOT="$DEVKIT_DIR" \
+  -DCMAKE_PREFIX_PATH="$DEVKIT_DIR/usr" \
+  -DOpenCV_DIR="$DEVKIT_DIR/usr/lib/cmake/opencv4"
+
+# 3. 编译
+cmake --build build --config Release --parallel
+
+# 4. 运行
+./build/VisionCraft
+```
+
 ---
 
 ## 🤖 持续集成 (CI/CD)

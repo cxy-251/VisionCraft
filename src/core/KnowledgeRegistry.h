@@ -28,6 +28,8 @@ private:
     void registerOpenCVIndustrialTopics();
     void registerQtCoreTopics();
     void registerQtArchitectureTopics();
+    void registerLinuxEnvironmentTopics();
+    void registerF407ZGTopics();
 
     QList<KnowledgeTopic> m_topics;
     QMap<QString, KnowledgeTopic> m_topicMap;

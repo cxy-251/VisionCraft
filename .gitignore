@@ -7,7 +7,16 @@ bin/
 *.user
 *.suo
 
+# 编辑器与工具缓存
+.vscode/
+.idea/
+.cache/
+
 # CMake 本地生成配置
 CMakeUserPresets.json
 CMakeCache.txt
 CMakeFiles/
+
+# 旧固件工程里直接 clone 的第三方库，版本与本地改动见 firmware/f407zg/third_party/
+firmware/f407zg/Drivers/
+firmware/f407zg/Middlewares/

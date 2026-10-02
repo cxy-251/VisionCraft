@@ -12,7 +12,7 @@ set(CMAKE_AUTOUIC ON)
 if(WIN32 AND EXISTS "C:/02Programmer/Qt/6.7.3/msvc2019_64")
     list(APPEND CMAKE_PREFIX_PATH "C:/02Programmer/Qt/6.7.3/msvc2019_64")
 endif()
-find_package(Qt6 REQUIRED COMPONENTS Core Gui Widgets Concurrent)
+find_package(Qt6 REQUIRED COMPONENTS Core Gui Widgets Concurrent SerialPort)
 
 # 2. OpenCV 4
 if(WIN32 AND EXISTS "C:/02Programmer/opencv/build/x64/vc16/lib")
@@ -20,7 +20,7 @@ if(WIN32 AND EXISTS "C:/02Programmer/opencv/build/x64/vc16/lib")
 elseif(WIN32 AND EXISTS "C:/02Programmer/opencv/build")
     set(OpenCV_DIR "C:/02Programmer/opencv/build")
 endif()
-find_package(OpenCV REQUIRED)
+find_package(OpenCV REQUIRED COMPONENTS core imgproc imgcodecs features2d calib3d objdetect video)
 
 # 3. Dependencies: fmt & nlohmann_json
 find_package(fmt REQUIRED)
@@ -48,6 +48,8 @@ set(SOURCES
     src/core/KnowledgeRegistry_OpenCV_Industrial.cpp
     src/core/KnowledgeRegistry_Qt_Core.cpp
     src/core/KnowledgeRegistry_Qt_Architecture.cpp
+    src/core/KnowledgeRegistry_Linux_Environment.cpp
+    src/core/KnowledgeRegistry_F407ZG.cpp
     src/ui/CppSyntaxHighlighter.h
     src/ui/ThemeManager.h
     src/ui/ThemeManager.cpp
@@ -75,6 +77,8 @@ set(SOURCES
     src/modules/node_pipeline/NodeGraphPipelinePage.cpp
     src/modules/batch_inspector/BatchInspectorPage.h
     src/modules/batch_inspector/BatchInspectorPage.cpp
+    src/modules/f407_workbench/F407WorkbenchPage.h
+    src/modules/f407_workbench/F407WorkbenchPage.cpp
 )
 
 if(WIN32)
@@ -88,6 +92,7 @@ target_link_libraries(VisionCraft PRIVATE
     Qt6::Gui
     Qt6::Widgets
     Qt6::Concurrent
+    Qt6::SerialPort
     ${OpenCV_LIBS}
     fmt::fmt
     nlohmann_json::nlohmann_json

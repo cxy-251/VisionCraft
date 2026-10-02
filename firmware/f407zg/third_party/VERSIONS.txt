@@ -1,0 +1,14 @@
+本工程 Drivers/ 与 Middlewares/ 下的第三方库是直接 git clone 的上游仓库，未纳入本仓库版本控制（见根目录 .gitignore）。
+按下表 clone 并检出对应提交即可还原：
+
+目录                                        上游仓库                                                     提交
+Drivers/STM32F4xx_HAL_Driver                https://github.com/STMicroelectronics/stm32f4xx_hal_driver   1f6451c3e07728b4c830744de380e56bf5bc0026
+Drivers/CMSIS/Include                       https://github.com/STMicroelectronics/cmsis_core             afc5ca6af0a49232fde7eb4548dd0962d119ce14 (Release 6.3.0)
+Drivers/CMSIS/Device/ST/STM32F4xx           https://github.com/STMicroelectronics/cmsis_device_f4        a833f4af71410f25b01468f976560d7ff63a2fc9
+Middlewares/ST/STM32_USB_Host_Library       https://github.com/STMicroelectronics/stm32-mw-usb-host      d013fac0f8b97e8316a79ef946a7dbab4ef4431d (v3.5.5)
+Middlewares/Third_Party/FatFs               https://github.com/abbrev/fatfs                              ab992fcf2926b8a1ee3f0a8f9cefb6584174100d
+Middlewares/Third_Party/FreeRTOS            https://github.com/FreeRTOS/FreeRTOS-Kernel                  def7d2df2b0506d3d249334974f51e427c17a41c (V10.5.1)
+
+本地改动：
+- Drivers/CMSIS/Include：clone 后，把仓库内 CMSIS/Core/Include/ 下的头文件（core_cm4.h、cmsis_gcc.h 等及 a-profile/）复制到了该目录根部。
+- Middlewares/Third_Party/FatFs：改了 source/diskio.c 与 source/ffconf.h，差异见 fatfs-local.patch（在 FatFs 目录下 git apply）。

@@ -55,9 +55,9 @@ void KnowledgeExplorerPage::setupUI() {
     leftNavLayout->addLayout(searchHeaderRow);
 
     // 体系快速过滤 Pill 按钮栏 (纯章节与形态索引)
-    auto *pillRow = new QHBoxLayout();
-    pillRow->setSpacing(3);
-    auto makeFilterBtn = [this, pillRow, leftNavWidget](const QString &text, int mode) {
+    auto *pillRow1 = new QHBoxLayout();
+    pillRow1->setSpacing(3);
+    auto makeFilterBtn = [this, leftNavWidget](QHBoxLayout *layout, const QString &text, int mode) {
         auto *btn = new QPushButton(text, leftNavWidget);
         btn->setCursor(Qt::PointingHandCursor);
         btn->setStyleSheet(
@@ -67,14 +67,20 @@ void KnowledgeExplorerPage::setupUI() {
         connect(btn, &QPushButton::clicked, this, [this, mode]() {
             filterTreeCategory(mode);
         });
-        pillRow->addWidget(btn);
+        layout->addWidget(btn);
     };
-    makeFilterBtn("全部", 0);
-    makeFilterBtn("OpenCV", 1);
-    makeFilterBtn("Qt", 2);
-    makeFilterBtn("⚡交互", 3);
-    makeFilterBtn("📖指南", 4);
-    leftNavLayout->addLayout(pillRow);
+    makeFilterBtn(pillRow1, "全部", 0);
+    makeFilterBtn(pillRow1, "OpenCV", 1);
+    makeFilterBtn(pillRow1, "Qt", 2);
+    makeFilterBtn(pillRow1, "Linux", 5);
+    makeFilterBtn(pillRow1, "F407ZG", 6);
+    leftNavLayout->addLayout(pillRow1);
+
+    auto *pillRow2 = new QHBoxLayout();
+    pillRow2->setSpacing(3);
+    makeFilterBtn(pillRow2, "⚡ 交互演算", 3);
+    makeFilterBtn(pillRow2, "📖 架构/指南", 4);
+    leftNavLayout->addLayout(pillRow2);
 
     m_treeWidget = new QTreeWidget(leftNavWidget);
     m_treeWidget->setHeaderHidden(true);
@@ -427,26 +433,44 @@ void KnowledgeExplorerPage::populateKnowledgeTree() {
         m_topicCountBadge->setText(QString("收录 %1 专题").arg(totalCount));
     }
 
-    // 构建顶层两大体系 Framework 根节点
+    // 构建顶层体系 Framework 根节点
     auto *cvRoot = new QTreeWidgetItem(m_treeWidget);
-    cvRoot->setText(0, "🎓 OpenCV 工业视觉算法库");
+    cvRoot->setText(0, "🎓 OpenCV 图像算法库");
     cvRoot->setFont(0, QFont("", -1, QFont::Bold));
+    cvRoot->setData(0, Qt::UserRole + 1, 1);
     cvRoot->setFlags(cvRoot->flags() & ~Qt::ItemIsSelectable);
 
     auto *qtRoot = new QTreeWidgetItem(m_treeWidget);
-    qtRoot->setText(0, "🎓 Qt 现代上位机架构与机制");
+    qtRoot->setText(0, "🎓 Qt 上位机架构范式");
     qtRoot->setFont(0, QFont("", -1, QFont::Bold));
+    qtRoot->setData(0, Qt::UserRole + 1, 2);
     qtRoot->setFlags(qtRoot->flags() & ~Qt::ItemIsSelectable);
+
+    auto *linuxRoot = new QTreeWidgetItem(m_treeWidget);
+    linuxRoot->setText(0, "🎓 Linux 嵌入式开发环境");
+    linuxRoot->setFont(0, QFont("", -1, QFont::Bold));
+    linuxRoot->setData(0, Qt::UserRole + 1, 5);
+    linuxRoot->setFlags(linuxRoot->flags() & ~Qt::ItemIsSelectable);
+
+    auto *f407Root = new QTreeWidgetItem(m_treeWidget);
+    f407Root->setText(0, "🎓 F407ZG 硬件实测与指令库");
+    f407Root->setFont(0, QFont("", -1, QFont::Bold));
+    f407Root->setData(0, Qt::UserRole + 1, 6);
+    f407Root->setFlags(f407Root->flags() & ~Qt::ItemIsSelectable);
 
     QTreeWidgetItem *firstTopicItem = nullptr;
     int cvCount = 0;
     int qtCount = 0;
+    int linuxCount = 0;
+    int f407Count = 0;
 
     for (auto it = grouped.begin(); it != grouped.end(); ++it) {
+        bool isF407 = it.key().contains("F407", Qt::CaseInsensitive);
         bool isOpenCV = it.key().contains("OpenCV", Qt::CaseInsensitive);
-        auto *parentRoot = isOpenCV ? cvRoot : qtRoot;
+        bool isLinuxMCU = it.key().contains("Linux", Qt::CaseInsensitive) || it.key().contains("MCU", Qt::CaseInsensitive);
+        auto *parentRoot = isF407 ? f407Root : (isOpenCV ? cvRoot : (isLinuxMCU ? linuxRoot : qtRoot));
 
-        // 第二级：篇章 / 小节目录 (如 📁 OpenCV 01. 图像滤波与增强)
+        // 第二级：篇章 / 小节目录
         auto *categoryItem = new QTreeWidgetItem(parentRoot);
         categoryItem->setText(0, QString("📁 %1 (%2)").arg(it.key()).arg(it.value().size()));
         categoryItem->setFlags(categoryItem->flags() & ~Qt::ItemIsSelectable);
@@ -458,7 +482,9 @@ void KnowledgeExplorerPage::populateKnowledgeTree() {
             topicItem->setText(0, QString("%1  [%2]").arg(topic.name, topic.tag));
             topicItem->setData(0, Qt::UserRole, topic.id);
 
-            if (isOpenCV) cvCount++;
+            if (isF407) f407Count++;
+            else if (isOpenCV) cvCount++;
+            else if (isLinuxMCU) linuxCount++;
             else qtCount++;
 
             if (!firstTopicItem) {
@@ -468,11 +494,15 @@ void KnowledgeExplorerPage::populateKnowledgeTree() {
         categoryItem->setExpanded(true);
     }
 
-    cvRoot->setText(0, QString("🎓 OpenCV 工业视觉算法库 (%1)").arg(cvCount));
-    qtRoot->setText(0, QString("🎓 Qt 现代上位机架构与机制 (%1)").arg(qtCount));
+    cvRoot->setText(0, QString("🎓 OpenCV 图像算法库 (%1)").arg(cvCount));
+    qtRoot->setText(0, QString("🎓 Qt 上位机架构范式 (%1)").arg(qtCount));
+    linuxRoot->setText(0, QString("🎓 Linux 嵌入式开发环境 (%1)").arg(linuxCount));
+    f407Root->setText(0, QString("🎓 F407ZG 硬件实测与指令库 (%1)").arg(f407Count));
 
     cvRoot->setExpanded(true);
     qtRoot->setExpanded(true);
+    linuxRoot->setExpanded(true);
+    f407Root->setExpanded(true);
 
     if (firstTopicItem) {
         m_treeWidget->setCurrentItem(firstTopicItem);
@@ -485,11 +515,13 @@ void KnowledgeExplorerPage::filterTreeCategory(int filterMode) {
 
     for (int i = 0; i < m_treeWidget->topLevelItemCount(); ++i) {
         auto *rootItem = m_treeWidget->topLevelItem(i);
-        bool isCvRoot = (i == 0);
+        int rootCatId = rootItem->data(0, Qt::UserRole + 1).toInt();
 
         bool rootVisible = true;
-        if (filterMode == 1 && !isCvRoot) rootVisible = false; // OpenCV only
-        if (filterMode == 2 && isCvRoot) rootVisible = false;  // Qt only
+        if (filterMode == 1 && rootCatId != 1) rootVisible = false; // OpenCV only
+        if (filterMode == 2 && rootCatId != 2) rootVisible = false; // Qt only
+        if (filterMode == 5 && rootCatId != 5) rootVisible = false; // Linux only
+        if (filterMode == 6 && rootCatId != 6) rootVisible = false; // F407ZG only
 
         bool anyCatVisible = false;
         for (int c = 0; c < rootItem->childCount(); ++c) {
@@ -539,7 +571,7 @@ void KnowledgeExplorerPage::onTreeItemClicked(QTreeWidgetItem *item, int column)
     Q_UNUSED(column);
     if (!item) return;
     QString topicId = item->data(0, Qt::UserRole).toString();
-    if (!topicId.isEmpty()) {
+    if (item->childCount() == 0 && !topicId.isEmpty()) {
         loadTopic(topicId);
     } else {
         // 点击章节目录或大类根节点时，折叠/展开当前项

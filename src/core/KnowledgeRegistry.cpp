@@ -1,4 +1,4 @@
-﻿#include "KnowledgeRegistry.h"
+#include "KnowledgeRegistry.h"
 
 KnowledgeRegistry& KnowledgeRegistry::instance() {
     static KnowledgeRegistry s_instance;
@@ -10,6 +10,8 @@ KnowledgeRegistry::KnowledgeRegistry() {
     registerOpenCVIndustrialTopics();
     registerQtCoreTopics();
     registerQtArchitectureTopics();
+    registerLinuxEnvironmentTopics();
+    registerF407ZGTopics();
 }
 
 const QList<KnowledgeTopic>& KnowledgeRegistry::allTopics() const {

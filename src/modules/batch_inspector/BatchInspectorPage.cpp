@@ -1,5 +1,6 @@
 #include "BatchInspectorPage.h"
 #include "ThemeManager.h"
+#include "modules/f407_workbench/F407WorkbenchPage.h"
 #include <QVBoxLayout>
 #include <QHBoxLayout>
 #include <QHeaderView>
@@ -476,6 +477,13 @@ void BatchInspectorPage::runBatchInspection() {
         // 默认选中第一行展示
         if (m_table->rowCount() > 0) {
             m_table->selectRow(0);
+        }
+
+        // 联动下位机 STM32F407 执行声光与硬件分拣反馈
+        if (auto *f407 = F407WorkbenchPage::instance()) {
+            bool allPassed = (ngCount == 0);
+            QString info = QString("批次抽检 %1 件, 良品率 %2%").arg(total).arg(yield, 0, 'f', 1);
+            f407->sendVisionJudgeResult(allPassed, info);
         }
     });
 

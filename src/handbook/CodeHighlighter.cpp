@@ -1,6 +1,7 @@
 #include "CodeHighlighter.h"
 
 #include <QRegularExpression>
+#include <utility>
 #include <QSyntaxHighlighter>
 #include <QTextDocument>
 

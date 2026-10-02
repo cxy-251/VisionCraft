@@ -7,6 +7,7 @@
 #include <QRegularExpression>
 #include <QTimer>
 #include <algorithm>
+#include <climits>
 
 namespace {
 

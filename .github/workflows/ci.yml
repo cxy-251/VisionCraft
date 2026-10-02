@@ -1,79 +1,99 @@
-name: VisionCraft Release CI
+name: VisionCraft Release
 
+# 只在发布时运行：推送形如 X.Y.0 的 tag（第二位版本号变化），或者手动触发。
+# 平时 push、打 X.Y.Z 的小版本 tag 都不会触发。
 on:
   push:
     tags:
-      - '*'
+      - '[0-9]+.[0-9]+.0'
   workflow_dispatch:
     inputs:
       tag_name:
-        description: 'Release Tag Name (e.g. 0.0.1)'
-        required: false
-        default: '0.0.1'
+        description: 'Release tag (X.Y.0)'
+        required: true
 
 permissions:
   contents: write
 
+env:
+  QT_VERSION: '6.8.3'
+
 jobs:
+  # ------------------------------------------------------------------ Linux
   build-linux:
-    name: Build on Ubuntu (Linux)
-    runs-on: ubuntu-24.04
-
+    name: Linux (AppImage)
+    runs-on: ubuntu-22.04   # 用较老的系统构建，AppImage 能在更多发行版上运行
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: Install dependencies
+      - name: System packages
         run: |
           sudo apt-get update
           sudo apt-get install -y --no-install-recommends \
-            build-essential \
-            cmake \
-            ninja-build \
-            qt6-base-dev \
-            qt6-base-dev-tools \
-            libopencv-dev \
-            libfmt-dev \
-            nlohmann-json3-dev \
-            libgl1-mesa-dev \
-            libxkbcommon-dev
+            build-essential cmake ninja-build \
+            libopencv-dev libfmt-dev nlohmann-json3-dev \
+            libgl1-mesa-dev libxkbcommon-dev libxkbcommon-x11-0 libegl1 \
+            libxcb-cursor0 libxcb-icccm4 libxcb-keysyms1 libxcb-shape0 libfuse2
 
-      - name: Configure CMake
-        run: |
-          cmake -B build \
-            -G Ninja \
-            -DCMAKE_BUILD_TYPE=Release
-
-      - name: Build VisionCraft
-        run: |
-          cmake --build build --config Release --parallel
-
-      - name: Package Linux Binary
-        run: |
-          tar -czvf VisionCraft-linux-x86_64.tar.gz -C build VisionCraft
-
-      - name: Upload Linux Archive
-        uses: actions/upload-artifact@v4
-        with:
-          name: VisionCraft-linux-x86_64
-          path: VisionCraft-linux-x86_64.tar.gz
-          if-no-files-found: error
-
-  build-windows:
-    name: Build on Windows (MSVC)
-    runs-on: windows-latest
-
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Setup Qt 6
+      - name: Qt
         uses: jurplel/install-qt-action@v4
         with:
-          version: '6.7.3'
-          host: 'windows'
-          target: 'desktop'
-          arch: 'win64_msvc2019_64'
+          version: ${{ env.QT_VERSION }}
+          host: linux
+          target: desktop
+          arch: linux_gcc_64
+          modules: qtserialport
+          cache: true
+
+      - name: Configure & build
+        run: |
+          cmake -B build -G Ninja -DCMAKE_BUILD_TYPE=Release
+          cmake --build build --parallel
+
+      - name: Tests
+        env:
+          QT_QPA_PLATFORM: offscreen
+        run: ctest --test-dir build --output-on-failure
+
+      - name: AppImage
+        env:
+          QML_SOURCES_PATHS: ${{ github.workspace }}/qml
+          APPIMAGE_EXTRACT_AND_RUN: 1
+        run: |
+          wget -q https://github.com/linuxdeploy/linuxdeploy/releases/download/continuous/linuxdeploy-x86_64.AppImage
+          wget -q https://github.com/linuxdeploy/linuxdeploy-plugin-qt/releases/download/continuous/linuxdeploy-plugin-qt-x86_64.AppImage
+          chmod +x linuxdeploy*.AppImage
+          export QMAKE="$QT_ROOT_DIR/bin/qmake"
+          export EXTRA_QT_MODULES="serialport"
+          ./linuxdeploy-x86_64.AppImage --appdir AppDir \
+            --executable build/VisionCraft \
+            --desktop-file packaging/VisionCraft.desktop \
+            --icon-file packaging/visioncraft.png \
+            --plugin qt --output appimage
+          mv VisionCraft*.AppImage VisionCraft-linux-x86_64.AppImage
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: VisionCraft-linux
+          path: VisionCraft-linux-x86_64.AppImage
+          if-no-files-found: error
+
+  # ------------------------------------------------------------------ Windows
+  build-windows:
+    name: Windows (MSVC)
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Qt
+        uses: jurplel/install-qt-action@v4
+        with:
+          version: ${{ env.QT_VERSION }}
+          host: windows
+          target: desktop
+          arch: win64_msvc2022_64
+          modules: qtserialport
+          cache: true
 
       - name: Cache OpenCV 4.10.0
         id: cache-opencv
@@ -82,94 +102,94 @@ jobs:
           path: C:/opencv
           key: opencv-4.10.0-windows-v1
 
-      - name: Download & Extract OpenCV
+      - name: Download OpenCV
         if: steps.cache-opencv.outputs.cache-hit != 'true'
         shell: pwsh
         run: |
-          $url = "https://github.com/opencv/opencv/releases/download/4.10.0/opencv-4.10.0-windows.exe"
-          Write-Host "Downloading OpenCV 4.10.0 from $url..."
-          Invoke-WebRequest -Uri $url -OutFile "opencv-installer.exe"
-          Write-Host "Extracting OpenCV..."
-          7z x opencv-installer.exe -y -oC:\
-          Remove-Item opencv-installer.exe -Force
+          Invoke-WebRequest -Uri "https://github.com/opencv/opencv/releases/download/4.10.0/opencv-4.10.0-windows.exe" -OutFile opencv.exe
+          7z x opencv.exe -y -oC:\
+          Remove-Item opencv.exe -Force
 
-      - name: Install vcpkg dependencies (fmt, nlohmann-json)
+      - name: vcpkg (fmt, nlohmann-json)
+        shell: pwsh
+        run: vcpkg install fmt:x64-windows nlohmann-json:x64-windows
+
+      - uses: ilammy/msvc-dev-cmd@v1
+
+      - name: Configure & build
         shell: pwsh
         run: |
-          vcpkg install fmt:x64-windows nlohmann-json:x64-windows
-
-      - name: Configure CMake
-        shell: pwsh
-        run: |
-          cmake -B build `
-            -DCMAKE_BUILD_TYPE=Release `
+          cmake -B build -G Ninja -DCMAKE_BUILD_TYPE=Release `
             -DCMAKE_PREFIX_PATH="$env:QT_ROOT_DIR" `
             -DCMAKE_TOOLCHAIN_FILE="$env:VCPKG_INSTALLATION_ROOT/scripts/buildsystems/vcpkg.cmake" `
             -DOpenCV_DIR="C:/opencv/build/x64/vc16/lib"
+          cmake --build build --parallel
 
-      - name: Build VisionCraft
+      - name: Tests
+        shell: pwsh
+        env:
+          QT_QPA_PLATFORM: offscreen
+        run: |
+          $env:PATH = "C:/opencv/build/x64/vc16/bin;$env:QT_ROOT_DIR/bin;$env:VCPKG_INSTALLATION_ROOT/installed/x64-windows/bin;$env:PATH"
+          ctest --test-dir build --output-on-failure
+
+      - name: Package
         shell: pwsh
         run: |
-          cmake --build build --config Release --parallel
+          New-Item -ItemType Directory -Force dist | Out-Null
+          Copy-Item build/VisionCraft.exe dist/
+          & "$env:QT_ROOT_DIR/bin/windeployqt.exe" --release --no-translations --qmldir qml dist/VisionCraft.exe
+          Copy-Item -Path "C:/opencv/build/x64/vc16/bin/opencv_world4100.dll" -Destination dist -Force
+          Copy-Item -Path "$env:VCPKG_INSTALLATION_ROOT/installed/x64-windows/bin/*.dll" -Destination dist -Force
+          Compress-Archive -Path "dist/*" -DestinationPath VisionCraft-windows-x64.zip
 
-      - name: Package Windows Release
-        shell: pwsh
-        run: |
-          Write-Host "Deploying Qt runtime libraries..."
-          & "$env:QT_ROOT_DIR/bin/windeployqt.exe" --release --no-translations build/Release/VisionCraft.exe
-          Write-Host "Copying OpenCV runtime DLLs..."
-          Copy-Item -Path "C:/opencv/build/x64/vc16/bin/*.dll" -Destination "build/Release" -Force
-          if (Test-Path "$env:VCPKG_INSTALLATION_ROOT/installed/x64-windows/bin/*.dll") {
-            Write-Host "Copying vcpkg DLLs..."
-            Copy-Item -Path "$env:VCPKG_INSTALLATION_ROOT/installed/x64-windows/bin/*.dll" -Destination "build/Release" -Force
-          }
-          Write-Host "Compressing Windows release..."
-          Compress-Archive -Path "build/Release/*" -DestinationPath "VisionCraft-windows-x64.zip"
-
-      - name: Upload Windows Archive
-        uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v4
         with:
-          name: VisionCraft-windows-x64
+          name: VisionCraft-windows
           path: VisionCraft-windows-x64.zip
           if-no-files-found: error
 
+  # ------------------------------------------------------------------ 固件
+  build-firmware:
+    name: Firmware (STM32F407)
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Toolchain
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends gcc-arm-none-eabi libnewlib-arm-none-eabi cmake ninja-build
+      - name: Build
+        working-directory: firmware/station
+        run: |
+          cmake --preset Release
+          cmake --build --preset Release
+          cp build/Release/station.elf build/Release/station.bin ../../
+      - uses: actions/upload-artifact@v4
+        with:
+          name: VisionCraft-firmware
+          path: |
+            station.elf
+            station.bin
+          if-no-files-found: error
+
+  # ------------------------------------------------------------------ 发布
   publish-release:
     name: Publish GitHub Release
-    needs: [build-linux, build-windows]
+    needs: [build-linux, build-windows, build-firmware]
     runs-on: ubuntu-latest
-
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Download all artifacts
-        uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v4
         with:
-          path: release-assets
+          path: assets
           merge-multiple: true
 
-      - name: Determine Tag
-        id: get_tag
-        run: |
-          if [ "${{ github.ref_type }}" = "tag" ]; then
-            echo "tag=${{ github.ref_name }}" >> $GITHUB_OUTPUT
-          else
-            echo "tag=${{ github.event.inputs.tag_name || '0.0.1' }}" >> $GITHUB_OUTPUT
-          fi
-
-      - name: Publish GitHub Release
+      - name: Publish
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          TAG_NAME: ${{ steps.get_tag.outputs.tag }}
+          GH_REPO: ${{ github.repository }}
+          TAG: ${{ github.ref_type == 'tag' && github.ref_name || github.event.inputs.tag_name }}
         run: |
-          echo "Publishing Release for tag: $TAG_NAME"
-          ls -la release-assets/
-          gh release create "$TAG_NAME" \
-            release-assets/VisionCraft-windows-x64.zip \
-            release-assets/VisionCraft-linux-x86_64.tar.gz \
-            --title "VisionCraft $TAG_NAME" \
-            --generate-notes || \
-          gh release upload "$TAG_NAME" \
-            release-assets/VisionCraft-windows-x64.zip \
-            release-assets/VisionCraft-linux-x86_64.tar.gz \
-            --clobber
+          ls -la assets
+          gh release create "$TAG" assets/* --title "VisionCraft $TAG" --generate-notes \
+            || gh release upload "$TAG" assets/* --clobber

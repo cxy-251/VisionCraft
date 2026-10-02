@@ -7,6 +7,7 @@
 #include <QDateTime>
 #include <QSerialPortInfo>
 #include <algorithm>
+#include <utility>
 
 DeviceLink::DeviceLink(QObject *parent)
     : QObject(parent)

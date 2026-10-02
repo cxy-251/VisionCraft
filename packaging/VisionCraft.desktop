@@ -1,0 +1,7 @@
+[Desktop Entry]
+Type=Application
+Name=VisionCraft
+Comment=Qt + OpenCV vision station and STM32F407 handbook
+Exec=VisionCraft
+Icon=visioncraft
+Categories=Development;Education;

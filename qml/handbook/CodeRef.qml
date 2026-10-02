@@ -16,6 +16,7 @@ Rectangle {
     property string caption
     property string language: file.endsWith(".qml") ? "qml"
                             : file.endsWith(".ioc") ? "text"
+                            : (file.endsWith(".sh") || file.endsWith(".tcl")) ? "shell"
                             : file.endsWith(".txt") && !file.endsWith("CMakeLists.txt") ? "text"
                             : (file.endsWith("CMakeLists.txt") || file.endsWith(".cmake")) ? "cmake"
                             : "cpp"

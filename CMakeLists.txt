@@ -181,7 +181,8 @@ target_sources(VisionCraft PRIVATE
 # 手册正文、示例代码与被引用的源码：打包进资源，CodeRef 运行时按文件路径读取
 file(GLOB_RECURSE VC_HANDBOOK_FILES CONFIGURE_DEPENDS
     RELATIVE ${CMAKE_CURRENT_SOURCE_DIR}
-    handbook/*.qml
+    handbook/*.qml handbook/*.txt
+    scripts/*.sh
     examples/*.cpp examples/*.h examples/*.c examples/*.txt
     src/*.cpp src/*.h
     protocol/*.c protocol/*.h

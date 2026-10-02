@@ -1,0 +1,5 @@
+[19/19] Linking CXX executable qmltest
+/usr/bin/ld: warning: libpxbackend-1.0.so, needed by /usr/lib/libproxy.so.1, not found (try using -rpath or -rpath-link)
+/usr/bin/ld: /usr/lib/libproxy.so.1: undefined reference to `px_manager_new'
+/usr/bin/ld: /usr/lib/libproxy.so.1: undefined reference to `px_manager_get_proxies_sync'
+collect2: error: ld returned 1 exit status

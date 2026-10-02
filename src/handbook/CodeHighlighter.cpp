@@ -42,6 +42,9 @@ public:
             keywords = {"import", "property", "readonly", "required", "default", "signal", "function",
                         "var", "let", "const", "if", "else", "for", "while", "return", "true", "false",
                         "null", "undefined", "on", "as", "alias", "component", "pragma", "this", "new"};
+        } else if (language == QLatin1String("shell")) {
+            keywords = {"if", "then", "else", "elif", "fi", "for", "do", "done", "while", "case", "esac",
+                        "export", "source", "set", "unset", "echo", "exit", "proc", "return", "foreach", "expr"};
         } else if (language == QLatin1String("cmake")) {
             keywords = {"if", "else", "elseif", "endif", "foreach", "endforeach", "function",
                         "endfunction", "macro", "endmacro", "set", "option", "PRIVATE", "PUBLIC",
@@ -62,6 +65,8 @@ public:
         if (language == QLatin1String("qml")) {
             m_rules.append({QRegularExpression(QStringLiteral(R"(\b[A-Z]\w*\b)")), fmt(type)});
             m_rules.append({QRegularExpression(QStringLiteral(R"(\b[a-z]\w*(?=\s*:))")), fmt(func)});
+        } else if (language == QLatin1String("shell")) {
+            m_rules.append({QRegularExpression(QStringLiteral(R"(\$\{?\w+\}?)")), fmt(type)});
         } else if (language == QLatin1String("cmake")) {
             m_rules.append({QRegularExpression(QStringLiteral(R"(\b\w+(?=\s*\())")), fmt(func, true)});
             m_rules.append({QRegularExpression(QStringLiteral(R"(\$\{\w+\})")), fmt(type)});
@@ -78,11 +83,11 @@ public:
         m_rules.append({QRegularExpression(QStringLiteral(R"(\b(0x[0-9A-Fa-f]+|\d+(\.\d+)?)[uUlLfF]*\b)")), fmt(number)});
         m_rules.append({QRegularExpression(QStringLiteral(R"("(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)')")), fmt(string)});
 
-        const QString lineComment = language == QLatin1String("cmake") ? QStringLiteral("#[^\\n]*")
-                                                                       : QStringLiteral("//[^\\n]*");
+        const bool hashComments = language == QLatin1String("cmake") || language == QLatin1String("shell");
+        const QString lineComment = hashComments ? QStringLiteral("(^|\\s)#[^\\n]*") : QStringLiteral("//[^\\n]*");
         m_rules.append({QRegularExpression(lineComment), fmt(comment, false, true)});
         m_commentFormat = fmt(comment, false, true);
-        m_blockComments = language != QLatin1String("cmake");
+        m_blockComments = !hashComments;
     }
 
 protected:

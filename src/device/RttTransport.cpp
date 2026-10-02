@@ -119,7 +119,7 @@ void RttTransport::onStderr()
         m_log = m_log.right(10000);
 
     for (const QString &line : text.split(QLatin1Char('\n'), Qt::SkipEmptyParts)) {
-        if (line.contains(QLatin1String("Listening on port %1 for tcl").arg(kTclPort))) {
+        if (line.contains(QStringLiteral("Listening on port %1 for tcl").arg(QString::number(kTclPort)))) {
             m_step = Step::SettingUpRtt;
             m_tclSocket.connectToHost(QStringLiteral("127.0.0.1"), kTclPort);
         } else if (line.contains(QLatin1String("Control block found"))) {

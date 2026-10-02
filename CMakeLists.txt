@@ -201,3 +201,6 @@ if(VC_BUILD_TESTS)
     enable_testing()
     add_subdirectory(tests)
 endif()
+
+# 开发工具（vclink_probe：命令行验证与板子的通信）
+add_subdirectory(tools)

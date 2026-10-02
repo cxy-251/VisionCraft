@@ -48,6 +48,7 @@ static void scan_keys(void)
     }
 }
 
+// [region loop]
 void StationTask(void *argument)
 {
     (void)argument;
@@ -79,3 +80,4 @@ void StationTask(void *argument)
         }
     }
 }
+// [endregion]

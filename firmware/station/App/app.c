@@ -14,6 +14,7 @@ void app_init(void)
     g_beepQueue = osMessageQueueNew(4, sizeof(uint16_t), NULL);
 }
 
+// [region send]
 void app_send(uint8_t type, uint8_t seq, const void *payload, uint16_t len)
 {
     /* 编码缓冲区较大，放静态区而不是任务栈；由互斥锁保证同一时刻只有一个任务在用 */
@@ -24,11 +25,14 @@ void app_send(uint8_t type, uint8_t seq, const void *payload, uint16_t len)
         vc_rtt_write(frame, n, 50);
     osMutexRelease(s_txMutex);
 }
+// [endregion]
 
+// [region beep]
 void app_beep(uint16_t ms)
 {
     osMessageQueuePut(g_beepQueue, &ms, 0, 0);   /* 队列满就丢掉，不阻塞 LinkTask */
 }
+// [endregion]
 
 /* ---- 检测结果的交接：只保留最新一条，StationTask 来取 ---- */
 static vc_result s_result;

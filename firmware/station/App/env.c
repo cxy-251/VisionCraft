@@ -58,6 +58,7 @@ static void sample(vc_tel_env *t)
 
 static app_sensors s_latest;
 
+// [region latest]
 app_sensors app_latest_sensors(void)
 {
     /* 结构体只有几个字节，读的时候短暂关调度，避免读到一半被 EnvTask 改掉 */
@@ -66,6 +67,7 @@ app_sensors app_latest_sensors(void)
     osKernelUnlock();
     return copy;
 }
+// [endregion]
 
 #define SAMPLE_MS 500u   /* 屏幕显示用的采样周期，与遥测订阅无关 */
 

@@ -244,7 +244,7 @@ HandbookIndex {
             title: "FreeRTOS"
             Entry { title: qsTr("移植与中断优先级"); from: "FreeRTOS V10.5.1 移植、中断接管与多任务并发" }
             Entry { title: qsTr("任务间通信") }
-            Entry { title: qsTr("工位固件的任务划分") }
+            Entry { title: qsTr("工位固件的任务划分"); file: "handbook/f407/rtos/StationTasks.qml" }
         }
         Chapter {
             title: qsTr("模拟与时钟外设")

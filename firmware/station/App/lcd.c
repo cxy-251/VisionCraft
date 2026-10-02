@@ -6,6 +6,7 @@
 
 /* NT35510 的初始化序列和读显存的方法沿用旧固件 firmware/f407zg（agy 在这块板上验证过）。 */
 
+// [region bus]
 #define LCD_REG (*(volatile uint16_t *)0x6C00007EU)
 #define LCD_RAM (*(volatile uint16_t *)0x6C000080U)
 
@@ -15,6 +16,7 @@ static void wr_reg(uint16_t r) { LCD_REG = r; }
 static void wr_data(uint16_t d) { LCD_RAM = d; }
 static uint16_t rd_data(void) { return LCD_RAM; }
 static void write(uint16_t r, uint16_t d) { LCD_REG = r; LCD_RAM = d; }
+// [endregion]
 
 static void nt35510_init(void)
 {
@@ -63,6 +65,7 @@ static void nt35510_init(void)
     HAL_Delay(50);
 }
 
+// [region window]
 static void set_window(uint16_t x, uint16_t y, uint16_t w, uint16_t h)
 {
     const uint16_t ex = (uint16_t)(x + w - 1), ey = (uint16_t)(y + h - 1);
@@ -105,6 +108,7 @@ void lcd_fill(uint16_t x, uint16_t y, uint16_t w, uint16_t h, uint16_t color)
     for (uint32_t n = (uint32_t)w * h; n; --n)
         wr_data(color);
 }
+// [endregion]
 
 uint16_t lcd_text(uint16_t x, uint16_t y, const char *s, uint16_t fg, uint16_t bg, uint8_t scale)
 {

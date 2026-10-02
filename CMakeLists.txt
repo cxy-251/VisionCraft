@@ -186,7 +186,7 @@ file(GLOB_RECURSE VC_HANDBOOK_FILES CONFIGURE_DEPENDS
     firmware/station/Core/Src/*.c firmware/station/Core/Inc/*.h
     firmware/station/station.ioc
     tests/*.cpp
-    tools/*.cpp tools/*.sh
+    tools/*.cpp tools/*.sh tools/*.tcl
     CMakeLists.txt qml/*.qml)
 qt_add_resources(VisionCraft "vc_handbook_content" PREFIX "/" FILES ${VC_HANDBOOK_FILES})
 

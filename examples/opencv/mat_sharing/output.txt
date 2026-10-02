@@ -1,0 +1,4 @@
+darkenInPlace(photo)           调用后 photo 的 B G R = 150 150 150
+darkenExpr(photo)              调用后 photo 的 B G R = 150 150 150
+darkenInt(photo)               调用后 photo 的 B G R = 150 200 200
+darkenInPlace(photo.clone())   调用后 photo 的 B G R = 200 200 200

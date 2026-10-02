@@ -15,6 +15,7 @@ StationController::StationController(QObject *parent)
     nextPart();
 }
 
+// [region toqimage]
 QImage StationController::toQImage(const cv::Mat &bgr)
 {
     cv::Mat rgb;
@@ -31,6 +32,7 @@ cv::Mat StationController::toMat(const QImage &image)
     cv::cvtColor(view, bgr, cv::COLOR_RGB2BGR);   // 转换时会复制一份，不再引用 rgb 的内存
     return bgr;
 }
+// [endregion]
 
 void StationController::nextPart()
 {
@@ -73,9 +75,11 @@ void StationController::inspectGrab(const QImage &screenshot)
         setBusy(false);
         return;
     }
+    // [region thread]
     const cv::Mat mat = toMat(screenshot);
     const Inspector inspector = m_inspector;   // 按值捕获：线程里用的是一份拷贝，主线程改参数不会影响正在跑的检测
     m_watcher.setFuture(QtConcurrent::run([inspector, mat] { return inspector.inspect(mat); }));
+    // [endregion]
 }
 
 void StationController::onInspected()

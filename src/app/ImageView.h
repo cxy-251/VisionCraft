@@ -9,6 +9,7 @@ class ImageView : public QQuickPaintedItem {
     Q_OBJECT
     QML_ELEMENT
     Q_PROPERTY(QImage image READ image WRITE setImage NOTIFY imageChanged)
+    Q_PROPERTY(bool smooth MEMBER m_smooth NOTIFY imageChanged)   // false：放大时保持像素方块（看小图用）
 
 public:
     explicit ImageView(QQuickItem *parent = nullptr) : QQuickPaintedItem(parent) {}
@@ -28,4 +29,5 @@ signals:
 
 private:
     QImage m_image;
+    bool m_smooth = true;
 };

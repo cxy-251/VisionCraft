@@ -108,7 +108,7 @@ HandbookIndex {
 
         Chapter {
             title: qsTr("基础")
-            Entry { title: qsTr("cv::Mat 内存模型"); from: "cv::Mat 内存模型与深浅拷贝" }
+            Entry { title: qsTr("cv::Mat 内存模型"); file: "handbook/opencv/basics/MatMemory.qml"; from: "cv::Mat 内存模型与深浅拷贝" }
             Entry { title: qsTr("图像混合"); from: "图像线性混合与加权融合" }
             Entry { title: qsTr("位运算与掩膜"); from: "逻辑位运算与非规则掩膜" }
             Entry { title: qsTr("FileStorage 持久化"); from: "参数与矩阵持久化" }

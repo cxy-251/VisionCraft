@@ -1,0 +1,3 @@
+qt_add_executable(example_opencv_mat_sharing main.cpp)
+target_include_directories(example_opencv_mat_sharing PRIVATE ${OpenCV_INCLUDE_DIRS})
+target_link_libraries(example_opencv_mat_sharing PRIVATE ${OpenCV_LIBS})

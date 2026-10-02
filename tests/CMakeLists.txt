@@ -45,3 +45,9 @@ qt_add_executable(tst_frame_demo tst_frame_demo.cpp
 target_include_directories(tst_frame_demo PRIVATE ${PROJECT_SOURCE_DIR}/src/demos/system ${PROJECT_SOURCE_DIR}/protocol)
 target_link_libraries(tst_frame_demo PRIVATE Qt6::Core Qt6::Qml Qt6::Test)
 add_test(NAME tst_frame_demo COMMAND tst_frame_demo)
+
+# 手册「cv::Mat 内存模型」的演示
+qt_add_executable(tst_mat_demo tst_mat_demo.cpp ${PROJECT_SOURCE_DIR}/src/demos/opencv/MatDemo.cpp)
+target_include_directories(tst_mat_demo PRIVATE ${PROJECT_SOURCE_DIR}/src/demos/opencv ${OpenCV_INCLUDE_DIRS})
+target_link_libraries(tst_mat_demo PRIVATE Qt6::Core Qt6::Gui Qt6::Qml Qt6::Test ${OpenCV_LIBS})
+add_test(NAME tst_mat_demo COMMAND tst_mat_demo)

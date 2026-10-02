@@ -207,11 +207,11 @@ HandbookIndex {
         Chapter {
             title: qsTr("工程与 CubeMX")
             Entry { title: qsTr("工程目录与 CMake"); from: "固件工程目录结构与 CMake 编译流水线" }
-            Entry { title: qsTr(".ioc 文件与代码生成"); from: "CubeMX .ioc 配置文件协同机制与外设初衷" }
+            Entry { title: qsTr(".ioc 文件与代码生成"); file: "handbook/f407/cubemx/IocAndCodegen.qml"; from: "CubeMX .ioc 配置文件协同机制与外设初衷" }
         }
         Chapter {
             title: qsTr("时钟")
-            Entry { title: qsTr("时钟树：HSE、PLL 与 SysTick"); from: "HSE 外部晶振与 FreeRTOS SysTick 时钟校准" }
+            Entry { title: qsTr("时钟树：HSE、PLL 与 SysTick"); file: "handbook/f407/clock/ClockTree.qml"; from: "HSE 外部晶振与 FreeRTOS SysTick 时钟校准" }
         }
         Chapter {
             title: "GPIO"

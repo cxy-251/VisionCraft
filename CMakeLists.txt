@@ -181,8 +181,10 @@ file(GLOB_RECURSE VC_HANDBOOK_FILES CONFIGURE_DEPENDS
     src/*.cpp src/*.h
     protocol/*.c protocol/*.h
     firmware/station/App/*.c firmware/station/App/*.h
+    firmware/station/Core/Src/*.c firmware/station/Core/Inc/*.h
     firmware/station/station.ioc
-    tests/*.cpp)
+    tests/*.cpp
+    tools/*.cpp tools/*.sh)
 qt_add_resources(VisionCraft "vc_handbook_content" PREFIX "/" FILES ${VC_HANDBOOK_FILES})
 
 target_compile_definitions(VisionCraft PRIVATE VC_SOURCE_DIR="${CMAKE_CURRENT_SOURCE_DIR}")

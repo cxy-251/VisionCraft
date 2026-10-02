@@ -34,6 +34,13 @@ public:
     // region 第一行在原文件中的行号（从 1 开始），找不到返回 0
     Q_INVOKABLE int regionLine(const QString &path, const QString &name) const;
 
+    // 生成的文件（CubeMX 的 .ioc、main.c）不能加 region 标记，用这两种方式选行：
+    // matching：所有匹配正则的行（例如 .ioc 里 "^TIM13\."）
+    Q_INVOKABLE QString matching(const QString &path, const QString &pattern) const;
+    // between：从第一行匹配 fromPattern 的行开始，到其后第一行匹配 toPattern 的行（含）为止
+    Q_INVOKABLE QString between(const QString &path, const QString &fromPattern, const QString &toPattern) const;
+    Q_INVOKABLE int lineOf(const QString &path, const QString &pattern) const;
+
     // 手册正文的加载地址
     Q_INVOKABLE QUrl contentUrl(const QString &path) const;
 

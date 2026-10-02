@@ -10,8 +10,12 @@ Rectangle {
     id: ref
     property string file
     property string region
+    property string match         // 只显示匹配这个正则的行（用于不能加 region 标记的生成文件）
+    property string from          // 从匹配 from 的行开始……
+    property string to            // ……到其后第一行匹配 to 的行为止
     property string caption
     property string language: file.endsWith(".qml") ? "qml"
+                            : file.endsWith(".ioc") ? "text"
                             : file.endsWith(".txt") && !file.endsWith("CMakeLists.txt") ? "text"
                             : (file.endsWith("CMakeLists.txt") || file.endsWith(".cmake")) ? "cmake"
                             : "cpp"
@@ -19,12 +23,16 @@ Rectangle {
 
     readonly property string code: {
         reloadToken;
-        return region.length > 0 ? SourceProvider.region(file, region)
-                                 : SourceProvider.read(file).replace(/\s+$/, "")
+        if (region.length > 0) return SourceProvider.region(file, region)
+        if (match.length > 0) return SourceProvider.matching(file, match)
+        if (from.length > 0) return SourceProvider.between(file, from, to.length > 0 ? to : "^}")
+        return SourceProvider.read(file).replace(/\s+$/, "")
     }
     readonly property int startLine: {
         reloadToken;
-        return region.length > 0 ? SourceProvider.regionLine(file, region) : 1
+        if (region.length > 0) return SourceProvider.regionLine(file, region)
+        if (from.length > 0) return SourceProvider.lineOf(file, from)
+        return match.length > 0 ? 0 : 1    // 0 = 不连续的行，不显示行号
     }
 
     Layout.fillWidth: true
@@ -57,7 +65,7 @@ Rectangle {
             anchors.rightMargin: 10
             spacing: 10
             Text {
-                text: ref.file + (ref.startLine > 1 ? "  :" + ref.startLine : "")
+                text: ref.file + (ref.startLine > 1 ? "  :" + ref.startLine : "") + (ref.match.length > 0 ? qsTr("  （筛选：%1）").arg(ref.match) : "")
                 font.family: SourceProvider.monoFont
                 font.pixelSize: 12
                 color: Theme.textMuted
@@ -106,7 +114,7 @@ Rectangle {
                     required property int index
                     width: lineNumbers.width
                     horizontalAlignment: Text.AlignRight
-                    text: ref.startLine + index
+                    text: ref.startLine > 0 ? ref.startLine + index : "·"
                     font: edit.font
                     color: Theme.textFaint
                     height: edit.lineCount > 0 ? edit.contentHeight / edit.lineCount : 0

@@ -122,6 +122,46 @@ int SourceProvider::regionLine(const QString &path, const QString &name) const
     return r.begin < 0 ? 0 : r.begin + 1;
 }
 
+QString SourceProvider::matching(const QString &path, const QString &pattern) const
+{
+    const QRegularExpression re(pattern);
+    QStringList out;
+    for (const QString &l : read(path).split(QLatin1Char('\n'))) {
+        if (re.match(l).hasMatch())
+            out << l;
+    }
+    return out.isEmpty() ? tr("（%1 中没有匹配「%2」的行）").arg(path, pattern) : out.join(QLatin1Char('\n'));
+}
+
+QString SourceProvider::between(const QString &path, const QString &fromPattern, const QString &toPattern) const
+{
+    const QRegularExpression from(fromPattern), to(toPattern);
+    const QStringList lines = read(path).split(QLatin1Char('\n'));
+    QStringList out;
+    bool in = false;
+    for (const QString &l : lines) {
+        if (!in && from.match(l).hasMatch())
+            in = true;
+        if (!in)
+            continue;
+        out << l;
+        if (out.size() > 1 && to.match(l).hasMatch())
+            break;
+    }
+    return out.isEmpty() ? tr("（%1 中没有匹配「%2」的行）").arg(path, fromPattern) : out.join(QLatin1Char('\n'));
+}
+
+int SourceProvider::lineOf(const QString &path, const QString &pattern) const
+{
+    const QRegularExpression re(pattern);
+    const QStringList lines = read(path).split(QLatin1Char('\n'));
+    for (int i = 0; i < lines.size(); ++i) {
+        if (re.match(lines[i]).hasMatch())
+            return i + 1;
+    }
+    return 0;
+}
+
 QUrl SourceProvider::contentUrl(const QString &path) const
 {
     return m_devMode ? QUrl::fromLocalFile(diskPath(path)) : QUrl(QStringLiteral("qrc:/") + path);

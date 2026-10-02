@@ -1,26 +1,17 @@
 #!/bin/bash
+# Steam Deck 上编译并运行 VisionCraft。
+#   ./run.sh           没有构建产物时先编译，然后运行
+#   ./run.sh --build   只编译
 set -e
-
-DEVKIT_DIR="/home/deck/Applications/devkit"
-export PATH="$DEVKIT_DIR/usr/bin:$PATH"
-export LD_LIBRARY_PATH="$DEVKIT_DIR/usr/lib:${LD_LIBRARY_PATH:-}"
 
 DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "$DIR"
+source scripts/steamdeck-env.sh
 
-if [ "$1" = "--build" ]; then
-    cmake -B build -G Ninja \
-      -DCMAKE_CXX_COMPILER="$DEVKIT_DIR/usr/bin/g++" \
-      -DCMAKE_C_COMPILER="$DEVKIT_DIR/usr/bin/gcc" \
-      -DCMAKE_SYSROOT="$DEVKIT_DIR" \
-      -DCMAKE_PREFIX_PATH="$DEVKIT_DIR/usr" \
-      -DOpenCV_DIR="$DEVKIT_DIR/usr/lib/cmake/opencv4"
+if [ "$1" = "--build" ] || [ ! -f build/VisionCraft ]; then
+    cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_SYSROOT="$VC_SYSROOT"
     cmake --build build --parallel
-    exit 0
-fi
-
-if [ ! -f "build/VisionCraft" ]; then
-    "$0" --build
+    [ "$1" = "--build" ] && exit 0
 fi
 
 exec ./build/VisionCraft "$@"

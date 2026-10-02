@@ -215,8 +215,8 @@ HandbookIndex {
         }
         Chapter {
             title: "GPIO"
-            Entry { title: qsTr("输出：蜂鸣器"); from: "板载外设全量驱动：蜂鸣器/光敏/CPU温度/红外遥控（蜂鸣器部分）" }
-            Entry { title: qsTr("输入：按键") }
+            Entry { title: qsTr("输出：蜂鸣器"); file: "handbook/f407/gpio/Beeper.qml"; from: "板载外设全量驱动：蜂鸣器/光敏/CPU温度/红外遥控（蜂鸣器部分）" }
+            Entry { title: qsTr("输入：按键"); file: "handbook/f407/gpio/Keys.qml" }
             Entry { title: qsTr("外部中断 EXTI") }
         }
         Chapter {

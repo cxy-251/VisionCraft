@@ -8,6 +8,7 @@
 
 extern osMessageQueueId_t g_beepQueue;
 
+// [region keys]
 typedef struct {
     GPIO_TypeDef *port;
     uint16_t pin;
@@ -47,6 +48,7 @@ static void scan_keys(void)
             app_beep(15);   /* 按键音 */
     }
 }
+// [endregion]
 
 // [region loop]
 void StationTask(void *argument)

@@ -29,3 +29,29 @@ void app_beep(uint16_t ms)
 {
     osMessageQueuePut(g_beepQueue, &ms, 0, 0);   /* 队列满就丢掉，不阻塞 LinkTask */
 }
+
+/* ---- 检测结果的交接：只保留最新一条，StationTask 来取 ---- */
+static vc_result s_result;
+static volatile uint8_t s_resultFresh;
+
+void app_post_result(const vc_result *r)
+{
+    osKernelLock();
+    s_result = *r;
+    s_resultFresh = 1;
+    osKernelUnlock();
+    app_beep(r->ok ? 40 : 400);   /* 合格短响一声，不合格长响 */
+}
+
+int app_take_result(vc_result *out)
+{
+    int fresh;
+    osKernelLock();
+    fresh = s_resultFresh;
+    if (fresh) {
+        *out = s_result;
+        s_resultFresh = 0;
+    }
+    osKernelUnlock();
+    return fresh;
+}

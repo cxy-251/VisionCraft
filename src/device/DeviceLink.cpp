@@ -288,6 +288,7 @@ QString DeviceLink::commandName(uint8_t type)
     case VC_CMD_SET_TIME: return QStringLiteral("SET_TIME");
     case VC_CMD_BEEP: return QStringLiteral("BEEP");
     case VC_CMD_SUB_TEL: return QStringLiteral("SUB_TEL");
+    case VC_CMD_RESULT: return QStringLiteral("RESULT");
     }
     return QStringLiteral("0x%1").arg(type, 2, 16, QLatin1Char('0'));
 }
@@ -361,6 +362,19 @@ int DeviceLink::subscribeTelemetry(int periodMs)
     QByteArray p(2, 0);
     vc_put_u16(reinterpret_cast<uint8_t *>(p.data()), uint16_t(std::clamp(periodMs, 0, 60000)));
     return simpleCommand(VC_CMD_SUB_TEL, p, periodMs > 0 ? tr("订阅遥测（%1 ms）").arg(periodMs) : tr("停止遥测"));
+}
+
+int DeviceLink::sendResult(bool ok, int defect, int inspectMs, int total, int ng)
+{
+    vc_result r{uint8_t(ok ? 1 : 0), uint8_t(defect), uint16_t(std::clamp(inspectMs, 0, 65535)),
+                uint32_t(std::max(total, 0)), uint32_t(std::max(ng, 0))};
+    QByteArray p(VC_RESULT_SIZE, 0);
+    vc_result_write(reinterpret_cast<uint8_t *>(p.data()), &r);
+    // 结果每件都发，不打日志，避免刷屏；失败才记一条
+    return request(VC_CMD_RESULT, p, [this](bool ok, int status, const QByteArray &) {
+        if (!ok)
+            emit logLine(QStringLiteral("error"), tr("下发检测结果失败（%1）").arg(status < 0 ? tr("超时") : QString::number(status)));
+    });
 }
 
 // ------------------------------------------------------------------ 吞吐测试

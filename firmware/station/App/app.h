@@ -36,9 +36,15 @@ typedef struct {
 } app_sensors;
 app_sensors app_latest_sensors(void);
 
+/* 检测结果：LinkTask 收到 RESULT 后交给 StationTask 显示（屏幕只由 StationTask 画） */
+#include "vc_protocol.h"
+void app_post_result(const vc_result *r);
+int  app_take_result(vc_result *out);   /* 有新结果返回 1 */
+
 /* 屏幕（station_ui.c，只由 StationTask 调用） */
 void ui_init(void);
 void ui_update(void);
 void ui_key(uint8_t key, uint8_t down);
+void ui_result(const vc_result *r);
 
 #endif

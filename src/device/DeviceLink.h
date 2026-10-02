@@ -58,6 +58,7 @@ public:
     Q_INVOKABLE int beep(int durationMs);
     Q_INVOKABLE int setTimeNow();
     Q_INVOKABLE int subscribeTelemetry(int periodMs);
+    Q_INVOKABLE int sendResult(bool ok, int defect, int inspectMs, int total, int ng);
 
     // 连续发送 count 个带 payloadSize 字节负载的 PING，最多 window 个同时在途，测往返吞吐
     Q_INVOKABLE void runThroughputTest(int payloadSize, int count, int window = 4);

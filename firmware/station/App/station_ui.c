@@ -28,7 +28,15 @@
 #define C_OK      RGB565(74, 222, 128)
 #define C_WARN    RGB565(251, 191, 36)
 
+#define C_NG      RGB565(248, 113, 113)
+
 #define ONLINE_TIMEOUT_MS 3000u
+
+/* 结果区：x 24..456，y 200..500 */
+#define BOX_X 24
+#define BOX_Y 200
+#define BOX_W (LCD_W - 48)
+#define BOX_H 300
 
 static const char *const KEY_NAMES[] = {"KEY0", "KEY1", "KEY2", "WKUP"};
 static int s_lastKey = -1;
@@ -93,8 +101,9 @@ void ui_init(void)
     label(100, "HOST");
     label(140, "RX");
 
-    lcd_fill(24, 200, LCD_W - 48, 300, C_SURFACE);
-    lcd_text((LCD_W - 5 * 48) / 2, 302, "READY", C_TEXT, C_SURFACE, 6);
+    lcd_fill(BOX_X, BOX_Y, BOX_W, BOX_H, C_SURFACE);
+    lcd_text((LCD_W - 5 * 48) / 2, 280, "READY", C_TEXT, C_SURFACE, 6);
+    lcd_text((LCD_W - 16 * 16) / 2, 420, "KEY0 = INSPECT", C_MUTED, C_SURFACE, 2);
 
     label(540, "TEMP");
     label(590, "LIGHT");
@@ -167,4 +176,33 @@ void ui_update(void)
     if (line[3] == ' ')
         line[3] = '0';
     lcd_text(24, 760, line, C_MUTED, C_BG, 2);
+}
+
+static const char *const DEFECT_NAMES[VC_DEFECT_COUNT] = {
+    "PASS", "SCRATCH", "CHIP", "SPOT", "OFFSET", "NO PART",
+};
+
+void ui_result(const vc_result *r)
+{
+    const uint16_t tone = r->ok ? C_OK : C_NG;
+    lcd_fill(BOX_X, BOX_Y, BOX_W, BOX_H, C_SURFACE);
+    lcd_fill(BOX_X, BOX_Y, BOX_W, 8, tone);   /* 顶部色条 */
+
+    /* 大字 OK / NG：每个字 64×128 */
+    const char *big = r->ok ? "OK" : "NG";
+    lcd_text((LCD_W - 2 * 64) / 2, BOX_Y + 30, big, tone, C_SURFACE, 8);
+
+    const char *name = DEFECT_NAMES[r->defect < VC_DEFECT_COUNT ? r->defect : VC_DEFECT_MISSING];
+    uint16_t len = 0;
+    while (name[len])
+        ++len;
+    lcd_text((uint16_t)((LCD_W - len * 24) / 2), BOX_Y + 172, name, C_TEXT, C_SURFACE, 3);
+
+    char line[32], *p = line;
+    *p++ = 'T'; *p++ = 'O'; *p++ = 'T'; *p++ = 'A'; *p++ = 'L';
+    p = put_uint(p, r->total, 6);
+    *p++ = ' '; *p++ = ' '; *p++ = 'N'; *p++ = 'G';
+    p = put_uint(p, r->ng, 5);
+    *p = '\0';
+    lcd_text(BOX_X + 24, BOX_Y + 240, line, C_MUTED, C_SURFACE, 2);
 }

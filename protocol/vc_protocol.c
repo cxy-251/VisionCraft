@@ -177,3 +177,25 @@ int vc_tel_env_read(vc_tel_env *t, const uint8_t *src, size_t len)
     t->rx_errors = vc_get_u32(p);
     return 0;
 }
+
+size_t vc_result_write(uint8_t *dst, const vc_result *r)
+{
+    dst[0] = r->ok;
+    dst[1] = r->defect;
+    vc_put_u16(&dst[2], r->inspect_ms);
+    vc_put_u32(&dst[4], r->total);
+    vc_put_u32(&dst[8], r->ng);
+    return VC_RESULT_SIZE;
+}
+
+int vc_result_read(vc_result *r, const uint8_t *src, size_t len)
+{
+    if (len < VC_RESULT_SIZE)
+        return -1;
+    r->ok = src[0];
+    r->defect = src[1];
+    r->inspect_ms = vc_get_u16(&src[2]);
+    r->total = vc_get_u32(&src[4]);
+    r->ng = vc_get_u32(&src[8]);
+    return 0;
+}

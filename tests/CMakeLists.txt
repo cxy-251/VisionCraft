@@ -28,3 +28,12 @@ qt_add_executable(tst_devicelink tst_devicelink.cpp
 target_include_directories(tst_devicelink PRIVATE ${PROJECT_SOURCE_DIR}/protocol ${PROJECT_SOURCE_DIR}/src/device)
 target_link_libraries(tst_devicelink PRIVATE Qt6::Core Qt6::Network Qt6::SerialPort Qt6::Qml Qt6::Test)
 add_test(NAME tst_devicelink COMMAND tst_devicelink)
+
+# 检测算法：用模拟产线的标准答案算混淆矩阵
+qt_add_executable(tst_inspector tst_inspector.cpp
+    ${PROJECT_SOURCE_DIR}/src/vision/PartGenerator.cpp
+    ${PROJECT_SOURCE_DIR}/src/vision/Inspector.cpp
+)
+target_include_directories(tst_inspector PRIVATE ${PROJECT_SOURCE_DIR}/src/vision ${PROJECT_SOURCE_DIR}/protocol ${OpenCV_INCLUDE_DIRS})
+target_link_libraries(tst_inspector PRIVATE Qt6::Core Qt6::Test ${OpenCV_LIBS})
+add_test(NAME tst_inspector COMMAND tst_inspector)

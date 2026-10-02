@@ -19,6 +19,9 @@ ApplicationWindow {
     // 旧界面是独立的 Widgets 窗口，主窗口关闭时一并退出
     onClosing: Qt.quit()
 
+    // 工位把检测结果下发给板子
+    Component.onCompleted: Station.link = DeviceLink
+
     RowLayout {
         anchors.fill: parent
         spacing: 0
@@ -41,15 +44,7 @@ ApplicationWindow {
             Layout.fillHeight: true
             currentIndex: nav.currentIndex
 
-            PlaceholderPage {
-                title: qsTr("工位")
-                summary: qsTr("视觉检测工位：模拟产线生成工件图，检测管线判定 OK / NG，结果下发到 F407 工位终端。")
-                planned: [
-                    qsTr("模拟产线：按配方生成工件并随机注入缺陷"),
-                    qsTr("检测管线：截取画面 → OpenCV 处理 → 判定"),
-                    qsTr("统计：计数、良率、检测准确率")
-                ]
-            }
+            StationPage { }
             DevicePage { }
             PlaceholderPage {
                 title: qsTr("数据")

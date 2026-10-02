@@ -108,6 +108,7 @@ qt_add_qml_module(VisionCraft
         qml/shell/PlaceholderPage.qml
         qml/shell/LabPage.qml
         qml/device/DevicePage.qml
+        qml/station/StationPage.qml
         qml/handbook/HandbookPage.qml
         qml/handbook/HandbookIndex.qml
         qml/handbook/Volume.qml
@@ -138,6 +139,18 @@ qt_add_qml_module(VisionCraft
         src/demos/qt/DeadlockDemo.cpp
         src/device/DeviceLink.h
         src/device/DeviceLink.cpp
+        src/app/ImageView.h
+        src/app/ImageView.cpp
+        src/app/StationController.h
+        src/app/StationController.cpp
+)
+
+# 视觉：模拟产线与检测算法
+target_sources(VisionCraft PRIVATE
+    src/vision/PartGenerator.h
+    src/vision/PartGenerator.cpp
+    src/vision/Inspector.h
+    src/vision/Inspector.cpp
 )
 
 # 设备通信：协议（与固件共用的 C 代码）+ 通道
@@ -163,7 +176,7 @@ qt_add_resources(VisionCraft "vc_handbook_content" PREFIX "/" FILES ${VC_HANDBOO
 
 target_compile_definitions(VisionCraft PRIVATE VC_SOURCE_DIR="${CMAKE_CURRENT_SOURCE_DIR}")
 # qmltyperegistrar 生成的注册代码按文件名 #include 头文件，这些目录必须在搜索路径里
-target_include_directories(VisionCraft PRIVATE src/handbook src/legacy src/demos/qt src/device protocol)
+target_include_directories(VisionCraft PRIVATE src/handbook src/legacy src/demos/qt src/device src/app src/vision protocol)
 
 target_link_libraries(VisionCraft PRIVATE
     Qt6::Network

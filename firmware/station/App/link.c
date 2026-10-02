@@ -71,6 +71,17 @@ static void handle(const vc_frame *f)
         reply(f->type, f->seq, VC_OK, NULL, 0);
         break;
 
+    case VC_CMD_RESULT: {
+        vc_result r;
+        if (vc_result_read(&r, f->payload, f->len) != 0 || r.defect >= VC_DEFECT_COUNT) {
+            reply(f->type, f->seq, VC_ERR_ARGS, NULL, 0);
+            break;
+        }
+        app_post_result(&r);
+        reply(f->type, f->seq, VC_OK, NULL, 0);
+        break;
+    }
+
     default:   /* 包括 SET_TIME：RTC 还没配置 */
         if (VC_IS_CMD(f->type))
             reply(f->type, f->seq, VC_ERR_UNKNOWN, NULL, 0);

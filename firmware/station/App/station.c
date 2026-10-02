@@ -70,6 +70,9 @@ void StationTask(void *argument)
             beeping = 0;
         }
         scan_keys();
+        vc_result r;
+        if (app_take_result(&r))
+            ui_result(&r);
         if (HAL_GetTick() - lastUi >= 250) {   /* 屏幕每 250 ms 刷新一次动态内容 */
             lastUi = HAL_GetTick();
             ui_update();

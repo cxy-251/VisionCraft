@@ -1,6 +1,7 @@
 #include <QApplication>
 #include <QWidget>
 #include "DeviceLink.h"
+#include "StationController.h"
 #include "LegacyLab.h"
 #include <QQmlApplicationEngine>
 #include <QQuickStyle>
@@ -91,6 +92,11 @@ int main(int argc, char *argv[])
     if (qEnvironmentVariableIsSet("VC_PAGE"))
         engine.setInitialProperties({{QStringLiteral("startPage"), qEnvironmentVariableIntValue("VC_PAGE")}});
     engine.loadFromModule("VisionCraft", "Main");
+    // VC_STATION_RUN=1：启动后自动开始产线
+    if (qEnvironmentVariableIntValue("VC_STATION_RUN") == 1) {
+        if (auto *station = engine.singletonInstance<StationController *>("VisionCraft", "Station"))
+            QTimer::singleShot(4000, station, [station] { station->setRunning(true); });
+    }
     if (const QString mode = qEnvironmentVariable("VC_AUTOCONNECT"); !mode.isEmpty()) {
         if (auto *link = engine.singletonInstance<DeviceLink *>("VisionCraft", "DeviceLink")) {
             if (mode == QLatin1String("rtt"))

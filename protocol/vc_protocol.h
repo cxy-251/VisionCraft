@@ -44,6 +44,7 @@ enum vc_type {
     VC_CMD_SET_TIME  = 0x03, /* 负载：year(2) month day hour minute second weekday */
     VC_CMD_BEEP      = 0x04, /* 负载：duration_ms(2) */
     VC_CMD_SUB_TEL   = 0x05, /* 负载：period_ms(2)，0 = 停止遥测 */
+    VC_CMD_RESULT    = 0x06, /* 负载见 vc_result：一次检测的结果，板子显示并报警 */
 
     /* EVT：事件 */
     VC_EVT_HELLO     = 0x40, /* 板子启动完成，负载同 vc_info */
@@ -68,6 +69,17 @@ enum vc_status {
     VC_ERR_BUSY      = 3
 };
 
+/* 缺陷类型（检测结果） */
+enum vc_defect {
+    VC_DEFECT_NONE    = 0,
+    VC_DEFECT_SCRATCH = 1,   /* 划痕 */
+    VC_DEFECT_CHIP    = 2,   /* 缺口 */
+    VC_DEFECT_SPOT    = 3,   /* 污点 */
+    VC_DEFECT_OFFSET  = 4,   /* 内孔偏心 */
+    VC_DEFECT_MISSING = 5,   /* 没找到工件 */
+    VC_DEFECT_COUNT
+};
+
 /* 按键事件 */
 enum vc_key    { VC_KEY0 = 0, VC_KEY1 = 1, VC_KEY2 = 2, VC_KEY_WKUP = 3 };
 enum vc_action { VC_KEY_DOWN = 0, VC_KEY_UP = 1 };
@@ -84,6 +96,15 @@ typedef struct {
     char     build[24];        /* 编译时间 "Oct  3 2026 01:23:45"，以 0 结尾 */
 } vc_info;
 #define VC_INFO_SIZE (1u + 2u * 3u + 4u + 12u + 24u)
+
+typedef struct {
+    uint8_t  ok;               /* 1 = 合格 */
+    uint8_t  defect;           /* enum vc_defect */
+    uint16_t inspect_ms;       /* 上位机检测耗时 */
+    uint32_t total;            /* 本次运行累计检测件数 */
+    uint32_t ng;               /* 其中不合格件数 */
+} vc_result;
+#define VC_RESULT_SIZE (1u + 1u + 2u + 4u + 4u)
 
 typedef struct {
     int16_t  cpu_temp_c100;    /* 片内温度 ×100，例如 3512 = 35.12 °C */
@@ -109,6 +130,8 @@ static inline uint32_t vc_get_u32(const uint8_t *p)
 
 size_t vc_info_write(uint8_t *dst, const vc_info *info);           /* 返回写入字节数 */
 int    vc_info_read(vc_info *info, const uint8_t *src, size_t len); /* 成功返回 0 */
+size_t vc_result_write(uint8_t *dst, const vc_result *r);
+int    vc_result_read(vc_result *r, const uint8_t *src, size_t len);
 size_t vc_tel_env_write(uint8_t *dst, const vc_tel_env *t);
 int    vc_tel_env_read(vc_tel_env *t, const uint8_t *src, size_t len);
 

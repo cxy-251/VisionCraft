@@ -100,25 +100,18 @@ cmake --build build --config Release --parallel
 
 ### Linux (SteamOS / 用户空间免 Root 构建)
 
-适用于 Steam Deck（SteamOS）等只读根系统，依赖工具链与库均部署在 `/home/deck/Applications/devkit`：
+适用于 Steam Deck（SteamOS）等只读根系统。每个工具单独解压在 `~/Applications/<工具名>/usr` 下（Arch Linux 软件包）：
+`gcc`（含 glibc 等系统头文件，作为 sysroot）、`cmake`、`ninja`、`qt6`、`opencv`、`arm-none-eabi`、`openocd`、`picocom`、`fmt`、`nlohmann-json`。
+环境由 [`scripts/steamdeck-env.sh`](scripts/steamdeck-env.sh) 加载。
 
 ```bash
-# 1. 注入 devkit 环境变量
-export DEVKIT_DIR="/home/deck/Applications/devkit"
-export PATH="$DEVKIT_DIR/usr/bin:$PATH"
+./run.sh            # 没有构建产物时先编译，然后运行
+./run.sh --build    # 只编译
 
-# 2. 通过 CMake 配置（指向 devkit 的 sysroot 与前缀路径）
-cmake -B build -G Ninja \
-  -DCMAKE_BUILD_TYPE=Release \
-  -DCMAKE_SYSROOT="$DEVKIT_DIR" \
-  -DCMAKE_PREFIX_PATH="$DEVKIT_DIR/usr" \
-  -DOpenCV_DIR="$DEVKIT_DIR/usr/lib/cmake/opencv4"
-
-# 3. 编译
-cmake --build build --config Release --parallel
-
-# 4. 运行
-./build/VisionCraft
+# 或手动：
+source scripts/steamdeck-env.sh
+cmake -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_SYSROOT="$VC_SYSROOT"
+cmake --build build --parallel
 ```
 
 ---

@@ -315,7 +315,7 @@ void F407WorkbenchPage::runOpenocdCommand(const QStringList &args) {
 
     QString program = QStandardPaths::findExecutable("openocd");
     if (program.isEmpty()) {
-        program = QDir::homePath() + "/Applications/devkit/usr/bin/openocd";
+        program = QDir::homePath() + "/Applications/openocd/usr/bin/openocd";
     }
     m_openocdProcess->start(program, args);
 }

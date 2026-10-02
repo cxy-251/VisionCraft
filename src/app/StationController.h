@@ -19,6 +19,7 @@
 //   inspectNow() → 发出 grabRequested → QML 截取「传送带」画面 → inspectGrab(截图)
 //   → 线程池里跑 Inspector → 主线程收到结果：对照标准答案打分、更新统计、下发给板子 → 传送带送下一件
 // 检测的是界面上的截图，而不是生成器给的原图，和真实工位「相机拍屏幕上的东西」一样会多一层失真。
+// [region qml-api]
 class StationController : public QObject {
     Q_OBJECT
     QML_NAMED_ELEMENT(Station)   // QML 里叫 Station
@@ -53,6 +54,8 @@ public:
     Q_INVOKABLE void inspectNow();
     Q_INVOKABLE void inspectGrab(const QImage &screenshot);
     Q_INVOKABLE void resetStats();
+    // ……（省略 C++ 内部用的部分）
+    // [endregion]
 
     static QImage toQImage(const cv::Mat &bgr);
     static cv::Mat toMat(const QImage &image);

@@ -71,7 +71,7 @@ HandbookIndex {
         Chapter {
             title: qsTr("界面：QML")
             Entry { title: qsTr("QML 基础与属性绑定") }
-            Entry { title: qsTr("把 C++ 类型交给 QML") }
+            Entry { title: qsTr("把 C++ 类型交给 QML"); file: "handbook/qt/qml/CppToQml.qml" }
             Entry { title: qsTr("解剖本程序的外壳") }
         }
         Chapter {

@@ -9,6 +9,7 @@ Item {
 
     readonly property var defectNames: ["合格", "划痕", "缺口", "污点", "偏心", "未找到"]
 
+    // [region grab]
     // 检测请求：截取传送带画面交给 C++。截的是界面上真正显示的东西
     Connections {
         target: Station
@@ -18,6 +19,7 @@ Item {
             })
         }
     }
+    // [endregion]
     // 板子上按 KEY0 = 检测一次
     Connections {
         target: DeviceLink

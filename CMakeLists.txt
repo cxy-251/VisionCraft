@@ -95,6 +95,7 @@ endif()
 if(QT_KNOWN_POLICY_QTP0004)
     qt_policy(SET QTP0004 NEW)
 endif()
+# [region qml-module]
 # 单例标记必须在 qt_add_qml_module 之前设置
 set_source_files_properties(qml/Theme.qml PROPERTIES QT_QML_SINGLETON_TYPE TRUE)
 qt_add_qml_module(VisionCraft
@@ -151,6 +152,7 @@ qt_add_qml_module(VisionCraft
         src/app/StationController.h
         src/app/StationController.cpp
 )
+# [endregion]
 
 # 视觉：模拟产线与检测算法
 target_sources(VisionCraft PRIVATE
@@ -184,12 +186,15 @@ file(GLOB_RECURSE VC_HANDBOOK_FILES CONFIGURE_DEPENDS
     firmware/station/Core/Src/*.c firmware/station/Core/Inc/*.h
     firmware/station/station.ioc
     tests/*.cpp
-    tools/*.cpp tools/*.sh)
+    tools/*.cpp tools/*.sh
+    CMakeLists.txt qml/*.qml)
 qt_add_resources(VisionCraft "vc_handbook_content" PREFIX "/" FILES ${VC_HANDBOOK_FILES})
 
 target_compile_definitions(VisionCraft PRIVATE VC_SOURCE_DIR="${CMAKE_CURRENT_SOURCE_DIR}")
+# [region registration-includes]
 # qmltyperegistrar 生成的注册代码按文件名 #include 头文件，这些目录必须在搜索路径里
 target_include_directories(VisionCraft PRIVATE src/handbook src/legacy src/demos/qt src/demos/system src/demos/opencv src/device src/app src/vision protocol)
+# [endregion]
 
 target_link_libraries(VisionCraft PRIVATE
     Qt6::Network

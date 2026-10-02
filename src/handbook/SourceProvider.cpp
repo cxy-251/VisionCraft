@@ -19,8 +19,9 @@ struct RegionRange {
 
 RegionRange findRegion(const QStringList &lines, const QString &name)
 {
-    static const QRegularExpression startRe(QStringLiteral(R"(^\s*//\s*\[region\s+([\w\-.]+)\])"));
-    static const QRegularExpression endRe(QStringLiteral(R"(^\s*//\s*\[endregion\])"));
+    // 标记写在注释里：C/C++/QML 用 //，CMake 和脚本用 #
+    static const QRegularExpression startRe(QStringLiteral(R"(^\s*(?://|#)\s*\[region\s+([\w\-.]+)\])"));
+    static const QRegularExpression endRe(QStringLiteral(R"(^\s*(?://|#)\s*\[endregion\])"));
 
     RegionRange r;
     int depth = 0;
@@ -89,7 +90,7 @@ QString SourceProvider::region(const QString &path, const QString &name) const
     if (r.begin < 0)
         return tr("（%1 中没有 region「%2」）").arg(path, name);
 
-    static const QRegularExpression markerRe(QStringLiteral(R"(^\s*//\s*\[(region\s+[\w\-.]+|endregion)\])"));
+    static const QRegularExpression markerRe(QStringLiteral(R"(^\s*(?://|#)\s*\[(region\s+[\w\-.]+|endregion)\])"));
     QStringList out;
     for (int i = r.begin; i < r.end; ++i) {
         if (!markerRe.match(lines[i]).hasMatch())

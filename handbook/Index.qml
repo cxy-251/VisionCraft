@@ -271,7 +271,7 @@ HandbookIndex {
 
         Chapter {
             title: qsTr("总体")
-            Entry { title: qsTr("视觉检测工位：分工与流程") }
+            Entry { title: qsTr("视觉检测工位：分工与流程"); file: "handbook/system/overview/Station.qml" }
             Entry { title: qsTr("上位机分层") }
         }
         Chapter {

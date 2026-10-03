@@ -32,6 +32,9 @@ public:
     int foregroundPixels() const { return m_fg; }
 
     Q_INVOKABLE void newPart();
+
+    // 给灰度图加上不均匀的光照（lighting 0~1），演示和示例程序共用
+    static cv::Mat applyLighting(const cv::Mat &gray, double lighting);
     Q_INVOKABLE void useOtsu() { setThreshold(m_otsu); }
 
 signals:

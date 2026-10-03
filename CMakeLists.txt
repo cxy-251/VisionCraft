@@ -195,6 +195,8 @@ file(GLOB_RECURSE VC_HANDBOOK_FILES CONFIGURE_DEPENDS
     firmware/station/App/*.c firmware/station/App/*.h
     firmware/station/Core/Src/*.c firmware/station/Core/Inc/*.h
     firmware/station/station.ioc firmware/station/*.ld
+    firmware/station/Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_gpio.c
+    firmware/station/Drivers/CMSIS/Device/ST/STM32F4xx/Include/stm32f4xx.h
     tests/*.cpp
     tools/*.cpp tools/*.sh tools/*.tcl
     CMakeLists.txt qml/*.qml)

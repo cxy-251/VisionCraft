@@ -1,0 +1,19 @@
+$ gcc -std=c11 -Wall -O2 -fsanitize=undefined bits_demo.c -o bits_demo
+bits_demo.c: In function ‘main’:
+bits_demo.c:59:15: warning: suggest parentheses around comparison in operand of ‘&’ [-Wparentheses]
+   59 |     if (flags & 1 == 0)                       /* == 比 & 优先：等于 flags & (1 == 0)，即 flags & 0 */
+      |               ^
+$ ./bits_demo
+bits_demo.c:65:28: runtime error: left shift of 32768 by 16 places cannot be represented in type 'int'
+0000 0000 1111 0000  (0x00F0)  初始
+0000 0000 1111 0100  (0x00F4)  reg |= 1u << 2
+0000 0000 1101 0100  (0x00D4)  reg &= ~(1u << 5)
+0000 0000 0101 0100  (0x0054)  reg ^= 1u << 7
+第 4 位是 1，第 5 位是 0
+1111 1101 1111 1111  (0xFDFF)  MODER，引脚 4 改成 01
+读回引脚 4 的模式：1
+0100 1110 1111 0000  (0x4EF0)  RGB(74,222,128) -> 565
+拆回 8 位：R=72 G=220 B=128（低位丢了）
+~low == 0xF0 ? 否，因为 ~low 实际是 0xFFFFFFF0
+写成 flags & 1 == 0，判断结果是「第 0 位不是 0」——错了
+pin15 << 16 = 0x80000000

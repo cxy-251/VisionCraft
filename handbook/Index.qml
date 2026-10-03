@@ -30,7 +30,7 @@ HandbookIndex {
             Entry { title: qsTr("volatile 与寄存器访问"); file: "handbook/bridge/embedded/Volatile.qml" }
             Entry { title: qsTr("位运算"); file: "handbook/bridge/embedded/Bits.qml" }
             Entry { title: qsTr("结构体对齐与大小端"); file: "handbook/bridge/embedded/Layout.qml" }
-            Entry { title: qsTr("中断上下文里能做什么") }
+            Entry { title: qsTr("中断上下文里能做什么"); file: "handbook/bridge/embedded/IsrContext.qml" }
         }
     }
 

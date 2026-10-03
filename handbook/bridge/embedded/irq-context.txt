@@ -1,0 +1,5 @@
+$ arm-none-eabi-nm build/Release/station.elf | grep HAL_IncTick
+08001604 W HAL_IncTick
+$ openocd -f interface/stlink.cfg -f target/stm32f4x.cfg -c init -c "set tick_addr 0x08001604" -f tools/irq_context.tcl -c exit
+随便停在一处：pc = 0x08002d0c，IPSR = 0
+停在 HAL_IncTick：pc = 0x08001604，IPSR = 71（TIM7 的中断号 55 + 16 = 71）

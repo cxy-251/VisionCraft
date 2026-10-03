@@ -3,11 +3,15 @@
 #include <QFile>
 #include <QFileInfo>
 #include <QFontDatabase>
+#include <QLoggingCategory>
 #include <QQmlEngine>
 #include <QRegularExpression>
 #include <QTimer>
 #include <algorithm>
 #include <climits>
+
+// 调试热重载：QT_LOGGING_RULES="vc.source.debug=true"
+Q_LOGGING_CATEGORY(lcSource, "vc.source", QtWarningMsg)
 
 namespace {
 
@@ -55,11 +59,13 @@ SourceProvider::SourceProvider(QObject *parent)
                 && QFileInfo::exists(QStringLiteral(VC_SOURCE_DIR "/CMakeLists.txt")))
 {
     connect(&m_watcher, &QFileSystemWatcher::fileChanged, this, [this](const QString &file) {
+        qCDebug(lcSource) << "文件变化" << file;
         // 很多编辑器保存时是「写临时文件再改名」，原文件会从监视列表里消失，需要重新加入
         QTimer::singleShot(100, this, [this, file] {
             if (QFileInfo::exists(file) && !m_watcher.files().contains(file))
                 m_watcher.addPath(file);
             const QString rel = QString(file).remove(0, QStringLiteral(VC_SOURCE_DIR "/").size());
+            qCDebug(lcSource) << "通知重新加载" << rel;
             emit fileChanged(rel);
         });
     });
@@ -174,7 +180,7 @@ void SourceProvider::watch(const QString &path)
         return;
     const QString file = diskPath(path);
     if (!m_watcher.files().contains(file))
-        m_watcher.addPath(file);
+        qCDebug(lcSource) << "开始监视" << file << m_watcher.addPath(file);
 }
 
 void SourceProvider::clearCache()

@@ -51,9 +51,13 @@ Item {
             return
         loadError = ""
         content.source = ""
-        SourceProvider.clearCache()
-        content.source = SourceProvider.contentUrl(currentFile)
-        SourceProvider.watch(currentFile)
+        // 旧的正文对象要等回到事件循环才真正销毁；在那之前清缓存，引擎还认为这个组件在用，
+        // 会继续用缓存里的旧版本。所以等一轮事件循环再清缓存、重新加载
+        Qt.callLater(() => {
+            SourceProvider.clearCache()
+            content.source = SourceProvider.contentUrl(currentFile)
+            SourceProvider.watch(currentFile)
+        })
     }
 
     // 已写 / 总数

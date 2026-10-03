@@ -2,3 +2,4 @@
 add_subdirectory(qt/signals_slots)
 add_subdirectory(opencv/mat_sharing)
 add_subdirectory(cpp/object_lifetime)
+add_subdirectory(cpp/lambda_capture)

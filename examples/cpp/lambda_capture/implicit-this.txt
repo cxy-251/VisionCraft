@@ -1,0 +1,12 @@
+$ c++ -std=c++17 -Wall -c implicit_this.cpp
+
+$ c++ -std=c++20 -Wall -c implicit_this.cpp
+implicit_this.cpp:4:32: warning: implicit capture of ‘this’ via ‘[=]’ is deprecated in C++20 [-Wdeprecated]
+
+$ c++ -std=c++17 -g -fsanitize=address implicit_this.cpp && ./a.out
+==PID==ERROR: AddressSanitizer: stack-use-after-scope on address 0x… at pc 0x… bp 0x… sp 0x…
+READ of size 4 at 0x… thread T0
+    #0 0x… in Widget::makeReader()::{lambda()#1}::operator()() const implicit_this.cpp:4
+    #1 0x… in main implicit_this.cpp:10
+Address 0x… is located in stack of thread T0 … in frame
+    #0 0x… in main implicit_this.cpp:8

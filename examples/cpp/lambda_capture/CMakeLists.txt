@@ -1,0 +1,2 @@
+qt_add_executable(example_cpp_lambda_capture main.cpp)
+target_link_libraries(example_cpp_lambda_capture PRIVATE Qt6::Core)

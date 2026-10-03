@@ -64,6 +64,8 @@ Section {
     }
 
     InSystem {
-        text: qsTr("上位机连接 ST-Link 时，找不到 RTT 控制块就会自动执行上面的「模拟启动」（src/device/RttTransport.cpp），所以 BOOT0 没改也能用。")
+        text: qsTr("上位机连接 ST-Link 时，先让 CPU 停一下读 PC：不在 Flash 里（比如在 0x1FFF…，就是 bootloader），就自动执行上面的「模拟启动」，所以 BOOT0 没改也能用。"
+                 + "最初的版本只看「找没找到 RTT 控制块」，结果板子被意外复位后，RAM 里残留的旧控制块让它以为固件在运行，连接成功却所有命令超时——改成检查 PC 才解决：")
+        CodeRef { file: "src/device/RttTransport.cpp"; region: "check" }
     }
 }

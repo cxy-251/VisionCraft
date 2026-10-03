@@ -43,6 +43,7 @@ private:
     void onStderr();
     void onTclReadyRead();
     void sendNextTcl();
+    void checkRunningFirmware();
     void startRtt(bool afterBoot);
     void fail(const QString &reason);
     QString bootFromFlashCommand() const;

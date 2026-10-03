@@ -19,8 +19,8 @@ RttTransport::RttTransport(QObject *parent)
     });
 
     connect(&m_tclSocket, &QTcpSocket::connected, this, [this] {
-        emit progress(tr("已连上 OpenOCD，开始查找 RTT 控制块"));
-        startRtt(false);
+        emit progress(tr("已连上 OpenOCD，检查芯片在运行什么"));
+        checkRunningFirmware();
     });
     connect(&m_tclSocket, &QTcpSocket::readyRead, this, &RttTransport::onTclReadyRead);
 
@@ -174,6 +174,28 @@ QString RttTransport::bootFromFlashCommand() const
     return QStringLiteral("reset halt; mww 0xE000ED08 0x08000000; "
                           "set v [read_memory 0x08000000 32 2]; "
                           "reg msp [lindex $v 0]; reg pc [lindex $v 1]; resume");
+}
+// [endregion]
+
+// [region check]
+// 找到 RTT 控制块不代表固件在运行：芯片复位进了 bootloader 时，RAM 里可能还留着上次运行的控制块，
+// 调试器照样「找得到」，可是没有程序在应答（实测过：板子被意外复位后，连接成功但所有命令超时）。
+// 所以先让 CPU 停一下读 PC：PC 不在 Flash 里，就先从 Flash 启动固件。
+void RttTransport::checkRunningFirmware()
+{
+    tcl(QStringLiteral("halt; set vc_pc [lindex [reg pc] 2]; resume; set vc_pc"), [this](bool ok, const QString &reply) {
+        bool parsed = false;
+        const quint32 pc = reply.trimmed().toUInt(&parsed, 16);
+        const bool inFlash = ok && parsed && pc >= 0x08000000u && pc < 0x08100000u;
+        if (inFlash) {
+            startRtt(false);
+            return;
+        }
+        emit progress(tr("芯片没有在运行 Flash 里的程序（PC = %1），先从 Flash 启动固件").arg(reply.trimmed()));
+        tcl(bootFromFlashCommand(), [this](bool, const QString &) {
+            QTimer::singleShot(800, this, [this] { startRtt(true); });
+        });
+    });
 }
 // [endregion]
 

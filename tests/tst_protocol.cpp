@@ -130,6 +130,27 @@ private slots:
         QCOMPARE(t2.light_permille, uint16_t(640));
         QCOMPARE(t2.rx_errors, 1u);
     }
+
+    // [region wire-bytes]
+    // 线上的字节是协议规定的，和本机的结构体布局、字节序无关：逐字节对照
+    void wireBytesAreLittleEndianAndPacked()
+    {
+        vc_info in{};
+        in.proto_version = 1;
+        in.fw_minor = 1;
+        in.uptime_ms = 5000;   // 0x00001388
+        uint8_t buf[VC_INFO_SIZE];
+        vc_info_write(buf, &in);
+        const QByteArray head(reinterpret_cast<const char *>(buf), 11);
+        QCOMPARE(head.toHex(' '), QByteArray("01 00 00 01 00 00 00 88 13 00 00"));
+
+        vc_tel_env t{-512, 0, 0, 0, 0, 0};   // -512 = 0xFE00
+        uint8_t tb[VC_TEL_ENV_SIZE];
+        vc_tel_env_write(tb, &t);
+        QCOMPARE(tb[0], uint8_t(0x00));
+        QCOMPARE(tb[1], uint8_t(0xFE));
+    }
+    // [endregion]
 };
 
 QTEST_GUILESS_MAIN(TstProtocol)

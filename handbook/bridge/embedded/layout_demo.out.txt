@@ -1,0 +1,9 @@
+$ ./layout_demo        # 电脑：x86-64
+loose: sizeof = 12，a@0 b@4 c@8
+tight: sizeof = 8，b@0 a@4 c@5
+vc_info: sizeof = 48，字段加起来 VC_INFO_SIZE = 47
+  proto_version@0 fw_major@2 uptime_ms@8 uid@12 build@24
+44 33 22 11   0x11223344 在内存里
+44 33 22 11   vc_put_u32 写出
+01 AA 00 00 01 00 00 00 88 13 00 00   memcpy 整个结构体（前 12 字节）
+01 00 00 01 00 00 00 88 13 00 00   vc_info_write（前 11 字节，到 uptime_ms 为止）

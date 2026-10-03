@@ -1,0 +1,6 @@
+$ arm-none-eabi-gcc -mcpu=cortex-m4 -mthumb -O2 -I../../../protocol -c layout_arm.c
+$ arm-none-eabi-objdump -s -j .rodata layout_arm.o
+layout_arm.o:     file format elf32-littlearm
+Contents of section .rodata:
+ 0000 0c000000 08000000 30000000 08000000  ........0.......
+ 0010 18000000                             ....            

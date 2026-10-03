@@ -1,0 +1,4 @@
+# 临时在 src/vision/Inspector.cpp 第 2 行加入 #include "DeviceLink.h" 之后
+$ ./build/tests/tst_layering
+src/vision/Inspector.cpp 包含了 DeviceLink.h（检测算法只依赖 OpenCV 和 Qt Core，可以脱离界面和设备单独测试、单独复用）
+Totals: 2 passed, 1 failed, 0 skipped, 0 blacklisted, 2ms

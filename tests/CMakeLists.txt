@@ -79,3 +79,9 @@ target_compile_definitions(tst_handbook_refs PRIVATE
     VC_HANDBOOK_QRC="${PROJECT_BINARY_DIR}/.qt/rcc/vc_handbook_content.qrc")
 target_link_libraries(tst_handbook_refs PRIVATE Qt6::Core Qt6::Gui Qt6::Qml Qt6::Test)
 add_test(NAME tst_handbook_refs COMMAND tst_handbook_refs)
+
+# 分层规则：下层源码不能 #include 上层
+qt_add_executable(tst_layering tst_layering.cpp)
+target_compile_definitions(tst_layering PRIVATE VC_SOURCE_DIR="${PROJECT_SOURCE_DIR}")
+target_link_libraries(tst_layering PRIVATE Qt6::Core Qt6::Test)
+add_test(NAME tst_layering COMMAND tst_layering)

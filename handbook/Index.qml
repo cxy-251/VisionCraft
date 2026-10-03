@@ -53,7 +53,7 @@ HandbookIndex {
         }
         Chapter {
             title: qsTr("线程与并发")
-            Entry { title: qsTr("QThread 的两种用法"); from: "QThread 生产级多线程架构" }
+            Entry { title: qsTr("QThread 的两种用法"); file: "handbook/qt/threads/QThreadUsage.qml"; from: "QThread 生产级多线程架构" }
             Entry { title: qsTr("QtConcurrent 与 QFuture"); file: "handbook/qt/threads/Concurrent.qml"; from: "函数式高阶并发计算 (QtConcurrent::run / QFutureWatcher)" }
             Entry { title: qsTr("无锁环形队列"); from: "图像帧无锁环形队列；工业相机多线程与环形缓冲队列" }
             Entry { title: qsTr("异步日志"); from: "工业级异步双缓冲日志系统" }

@@ -1,0 +1,32 @@
+==== 1. 作用域：离开 {} 时按声明的反序析构 ====
+  构造 a
+  构造 b
+  离开作用域
+  析构 b
+  析构 a
+
+==== 2. unique_ptr：唯一的主人，可以转交 ====
+  构造 堆上的 t
+  转交后 owner 为空，next 非空
+  析构 堆上的 t
+  reset 之后
+
+==== 3. QObject 父子树：父对象析构时删除子对象 ====
+  构造 root 的成员
+  构造 child 的成员
+  构造 grandchild 的成员
+  delete root 之前，watch 非空
+  ~Node 函数体：root
+  析构 root 的成员
+  ~Node 函数体：child
+  析构 child 的成员
+  ~Node 函数体：grandchild
+  析构 grandchild 的成员
+  delete root 之后，watch 为空
+
+==== 4. 在槽里销毁发送者：用 deleteLater ====
+  槽：收到 closed，deleteLater()
+  Link::closeNow 收尾：name = rtt
+  closeNow 返回，watch 非空
+  processEvents 之后，watch 非空
+  sendPostedEvents(DeferredDelete) 之后，watch 为空

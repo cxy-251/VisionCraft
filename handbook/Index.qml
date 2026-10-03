@@ -11,7 +11,7 @@ HandbookIndex {
 
         Chapter {
             title: qsTr("C++ 补课")
-            Entry { title: qsTr("对象生命周期与所有权") }
+            Entry { title: qsTr("对象生命周期与所有权"); file: "handbook/bridge/cpp/Lifetime.qml" }
             Entry { title: qsTr("lambda 与捕获") }
             Entry { title: qsTr("拷贝、移动与隐式共享") }
             Entry { title: qsTr("读懂模板签名") }

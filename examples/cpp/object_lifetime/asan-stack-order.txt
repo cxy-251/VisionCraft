@@ -1,0 +1,13 @@
+$ ./example_cpp_object_lifetime stack-order           # 普通编译
+double free or corruption (out)
+已中止（核心已转储）
+（退出码 134：程序被 abort）
+
+$ ./example_cpp_object_lifetime stack-order           # 加 -fsanitize=address 编译
+=================================================================
+==PID==ERROR: AddressSanitizer: attempting free on address which was not malloc()-ed: 0x… in thread T0
+    #0 0x… in operator delete(void*, unsigned long) /usr/src/debug/gcc/gcc/libsanitizer/asan/asan_new_delete.cpp:155
+    #1 0x… in QObjectPrivate::deleteChildren() (~/Applications/qt6/usr/lib/libQt6Core.so.6+0x1b8fe1)
+    #2 0x… in QObject::~QObject() (~/Applications/qt6/usr/lib/libQt6Core.so.6+0x1bfc18)
+    #3 0x… in stackOrder examples/cpp/object_lifetime/main.cpp:141
+    #4 0x… in main examples/cpp/object_lifetime/main.cpp:151

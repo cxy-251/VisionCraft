@@ -1,0 +1,2 @@
+qt_add_executable(example_cpp_object_lifetime main.cpp)
+target_link_libraries(example_cpp_object_lifetime PRIVATE Qt6::Core)

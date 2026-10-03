@@ -204,6 +204,11 @@ file(GLOB_RECURSE VC_HANDBOOK_FILES CONFIGURE_DEPENDS
     tests/*.cpp
     tools/*.cpp tools/*.sh tools/*.tcl
     CMakeLists.txt qml/*.qml)
+# 这些文件在主程序里只是被展示的文本：示例各自是独立的可执行文件（在 examples/ 子目录里有自己的 moc），
+# 不能让主程序的 AutoMoc 去扫描它们，否则两个示例都 #include "main.moc" 会冲突
+set(VC_DISPLAY_ONLY ${VC_HANDBOOK_FILES})
+list(FILTER VC_DISPLAY_ONLY INCLUDE REGEX "^(examples|handbook)/")
+set_source_files_properties(${VC_DISPLAY_ONLY} PROPERTIES SKIP_AUTOGEN ON)
 qt_add_resources(VisionCraft "vc_handbook_content" PREFIX "/" FILES ${VC_HANDBOOK_FILES})
 
 target_compile_definitions(VisionCraft PRIVATE VC_SOURCE_DIR="${CMAKE_CURRENT_SOURCE_DIR}")

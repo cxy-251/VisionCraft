@@ -1,0 +1,21 @@
+  [Qt]   onChildWidthChanged：childWidth = 200
+parentWidth=400  childWidth=200  label=宽度 200   ← 加载完成
+  [Qt]   onChildWidthChanged：childWidth = 300
+parentWidth=600  childWidth=300  label=宽度 300   ← parentWidth = 600
+  [Qt] Overwriting binding on Bindings_QMLTYPE_0::childWidth at examples/qml/bindings/Bindings.qml:27 that was initially bound at examples/qml/bindings/Bindings.qml:9:5
+  [Qt]   onChildWidthChanged：childWidth = 100
+parentWidth=600  childWidth=100  label=宽度 100   ← 调用 setFixed()（childWidth = 100）
+parentWidth=800  childWidth=100  label=宽度 100   ← parentWidth = 800
+  [Qt]   onChildWidthChanged：childWidth = 400
+parentWidth=800  childWidth=400  label=宽度 400   ← 调用 restore()（Qt.binding）
+  [Qt]   onChildWidthChanged：childWidth = 500
+parentWidth=1000 childWidth=500  label=宽度 500   ← parentWidth = 1000
+
+给 readonly 属性赋值：
+  [Qt] examples/qml/bindings/Bindings.qml:21: TypeError: Cannot assign to read-only property "doubled"
+doubled=1000
+
+加载 Loop.qml：
+  [Qt] examples/qml/bindings/Loop.qml:3:1: QML Loop: Binding loop detected for property "a":
+examples/qml/bindings/Loop.qml:5:5
+a=2 b=3

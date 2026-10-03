@@ -189,7 +189,7 @@ file(GLOB_RECURSE VC_HANDBOOK_FILES CONFIGURE_DEPENDS
     RELATIVE ${CMAKE_CURRENT_SOURCE_DIR}
     handbook/*.qml handbook/*.txt handbook/*.c
     scripts/*.sh
-    examples/*.cpp examples/*.h examples/*.c examples/*.txt
+    examples/*.cpp examples/*.h examples/*.c examples/*.txt examples/*.qml
     src/*.cpp src/*.h
     protocol/*.c protocol/*.h
     firmware/station/App/*.c firmware/station/App/*.h

@@ -52,7 +52,7 @@ Section {
                  + "所以可以用 OpenOCD 直接给屏发「读显存」命令，读回指定像素的颜色，和程序应该画的颜色比对：")
     }
     CodeRef { file: "tools/lcd_readback.tcl"; region: "readback" }
-    CodeRef { file: "tools/lcd_readback.tcl"; caption: qsTr("运行方法"); from: "^#   openocd"; to: "^#   openocd" }
+    CodeRef { file: "tools/lcd_readback.tcl"; caption: qsTr("运行方法"); match: "^#   openocd" }
 
     Para {
         text: qsTr("在本板上实际读到：控制器 ID2 = 0x0080（NT35510）；标题栏 0x1947、背景 0x08A5，正是 station_ui.c 里"

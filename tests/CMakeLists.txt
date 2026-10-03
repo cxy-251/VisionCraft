@@ -70,3 +70,12 @@ target_include_directories(tst_concurrency_demo PRIVATE ${PROJECT_SOURCE_DIR}/sr
                            ${PROJECT_SOURCE_DIR}/protocol ${OpenCV_INCLUDE_DIRS})
 target_link_libraries(tst_concurrency_demo PRIVATE Qt6::Core Qt6::Concurrent Qt6::Qml Qt6::Test ${OpenCV_LIBS})
 add_test(NAME tst_concurrency_demo COMMAND tst_concurrency_demo)
+
+# 手册引用：每个 CodeRef 都能取到片段，引用的文件都被打包进程序
+qt_add_executable(tst_handbook_refs tst_handbook_refs.cpp ${PROJECT_SOURCE_DIR}/src/handbook/SourceProvider.cpp)
+target_include_directories(tst_handbook_refs PRIVATE ${PROJECT_SOURCE_DIR}/src/handbook)
+target_compile_definitions(tst_handbook_refs PRIVATE
+    VC_SOURCE_DIR="${PROJECT_SOURCE_DIR}"
+    VC_HANDBOOK_QRC="${PROJECT_BINARY_DIR}/.qt/rcc/vc_handbook_content.qrc")
+target_link_libraries(tst_handbook_refs PRIVATE Qt6::Core Qt6::Gui Qt6::Qml Qt6::Test)
+add_test(NAME tst_handbook_refs COMMAND tst_handbook_refs)

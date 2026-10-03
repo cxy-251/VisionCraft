@@ -8,6 +8,7 @@ import VisionCraft
 // region 为空时显示整个文件。代码随文件变化而变化，不会和项目脱节。
 Rectangle {
     id: ref
+    clip: true      // 内容（例如行号列）万一比计算出的高度长，也不画到块外面去
     property string file
     property string region
     property string match         // 只显示匹配这个正则的行（用于不能加 region 标记的生成文件）

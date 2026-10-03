@@ -61,6 +61,10 @@ public:
     Q_INVOKABLE int subscribeTelemetry(int periodMs);
     Q_INVOKABLE int sendResult(bool ok, int defect, int inspectMs, int total, int ng);
 
+    // 配方：读回来发 recipeReceived（空表示板子上没有），写完发 recipeSaved
+    Q_INVOKABLE int getRecipe();
+    Q_INVOKABLE int setRecipe(const QVariantMap &recipe);
+
     // 把图片缩到 160×120 以内、转成 RGB565，分块发给板子显示。正在发上一张时返回 false（不排队）
     bool sendImage(const QImage &image);
     bool imageBusy() const { return m_img.active; }
@@ -91,6 +95,8 @@ signals:
     void throughputFinished(const QVariantMap &result);
     void flashFinished(bool ok, const QString &message);
     void imageSent(bool ok, int bytes, double ms);
+    void recipeReceived(const QVariantMap &recipe);   // 空 map：板子上还没有配方
+    void recipeSaved(bool ok);
 
 private:
     struct Pending {

@@ -82,6 +82,27 @@ int main(int argc, char *argv[])
             link.sendImage(img);
         };
     }
+    // 第二个参数 recipe：读配方 → 写一份测试配方 → 再读；第二个参数 recipe-read：只读一次
+    if (argc > 2 && (QByteArray(argv[2]) == "recipe" || QByteArray(argv[2]) == "recipe-read")) {
+        const bool write = QByteArray(argv[2]) == "recipe";
+        QObject::connect(&link, &DeviceLink::recipeReceived, &link, [&](const QVariantMap &r) {
+            say(QStringLiteral("[recipe] %1").arg(r.isEmpty() ? QStringLiteral("（空）")
+                : QStringLiteral("表面阈值 %1，最小面积 %2，偏心 %3，缺口 %4，长宽比 %5")
+                      .arg(r.value("surfaceThreshold").toInt()).arg(r.value("minDefectArea").toInt())
+                      .arg(r.value("maxCenterOffset").toDouble()).arg(r.value("minChipDepth").toDouble())
+                      .arg(r.value("scratchElongation").toDouble())));
+        });
+        steps << [&] { link.getRecipe(); QTimer::singleShot(500, next); };
+        if (write) {
+            steps << [&] {
+                link.setRecipe({{"surfaceThreshold", 18}, {"minDefectArea", 12}, {"maxCenterOffset", 6.0},
+                                {"minChipDepth", 5.0}, {"scratchElongation", 3.0}});
+                QTimer::singleShot(800, next);
+            };
+            steps << [&] { link.getRecipe(); QTimer::singleShot(500, next); };
+        }
+        steps << [&] { app.exit(0); };
+    }
     if (soak) {
         steps << [&] {
             QObject::connect(&link, &DeviceLink::throughputFinished, [&](const QVariantMap &r) {

@@ -203,3 +203,25 @@ int vc_result_read(vc_result *r, const uint8_t *src, size_t len)
     r->ng = vc_get_u32(&src[8]);
     return 0;
 }
+
+size_t vc_recipe_write(uint8_t *dst, const vc_recipe *r)
+{
+    dst[0] = r->surface_threshold;
+    dst[1] = r->min_defect_area;
+    vc_put_u16(&dst[2], r->max_center_offset_x10);
+    vc_put_u16(&dst[4], r->min_chip_depth_x10);
+    vc_put_u16(&dst[6], r->scratch_elongation_x10);
+    return VC_RECIPE_SIZE;
+}
+
+int vc_recipe_read(vc_recipe *r, const uint8_t *src, size_t len)
+{
+    if (len < VC_RECIPE_SIZE)
+        return -1;
+    r->surface_threshold = src[0];
+    r->min_defect_area = src[1];
+    r->max_center_offset_x10 = vc_get_u16(&src[2]);
+    r->min_chip_depth_x10 = vc_get_u16(&src[4]);
+    r->scratch_elongation_x10 = vc_get_u16(&src[6]);
+    return 0;
+}

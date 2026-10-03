@@ -91,6 +91,47 @@ Item {
                 Slider { Layout.fillWidth: true; from: 200; to: 3000; stepSize: 100; value: Station.intervalMs; onMoved: Station.intervalMs = value }
                 SettingValue { text: Station.intervalMs + " ms" }
             }
+
+            // 检测配方：阈值存在板子的 EEPROM 里
+            Rectangle {
+                Layout.fillWidth: true
+                implicitHeight: recipeCol.implicitHeight + 28
+                radius: Theme.radius
+                color: Theme.surface
+                border.color: Theme.border
+                ColumnLayout {
+                    id: recipeCol
+                    anchors.fill: parent
+                    anchors.margins: 14
+                    spacing: 6
+                    RowLayout {
+                        Text { text: qsTr("检测配方"); font.pixelSize: Theme.fontSmall; font.weight: Font.Bold; color: Theme.textMuted }
+                        Text { text: qsTr("来源：") + Station.recipeSource; font.pixelSize: 12
+                               color: Station.recipeSource === qsTr("板子") ? Theme.tryIt : Theme.workerLane }
+                        Item { Layout.fillWidth: true }
+                        Btn { text: qsTr("从板子读取"); enabled: DeviceLink.state === DeviceLink.Connected; onClicked: Station.loadRecipeFromBoard() }
+                        Btn { text: qsTr("写入板子"); enabled: DeviceLink.state === DeviceLink.Connected; onClicked: Station.saveRecipeToBoard() }
+                    }
+                    GridLayout {
+                        Layout.fillWidth: true
+                        columns: 3
+                        columnSpacing: 12
+                        rowSpacing: 0
+                        SettingLabel { text: qsTr("表面阈值") }
+                        Slider { Layout.fillWidth: true; from: 5; to: 60; stepSize: 1; value: Station.recipe.surfaceThreshold
+                                 onMoved: Station.setRecipeValue("surfaceThreshold", value) }
+                        SettingValue { text: Station.recipe.surfaceThreshold }
+                        SettingLabel { text: qsTr("偏心阈值") }
+                        Slider { Layout.fillWidth: true; from: 2; to: 15; stepSize: 0.5; value: Station.recipe.maxCenterOffset
+                                 onMoved: Station.setRecipeValue("maxCenterOffset", value) }
+                        SettingValue { text: Station.recipe.maxCenterOffset.toFixed(1) + " px" }
+                        SettingLabel { text: qsTr("缺口深度") }
+                        Slider { Layout.fillWidth: true; from: 2; to: 15; stepSize: 0.5; value: Station.recipe.minChipDepth
+                                 onMoved: Station.setRecipeValue("minChipDepth", value) }
+                        SettingValue { text: Station.recipe.minChipDepth.toFixed(1) + " px" }
+                    }
+                }
+            }
             Item { Layout.fillHeight: true }
         }
 

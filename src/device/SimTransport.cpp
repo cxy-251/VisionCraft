@@ -115,6 +115,17 @@ void SimTransport::handle(const vc_frame &f)
     case VC_CMD_IMAGE_DATA:
         send(VC_RSP(f.type), f.seq, QByteArray(1, char(f.len > 4 ? VC_OK : VC_ERR_ARGS)));
         break;
+    case VC_CMD_RECIPE_GET:
+        send(VC_RSP(f.type), f.seq, m_recipe.isEmpty() ? QByteArray(1, char(VC_ERR_EMPTY)) : QByteArray(1, ok) + m_recipe);
+        break;
+    case VC_CMD_RECIPE_SET:
+        if (f.len != VC_RECIPE_SIZE) {
+            send(VC_RSP(f.type), f.seq, QByteArray(1, char(VC_ERR_ARGS)));
+            break;
+        }
+        m_recipe = payload;
+        send(VC_RSP(f.type), f.seq, QByteArray(1, ok));
+        break;
     case VC_CMD_RESULT: {
         vc_result r;
         if (vc_result_read(&r, f.payload, f.len) != 0) {

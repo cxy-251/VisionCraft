@@ -35,7 +35,10 @@ class StationController : public QObject {
     Q_PROPERTY(int intervalMs MEMBER m_intervalMs NOTIFY settingsChanged)
     Q_PROPERTY(double defectRate MEMBER m_defectRate NOTIFY settingsChanged)
     Q_PROPERTY(double difficulty MEMBER m_difficulty NOTIFY settingsChanged)
-    Q_PROPERTY(DeviceLink *link MEMBER m_link NOTIFY settingsChanged)
+    Q_PROPERTY(DeviceLink *link READ link WRITE setLink NOTIFY settingsChanged)
+    // 当前检测用的阈值（配方）。连上板子时从板子 EEPROM 读；改了可以写回板子
+    Q_PROPERTY(QVariantMap recipe READ recipe NOTIFY recipeChanged)
+    Q_PROPERTY(QString recipeSource READ recipeSource NOTIFY recipeChanged)   // 「默认值」/「板子」/「已修改，未保存」
 
 public:
     explicit StationController(QObject *parent = nullptr);
@@ -49,11 +52,18 @@ public:
     bool running() const { return m_running; }
     void setRunning(bool on);
     bool busy() const { return m_busy; }
+    DeviceLink *link() const { return m_link; }
+    void setLink(DeviceLink *link);
+    QVariantMap recipe() const;
+    QString recipeSource() const { return m_recipeSource; }
 
     Q_INVOKABLE void nextPart();
     Q_INVOKABLE void inspectNow();
     Q_INVOKABLE void inspectGrab(const QImage &screenshot);
     Q_INVOKABLE void resetStats();
+    Q_INVOKABLE void setRecipeValue(const QString &key, double value);   // 立即生效，标记为未保存
+    Q_INVOKABLE void saveRecipeToBoard();
+    Q_INVOKABLE void loadRecipeFromBoard();
     // ……（省略 C++ 内部用的部分）
     // [endregion]
 
@@ -68,6 +78,7 @@ signals:
     void busyChanged();
     void settingsChanged();
     void grabRequested();
+    void recipeChanged();
 
 private:
     void onInspected();
@@ -84,6 +95,8 @@ private:
     QFutureWatcher<Inspector::Result> m_watcher;
     QTimer m_lineTimer;
     QPointer<DeviceLink> m_link;
+    QString m_recipeSource = QStringLiteral("默认值");
+    void applyRecipe(const QVariantMap &m);
 
     bool m_running = false;
     bool m_busy = false;

@@ -47,6 +47,8 @@ enum vc_type {
     VC_CMD_RESULT    = 0x06, /* 负载见 vc_result：一次检测的结果，板子显示并报警 */
     VC_CMD_IMAGE_BEGIN = 0x07, /* 负载：width(2) height(2)，随后用 IMAGE_DATA 送 width×height 个 RGB565 像素 */
     VC_CMD_IMAGE_DATA  = 0x08, /* 负载：offset(4，字节) + 像素数据；全部到齐后板子显示 */
+    VC_CMD_RECIPE_GET  = 0x09, /* 应答负载见 vc_recipe；板子上没有有效配方时状态码为 VC_ERR_EMPTY */
+    VC_CMD_RECIPE_SET  = 0x0A, /* 负载见 vc_recipe，写进板子的 EEPROM */
 
     /* EVT：事件 */
     VC_EVT_HELLO     = 0x40, /* 板子启动完成，负载同 vc_info */
@@ -68,7 +70,9 @@ enum vc_status {
     VC_OK            = 0,
     VC_ERR_ARGS      = 1,  /* 参数长度或取值不对 */
     VC_ERR_UNKNOWN   = 2,  /* 不认识这个命令 */
-    VC_ERR_BUSY      = 3
+    VC_ERR_BUSY      = 3,
+    VC_ERR_EMPTY     = 4,  /* 请求的数据不存在（例如 EEPROM 里还没有配方） */
+    VC_ERR_IO        = 5   /* 外设读写失败（例如 EEPROM 没有应答） */
 };
 
 /* 缺陷类型（检测结果） */
@@ -108,6 +112,16 @@ typedef struct {
 } vc_result;
 #define VC_RESULT_SIZE (1u + 1u + 2u + 4u + 4u)
 
+/* 检测配方：检测算法的阈值，存在板子的 EEPROM 里，断电不丢。浮点数一律放大 10 倍存成整数 */
+typedef struct {
+    uint8_t  surface_threshold;      /* 表面异常的亮度差阈值 */
+    uint8_t  min_defect_area;        /* 表面异常最小面积（像素） */
+    uint16_t max_center_offset_x10;  /* 内孔偏心阈值 ×10（像素） */
+    uint16_t min_chip_depth_x10;     /* 缺口深度阈值 ×10（像素） */
+    uint16_t scratch_elongation_x10; /* 划痕长宽比阈值 ×10 */
+} vc_recipe;
+#define VC_RECIPE_SIZE 8u
+
 /* 下发到板子屏幕的缩略图：固定最大尺寸，板子上预留这么大的缓冲区 */
 #define VC_THUMB_MAX_W 160u
 #define VC_THUMB_MAX_H 120u
@@ -139,6 +153,8 @@ size_t vc_info_write(uint8_t *dst, const vc_info *info);           /* 返回写�
 int    vc_info_read(vc_info *info, const uint8_t *src, size_t len); /* 成功返回 0 */
 size_t vc_result_write(uint8_t *dst, const vc_result *r);
 int    vc_result_read(vc_result *r, const uint8_t *src, size_t len);
+size_t vc_recipe_write(uint8_t *dst, const vc_recipe *r);
+int    vc_recipe_read(vc_recipe *r, const uint8_t *src, size_t len);
 size_t vc_tel_env_write(uint8_t *dst, const vc_tel_env *t);
 int    vc_tel_env_read(vc_tel_env *t, const uint8_t *src, size_t len);
 

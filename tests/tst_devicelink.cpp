@@ -124,6 +124,27 @@ private slots:
         QVERIFY(!link.imageBusy());
     }
 
+    void recipeRoundTrip()
+    {
+        DeviceLink link;
+        link.connectSimulator();
+        QTRY_COMPARE(link.state(), DeviceLink::Connected);
+        QSignalSpy got(&link, &DeviceLink::recipeReceived);
+        QSignalSpy saved(&link, &DeviceLink::recipeSaved);
+        link.getRecipe();
+        QTRY_COMPARE(got.size(), 1);
+        QVERIFY(got.at(0).at(0).toMap().isEmpty());          // 模拟 EEPROM 一开始是空的
+        link.setRecipe({{"surfaceThreshold", 22}, {"minDefectArea", 9}, {"maxCenterOffset", 5.5},
+                        {"minChipDepth", 4.0}, {"scratchElongation", 3.5}});
+        QTRY_COMPARE(saved.size(), 1);
+        QVERIFY(saved.at(0).at(0).toBool());
+        link.getRecipe();
+        QTRY_COMPARE(got.size(), 2);
+        const QVariantMap r = got.at(1).at(0).toMap();
+        QCOMPARE(r.value("surfaceThreshold").toInt(), 22);
+        QCOMPARE(r.value("maxCenterOffset").toDouble(), 5.5);   // ×10 存整数，往返不失真
+    }
+
     void disconnectFailsPendingRequests()
     {
         DeviceLink link;

@@ -5,6 +5,7 @@
 #include "cmsis_os2.h"
 #include "vc_protocol.h"
 #include "vc_rtt.h"
+#include "eeprom.h"
 
 #include <string.h>
 
@@ -91,6 +92,28 @@ static void handle(const vc_frame *f)
         reply(f->type, f->seq, f->len > 4 ? app_image_data(vc_get_u32(f->payload), f->payload + 4, (uint16_t)(f->len - 4))
                                           : (uint8_t)VC_ERR_ARGS, NULL, 0);
         break;
+
+    case VC_CMD_RECIPE_GET: {
+        vc_recipe r;
+        const int rc = recipe_load(&r);
+        if (rc != 0) {
+            reply(f->type, f->seq, rc == -1 ? VC_ERR_EMPTY : VC_ERR_IO, NULL, 0);
+            break;
+        }
+        uint8_t buf[VC_RECIPE_SIZE];
+        reply(f->type, f->seq, VC_OK, buf, (uint16_t)vc_recipe_write(buf, &r));
+        break;
+    }
+
+    case VC_CMD_RECIPE_SET: {
+        vc_recipe r;
+        if (vc_recipe_read(&r, f->payload, f->len) != 0) {
+            reply(f->type, f->seq, VC_ERR_ARGS, NULL, 0);
+            break;
+        }
+        reply(f->type, f->seq, recipe_save(&r) == 0 ? VC_OK : VC_ERR_IO, NULL, 0);
+        break;
+    }
 
     default:   /* 包括 SET_TIME：RTC 还没配置 */
         if (VC_IS_CMD(f->type))

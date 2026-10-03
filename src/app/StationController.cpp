@@ -157,3 +157,78 @@ void StationController::resetStats()
     m_timeline.clear();
     emit statsChanged();
 }
+
+// ------------------------------------------------------------------ 配方
+
+void StationController::setLink(DeviceLink *link)
+{
+    if (m_link == link)
+        return;
+    if (m_link)
+        m_link->disconnect(this);
+    m_link = link;
+    if (m_link) {
+        // 每次连上板子，先读板子上的配方
+        connect(m_link, &DeviceLink::stateChanged, this, [this] {
+            if (m_link->state() == DeviceLink::Connected)
+                loadRecipeFromBoard();
+        });
+        connect(m_link, &DeviceLink::recipeReceived, this, [this](const QVariantMap &m) {
+            if (m.isEmpty())
+                return;   // 板子上没有，继续用当前值
+            applyRecipe(m);
+            m_recipeSource = tr("板子");
+            emit recipeChanged();
+        });
+        connect(m_link, &DeviceLink::recipeSaved, this, [this](bool ok) {
+            if (ok) {
+                m_recipeSource = tr("板子");
+                emit recipeChanged();
+            }
+        });
+    }
+    emit settingsChanged();
+}
+
+QVariantMap StationController::recipe() const
+{
+    const Inspector::Params &p = m_inspector.params;
+    return {
+        {QStringLiteral("surfaceThreshold"), p.surfaceThreshold},
+        {QStringLiteral("minDefectArea"), p.minDefectArea},
+        {QStringLiteral("maxCenterOffset"), p.maxCenterOffset},
+        {QStringLiteral("minChipDepth"), p.minChipDepth},
+        {QStringLiteral("scratchElongation"), p.scratchElongation},
+    };
+}
+
+void StationController::applyRecipe(const QVariantMap &m)
+{
+    Inspector::Params &p = m_inspector.params;
+    p.surfaceThreshold = m.value(QStringLiteral("surfaceThreshold"), p.surfaceThreshold).toInt();
+    p.minDefectArea = m.value(QStringLiteral("minDefectArea"), p.minDefectArea).toInt();
+    p.maxCenterOffset = m.value(QStringLiteral("maxCenterOffset"), p.maxCenterOffset).toDouble();
+    p.minChipDepth = m.value(QStringLiteral("minChipDepth"), p.minChipDepth).toDouble();
+    p.scratchElongation = m.value(QStringLiteral("scratchElongation"), p.scratchElongation).toDouble();
+}
+
+void StationController::setRecipeValue(const QString &key, double value)
+{
+    QVariantMap m = recipe();
+    m[key] = value;
+    applyRecipe(m);
+    m_recipeSource = tr("已修改，未保存到板子");
+    emit recipeChanged();
+}
+
+void StationController::saveRecipeToBoard()
+{
+    if (m_link)
+        m_link->setRecipe(recipe());
+}
+
+void StationController::loadRecipeFromBoard()
+{
+    if (m_link)
+        m_link->getRecipe();
+}

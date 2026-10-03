@@ -35,4 +35,5 @@ private:
     QTimer m_telTimer;
     uint8_t m_eventSeq = 0;
     int m_latencyMs = 2;
+    QByteArray m_recipe;   // 模拟 EEPROM 里的配方，开始是空的
 };

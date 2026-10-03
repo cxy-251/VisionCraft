@@ -6,6 +6,7 @@
 
 #include <QDateTime>
 #include <QSerialPortInfo>
+#include <cmath>
 #include <algorithm>
 #include <utility>
 
@@ -302,6 +303,8 @@ QString DeviceLink::commandName(uint8_t type)
     case VC_CMD_RESULT: return QStringLiteral("RESULT");
     case VC_CMD_IMAGE_BEGIN: return QStringLiteral("IMAGE_BEGIN");
     case VC_CMD_IMAGE_DATA: return QStringLiteral("IMAGE_DATA");
+    case VC_CMD_RECIPE_GET: return QStringLiteral("RECIPE_GET");
+    case VC_CMD_RECIPE_SET: return QStringLiteral("RECIPE_SET");
     }
     return QStringLiteral("0x%1").arg(type, 2, 16, QLatin1Char('0'));
 }
@@ -391,6 +394,47 @@ int DeviceLink::sendResult(bool ok, int defect, int inspectMs, int total, int ng
         if (!ok)
             emit logLine(QStringLiteral("error"), tr("下发检测结果失败（%1）").arg(status < 0 ? tr("超时") : QString::number(status)));
     });
+}
+
+// ------------------------------------------------------------------ 配方
+
+int DeviceLink::getRecipe()
+{
+    return request(VC_CMD_RECIPE_GET, {}, [this](bool ok, int status, const QByteArray &payload) {
+        vc_recipe r;
+        if (!ok || vc_recipe_read(&r, reinterpret_cast<const uint8_t *>(payload.constData()), size_t(payload.size())) != 0) {
+            emit logLine(status == VC_ERR_EMPTY ? QStringLiteral("link") : QStringLiteral("error"),
+                         status == VC_ERR_EMPTY ? tr("板子上还没有保存过配方") : tr("读取配方失败（%1）").arg(status));
+            emit recipeReceived({});
+            return;
+        }
+        const QVariantMap m{
+            {QStringLiteral("surfaceThreshold"), r.surface_threshold},
+            {QStringLiteral("minDefectArea"), r.min_defect_area},
+            {QStringLiteral("maxCenterOffset"), r.max_center_offset_x10 / 10.0},
+            {QStringLiteral("minChipDepth"), r.min_chip_depth_x10 / 10.0},
+            {QStringLiteral("scratchElongation"), r.scratch_elongation_x10 / 10.0},
+        };
+        emit logLine(QStringLiteral("ok"), tr("从板子读到配方：表面阈值 %1，偏心阈值 %2 px")
+                                               .arg(r.surface_threshold).arg(r.max_center_offset_x10 / 10.0));
+        emit recipeReceived(m);
+    });
+}
+
+int DeviceLink::setRecipe(const QVariantMap &m)
+{
+    vc_recipe r{uint8_t(std::clamp(m.value("surfaceThreshold").toInt(), 0, 255)),
+                uint8_t(std::clamp(m.value("minDefectArea").toInt(), 0, 255)),
+                uint16_t(std::lround(m.value("maxCenterOffset").toDouble() * 10)),
+                uint16_t(std::lround(m.value("minChipDepth").toDouble() * 10)),
+                uint16_t(std::lround(m.value("scratchElongation").toDouble() * 10))};
+    QByteArray p(VC_RECIPE_SIZE, 0);
+    vc_recipe_write(reinterpret_cast<uint8_t *>(p.data()), &r);
+    return request(VC_CMD_RECIPE_SET, p, [this](bool ok, int status, const QByteArray &) {
+        emit logLine(ok ? QStringLiteral("ok") : QStringLiteral("error"),
+                     ok ? tr("配方已写入板子 EEPROM") : tr("写入配方失败（%1）").arg(status));
+        emit recipeSaved(ok);
+    }, 2000);   // EEPROM 每页写 5 ms，两页加上传输，留足时间
 }
 
 // ------------------------------------------------------------------ 缩略图

@@ -51,7 +51,7 @@ Section {
         text: qsTr("调试时怎么确认屏上真的画对了，而不用人去看？CPU 暂停时，调试器照样能访问 FSMC 的地址，"
                  + "所以可以用 OpenOCD 直接给屏发「读显存」命令，读回指定像素的颜色，和程序应该画的颜色比对：")
     }
-    CodeRef { file: "tools/lcd_readback.tcl"; region: "readback" }
+    CodeRef { file: "tools/lcd_lib.tcl"; region: "readback" }
     CodeRef { file: "tools/lcd_readback.tcl"; caption: qsTr("运行方法"); match: "^#   openocd" }
 
     Para {

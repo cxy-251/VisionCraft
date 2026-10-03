@@ -1,0 +1,9 @@
+$ ./build/tools/vclink_probe rtt image
+[image ] 成功：38400 字节，484 ms
+
+$ openocd -f interface/stlink.cfg -f target/stm32f4x.cfg -c init -f tools/thumb_readback.tcl -c exit
+左上 (316,270) = 0xF800  期望 0xF800  ✓
+右上 (356,270) = 0x07E0  期望 0x07E0  ✓
+左下 (316,330) = 0x001F  期望 0x001F  ✓
+右下 (356,330) = 0xFFFF  期望 0xFFFF  ✓
+交界 (355,270) = 0xF800，(356,270) = 0x07E0

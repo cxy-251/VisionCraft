@@ -8,6 +8,7 @@
 #include "PartGenerator.h"
 
 #include <QDir>
+#include <algorithm>
 #include <cstdio>
 #include <opencv2/imgcodecs.hpp>
 #include <opencv2/imgproc.hpp>
@@ -71,5 +72,26 @@ int main(int argc, char *argv[])
             save(QStringLiteral("scratch-blackhat-x4"), shown);
         }
     }
+    // [region burr]
+    // 额外一例：合格品的外圆上画一根向外凸出的小毛刺（和垫圈同色，长 10、宽 5 像素），看检测算法怎么判
+    {
+        PartGenerator::Part part = gen.make(VC_DEFECT_NONE, 0.0);
+        Inspector::Steps steps;
+        insp.inspect(part.image, &steps);
+        std::vector<std::vector<cv::Point>> contours;
+        cv::findContours(step(steps, "binary")->clone(), contours, cv::RETR_EXTERNAL, cv::CHAIN_APPROX_NONE);
+        const auto &outer = *std::max_element(contours.begin(), contours.end(),
+            [](const auto &a, const auto &b) { return cv::contourArea(a) < cv::contourArea(b); });
+        const cv::RotatedRect e = cv::fitEllipse(outer);
+        const float r = std::min(e.size.width, e.size.height) / 2;
+        const cv::Point top(int(e.center.x), int(e.center.y - r));            // 外圆最上面一点
+        const cv::Scalar washer = cv::mean(part.image, *step(steps, "binary"));   // 垫圈的平均颜色
+        cv::rectangle(part.image, cv::Rect(top.x - 2, top.y - 10, 5, 14), washer, cv::FILLED);
+        const Inspector::Result r2 = insp.inspect(part.image);
+        std::printf("burr     标准答案 合格（外加一根毛刺） 判定 %s  chipDepth=%.1f\n",
+                    qPrintable(Inspector::defectName(r2.defect)), r2.measures.value(QStringLiteral("chipDepth")).toDouble());
+        save(QStringLiteral("burr-result"), r2.annotated);
+    }
+    // [endregion]
     return 0;
 }

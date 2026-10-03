@@ -149,8 +149,8 @@ HandbookIndex {
             title: qsTr("轮廓与几何")
             Entry { title: qsTr("轮廓检索"); file: "handbook/opencv/contours/Contours.qml"; from: "轮廓检索与几何外接分析" }
             Entry { title: qsTr("连通域"); from: "连通域统计与几何矩分析" }
-            Entry { title: qsTr("外接圆与拟合椭圆"); from: "最小外接圆与拟合椭圆" }
-            Entry { title: qsTr("凸包与凹缺陷"); from: "凸包多边形与凹缺陷检测" }
+            Entry { title: qsTr("外接圆与拟合椭圆"); file: "handbook/opencv/contours/Fitting.qml"; from: "最小外接圆与拟合椭圆" }
+            Entry { title: qsTr("凸包与凹缺陷"); file: "handbook/opencv/contours/Hull.qml"; from: "凸包多边形与凹缺陷检测" }
             Entry { title: qsTr("分水岭"); from: "分水岭算法解决重叠粘连物体分割" }
         }
         Chapter {

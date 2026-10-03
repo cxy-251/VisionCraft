@@ -6,3 +6,4 @@ chip     标准答案 缺口 判定 缺口  centerOffset=0.1 chipDepth=18.6 hole
 offset   标准答案 内孔偏心 判定 内孔偏心  centerOffset=16.2 chipDepth=0.9 holeR=47.8 otsu=128.0 outerR=114.5 
 good     标准答案 合格 判定 合格  centerOffset=0.1 chipDepth=0.9 holeR=46.8 otsu=128.0 outerR=116.5 surfaceArea=0.0 
          黑帽超过阈值的像素：环形掩膜前 0 个，掩膜后 0 个
+burr     标准答案 合格（外加一根毛刺） 判定 缺口  chipDepth=8.9

@@ -83,7 +83,8 @@ Inspector::Result Inspector::inspect(const cv::Mat &bgr, Steps *steps) const
         return finish(VC_DEFECT_MISSING);
 
     // ---- 3. 外圆和内孔：用最小二乘拟合圆心 ----
-    // 外圆不用最小外接圆：缺口不影响外接圆，但会拉偏拟合；这里用外轮廓的凸包拟合，缺口处凸包直接跨过去
+    // 外圆用「凸包 + 拟合」：直接拟合会被缺口拉偏，最小外接圆会被外凸的毛刺拉偏，凸包拟合两种都基本不受影响
+    // （实测见 examples/opencv/fit_hull：40 像素缺口，直接拟合偏 4.6 像素；16 像素毛刺，外接圆偏 6.7 像素）
     std::vector<cv::Point> hull;
     cv::convexHull(contours[outer], hull);
     const cv::RotatedRect outerFit = cv::fitEllipse(hull);

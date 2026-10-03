@@ -1,0 +1,37 @@
+$ c++ -std=c++17 -c connect_mismatch.cpp    # 共 36 行；<qt6>、<c++> 是缩写的库头文件目录
+In file included from <qt6>/QtCore/QObject:1,
+                 from connect_mismatch.cpp:2:
+<qt6>/QtCore/qobject.h: In instantiation of ‘static QMetaObject::Connection QObject::connect(const typename QtPrivate::FunctionPointer<Prototype>::Object*, Func1, const typename QtPrivate::ContextTypeForFunctor<Func2>::ContextType*, Func2&&, Qt::ConnectionType) [with Func1 = void (Sensor::*)(int); Func2 = wire(Sensor*, QObject*)::<lambda(const QString&)>; typename QtPrivate::FunctionPointer<Prototype>::Object = Sensor; typename QtPrivate::ContextTypeForFunctor<Func2>::ContextType = QObject]’:
+connect_mismatch.cpp:13:21:   required from here
+   13 |     QObject::connect(sensor, &Sensor::measured, context, [](const QString &text) { (void)text; });
+      |     ~~~~~~~~~~~~~~~~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+<qt6>/QtCore/qobject.h:244:175: error: no type named ‘type’ in ‘struct QtPrivate::FunctorReturnType<wire(Sensor*, QObject*)::<lambda(const QString&)>, QtPrivate::List<> >’
+  244 |             typedef typename QtPrivate::FunctorReturnType<std::decay_t<Func2>, typename QtPrivate::List_Left<typename SignalType::Arguments, SlotArgumentCount>::Value>::type SlotReturnType;
+      |                                                                                                                                                                               ^~~~~~~~~~~~~~
+<qt6>/QtCore/qobject.h:246:112: error: no type named ‘type’ in ‘struct QtPrivate::FunctorReturnType<wire(Sensor*, QObject*)::<lambda(const QString&)>, QtPrivate::List<> >’
+  246 |             static_assert((QtPrivate::AreArgumentsCompatible<SlotReturnType, typename SignalType::ReturnType>::value),
+      |                           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^~~~~~
+<qt6>/QtCore/qobject.h:271:64: error: no matching function for call to ‘makeCallableObject<void (Sensor::*)(int)>(wire(Sensor*, QObject*)::<lambda(const QString&)>)’
+  271 |                            QtPrivate::makeCallableObject<Func1>(std::forward<Func2>(slot)),
+      |                            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^~~~~~~~~~~~~~~~~~~~~~~~~~~
+<qt6>/QtCore/qobject.h:271:64: note: there is 1 candidate
+In file included from <qt6>/QtCore/qobjectdefs.h:13,
+                 from <qt6>/QtCore/qobject.h:10:
+<qt6>/QtCore/qobjectdefs_impl.h:604:5: note: candidate 1: ‘template<class Prototype, class Functor> constexpr std::enable_if_t<((bool)(countMatchingArguments<Prototype, Functor>() >= 0)), QtPrivate::QSlotObjectBase*> QtPrivate::makeCallableObject(Functor&&)’
+  604 |     makeCallableObject(Functor &&func)
+      |     ^~~~~~~~~~~~~~~~~~
+<qt6>/QtCore/qobjectdefs_impl.h:604:5: note: template argument deduction/substitution failed:
+In file included from <qt6>/QtCore/qglobal.h:13,
+                 from <qt6>/QtCore/qnamespace.h:12,
+                 from <qt6>/QtCore/qobjectdefs.h:12:
+<c++>/type_traits: In substitution of ‘template<bool _Cond, class _Tp> using std::enable_if_t = typename std::enable_if::type [with bool _Cond = false; _Tp = QtPrivate::QSlotObjectBase*]’:
+<qt6>/QtCore/qobjectdefs_impl.h:604:5:   required by substitution of ‘template<class Prototype, class Functor> constexpr std::enable_if_t<((bool)(countMatchingArguments<Prototype, Functor>() >= 0)), QtPrivate::QSlotObjectBase*> QtPrivate::makeCallableObject(Functor&&) [with Prototype = void (Sensor::*)(int); Functor = wire(Sensor*, QObject*)::<lambda(const QString&)>]’
+<qt6>/QtCore/qobject.h:271:64:   required from ‘static QMetaObject::Connection QObject::connect(const typename QtPrivate::FunctionPointer<Prototype>::Object*, Func1, const typename QtPrivate::ContextTypeForFunctor<Func2>::ContextType*, Func2&&, Qt::ConnectionType) [with Func1 = void (Sensor::*)(int); Func2 = wire(Sensor*, QObject*)::<lambda(const QString&)>; typename QtPrivate::FunctionPointer<Prototype>::Object = Sensor; typename QtPrivate::ContextTypeForFunctor<Func2>::ContextType = QObject]’
+  271 |                            QtPrivate::makeCallableObject<Func1>(std::forward<Func2>(slot)),
+      |                            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^~~~~~~~~~~~~~~~~~~~~~~~~~~
+connect_mismatch.cpp:13:21:   required from here
+   13 |     QObject::connect(sensor, &Sensor::measured, context, [](const QString &text) { (void)text; });
+      |     ~~~~~~~~~~~~~~~~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+<c++>/type_traits:2837:11: error: no type named ‘type’ in ‘struct std::enable_if<false, QtPrivate::QSlotObjectBase*>’
+ 2837 |     using enable_if_t = typename enable_if<_Cond, _Tp>::type;
+      |           ^~~~~~~~~~~

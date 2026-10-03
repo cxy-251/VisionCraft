@@ -1,0 +1,5 @@
+$ grep -o "\[with Func1[^]]*\]" connect_mismatch.txt
+[with Func1 = void (Sensor::*)(int);
+      Func2 = wire(Sensor*, QObject*)::<lambda(const QString&)>;
+      typename QtPrivate::FunctionPointer<Prototype>::Object = Sensor;
+      typename QtPrivate::ContextTypeForFunctor<Func2>::ContextType = QObject]

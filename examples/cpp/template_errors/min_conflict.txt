@@ -1,0 +1,31 @@
+$ c++ -std=c++17 -c min_conflict.cpp        # 共 30 行
+min_conflict.cpp: In function ‘int chunkLength(int)’:
+min_conflict.cpp:8:20: error: no matching function for call to ‘min(unsigned int, int&)’
+    8 |     return std::min(VC_IMAGE_CHUNK, remaining);
+      |            ~~~~~~~~^~~~~~~~~~~~~~~~~~~~~~~~~~~
+min_conflict.cpp:8:20: note: there are 4 candidates
+In file included from <c++>/algorithm:62,
+                 from min_conflict.cpp:2:
+<c++>/bits/stl_algobase.h:234:5: note: candidate 1: ‘template<class _Tp> constexpr const _Tp& std::min(const _Tp&, const _Tp&)’
+  234 |     min(const _Tp& __a, const _Tp& __b)
+      |     ^~~
+<c++>/bits/stl_algobase.h:234:5: note: template argument deduction/substitution failed:
+min_conflict.cpp:8:20: note:   deduced conflicting types for parameter ‘const _Tp’ (‘unsigned int’ and ‘int’)
+    8 |     return std::min(VC_IMAGE_CHUNK, remaining);
+      |            ~~~~~~~~^~~~~~~~~~~~~~~~~~~~~~~~~~~
+<c++>/bits/stl_algobase.h:282:5: note: candidate 2: ‘template<class _Tp, class _Compare> constexpr const _Tp& std::min(const _Tp&, const _Tp&, _Compare)’
+  282 |     min(const _Tp& __a, const _Tp& __b, _Compare __comp)
+      |     ^~~
+<c++>/bits/stl_algobase.h:282:5: note: candidate expects 3 arguments, 2 provided
+In file included from <c++>/algorithm:63:
+<c++>/bits/stl_algo.h:5764:5: note: candidate 3: ‘template<class _Tp> constexpr _Tp std::min(initializer_list<_Tp>)’
+ 5764 |     min(initializer_list<_Tp> __l)
+      |     ^~~
+<c++>/bits/stl_algo.h:5764:5: note: candidate expects 1 argument, 2 provided
+<c++>/bits/stl_algo.h:5774:5: note: candidate 4: ‘template<class _Tp, class _Compare> constexpr _Tp std::min(initializer_list<_Tp>, _Compare)’
+ 5774 |     min(initializer_list<_Tp> __l, _Compare __comp)
+      |     ^~~
+<c++>/bits/stl_algo.h:5774:5: note: template argument deduction/substitution failed:
+min_conflict.cpp:8:20: note:   mismatched types ‘std::initializer_list<_Tp>’ and ‘unsigned int’
+    8 |     return std::min(VC_IMAGE_CHUNK, remaining);
+      |            ~~~~~~~~^~~~~~~~~~~~~~~~~~~~~~~~~~~

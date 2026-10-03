@@ -37,7 +37,7 @@ Rectangle {
     }
 
     Layout.fillWidth: true
-    implicitHeight: header.height + edit.implicitHeight + 28
+    implicitHeight: header.height + edit.implicitHeight + 28 + (hbar.visible ? hbar.height + 4 : 0)
     radius: Theme.radius
     color: Theme.codeBg
     border.color: Theme.border
@@ -97,9 +97,10 @@ Rectangle {
         }
     }
 
-    // 行号 + 代码（超出宽度的长行被裁掉，示例代码控制在 100 列以内）
+    // 行号 + 代码。长行不折行（行号才能和代码行一一对应），超出宽度时下方出现横向滚动条。
+    // 不用 Flickable：它会截住鼠标滚轮，在代码块上滚动时整页就滚不动了
     Row {
-        clip: true
+        id: body
         anchors.top: header.bottom
         anchors.left: parent.left
         anchors.right: parent.right
@@ -125,20 +126,42 @@ Rectangle {
             width: Math.max(18, String(ref.startLine + edit.lineCount).length * 9)
         }
 
-        TextEdit {
-            id: edit
+        Item {
+            id: viewport
             width: parent.width - lineNumbers.width - 14
-            text: ref.code
-            readOnly: true
-            selectByMouse: true
-            wrapMode: TextEdit.NoWrap   // 不折行，行号才能和代码行一一对应
-            textFormat: TextEdit.PlainText
-            font.family: SourceProvider.monoFont
-            font.pixelSize: 13
-            color: Theme.text
-            selectionColor: Theme.accentBg
-            selectedTextColor: Theme.text
+            height: edit.implicitHeight
+            clip: true
+
+            TextEdit {
+                id: edit
+                x: -hbar.position * width
+                width: Math.max(viewport.width, implicitWidth)
+                text: ref.code
+                readOnly: true
+                selectByMouse: true
+                wrapMode: TextEdit.NoWrap
+                textFormat: TextEdit.PlainText
+                font.family: SourceProvider.monoFont
+                font.pixelSize: 13
+                color: Theme.text
+                selectionColor: Theme.accentBg
+                selectedTextColor: Theme.text
+            }
         }
+    }
+
+    ScrollBar {
+        id: hbar
+        orientation: Qt.Horizontal
+        visible: edit.implicitWidth > viewport.width + 1
+        size: edit.width > 0 ? viewport.width / edit.width : 1
+        policy: ScrollBar.AlwaysOn
+        anchors.top: body.bottom
+        anchors.topMargin: 4
+        anchors.left: parent.left
+        anchors.right: parent.right
+        anchors.leftMargin: 14 + lineNumbers.width + 14
+        anchors.rightMargin: 14
     }
 
     CodeHighlighter {

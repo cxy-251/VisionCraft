@@ -84,9 +84,6 @@ void SimTransport::handle(const vc_frame &f)
     case VC_CMD_GET_INFO:
         send(VC_RSP(VC_CMD_GET_INFO), f.seq, QByteArray(1, ok) + infoPayload());
         break;
-    case VC_CMD_SET_TIME:
-        send(VC_RSP(VC_CMD_SET_TIME), f.seq, QByteArray(1, char(f.len == 8 ? VC_OK : VC_ERR_ARGS)));
-        break;
     case VC_CMD_BEEP:
         if (f.len != 2) {
             send(VC_RSP(VC_CMD_BEEP), f.seq, QByteArray(1, char(VC_ERR_ARGS)));

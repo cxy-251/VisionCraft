@@ -30,11 +30,25 @@ private slots:
         QSignalSpy finished(&link, &DeviceLink::commandFinished);
         QVERIFY(link.ping() > 0);
         QVERIFY(link.beep(50) > 0);
-        QVERIFY(link.setTimeNow() > 0);
-        QTRY_COMPARE(finished.size(), 3);
+        QTRY_COMPARE(finished.size(), 2);
         for (const auto &args : finished)
             QVERIFY2(args.at(1).toBool(), qPrintable(args.at(2).toString()));
     }
+
+    // [region sim-matches-firmware]
+    // 模拟器要和真固件说一样的话：固件还没配 RTC，对时返回「不认识的命令」，模拟器也必须这样
+    void setTimeAnswersLikeFirmware()
+    {
+        DeviceLink link;
+        link.connectSimulator();
+        QTRY_COMPARE(link.state(), DeviceLink::Connected);
+        QSignalSpy finished(&link, &DeviceLink::commandFinished);
+        QVERIFY(link.setTimeNow() > 0);
+        QTRY_COMPARE(finished.size(), 1);
+        QCOMPARE(finished.at(0).at(1).toBool(), false);
+        QVERIFY(finished.at(0).at(2).toString().contains(QString::number(VC_ERR_UNKNOWN)));
+    }
+    // [endregion]
 
     void unknownCommandReportsStatus()
     {

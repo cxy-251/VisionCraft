@@ -1,5 +1,6 @@
 // 手册里每一处 CodeRef 都能取到内容，并且引用的文件会被打包进程序。
 //
+// （本文件不用原始字符串字面量和双引号字符字面量：moc 的分词器会被它们弄乱，找不到 Q_OBJECT 类）
 // 手册正文引用真实文件的片段（region / match / from-to）。文件改了、标记删了、正则写错了，
 // 界面上只会出现一行「（……中没有 region……）」，很容易漏看。这个测试把所有引用都取一遍：
 //   1. 用程序里同一个 SourceProvider（开发模式，从源码目录读）取片段，不能出现错误提示；
@@ -28,7 +29,7 @@ QString unescape(const QString &s)
 {
     QString out;
     for (int i = 0; i < s.size(); ++i) {
-        if (s[i] == QLatin1Char('\\') && i + 1 < s.size()) {
+        if (s[i] == QChar(0x5C) /* 反斜杠 */ && i + 1 < s.size()) {
             ++i;
             out += s[i] == QLatin1Char('n') ? QLatin1Char('\n') : s[i];
         } else {
@@ -41,8 +42,8 @@ QString unescape(const QString &s)
 // 取出 CodeRef { … }、Entry { … }、Try { … } 里直接写成字符串的属性
 QList<Ref> collect(const QString &root)
 {
-    static const QRegularExpression blockRe(QStringLiteral(R"(\b(CodeRef|Entry|Try)\s*\{)"));
-    static const QRegularExpression propRe(QStringLiteral(R"re((\w+)\s*:\s*"((?:[^"\\]|\\.)*)")re"));
+    static const QRegularExpression blockRe(QString::fromUtf8("\\b(CodeRef|Entry|Try|Figure)\\s*\\{"));
+    static const QRegularExpression propRe(QString::fromUtf8("(\\w+)\\s*:\\s*\"((?:[^\"\\\\]|\\\\.)*)\""));
     QList<Ref> refs;
     QDirIterator it(root + QStringLiteral("/handbook"), {QStringLiteral("*.qml")}, QDir::Files, QDirIterator::Subdirectories);
     while (it.hasNext()) {
@@ -59,9 +60,9 @@ QList<Ref> collect(const QString &root)
             while (depth && i < text.size()) {
                 const QChar c = text[i];
                 if (inString) {
-                    if (c == QLatin1Char('\\')) ++i;
-                    else if (c == QLatin1Char('"')) inString = false;
-                } else if (c == QLatin1Char('"')) {
+                    if (c == QChar(0x5C) /* 反斜杠 */) ++i;
+                    else if (c == QChar(0x22) /* 双引号 */) inString = false;
+                } else if (c == QChar(0x22) /* 双引号 */) {
                     inString = true;
                 } else if (c == QLatin1Char('{')) {
                     ++depth;
@@ -75,6 +76,18 @@ QList<Ref> collect(const QString &root)
             r.line = int(text.left(bm.capturedStart()).count(QLatin1Char('\n'))) + 1;
             r.kind = bm.captured(1);
             const QString body = text.mid(bm.capturedEnd(), i - bm.capturedEnd() - 1);
+            // Figure 的 files 是一个字符串数组：每一项单独记成一条引用
+            static const QRegularExpression filesRe(QStringLiteral("files\\s*:\\s*\\[([^\\]]*)\\]"));
+            static const QRegularExpression strRe(QStringLiteral("\"([^\"]+)\""));
+            if (r.kind == QLatin1String("Figure")) {
+                const auto fm = filesRe.match(body);
+                for (auto sm = strRe.globalMatch(fm.captured(1)); sm.hasNext();) {
+                    Ref img = r;
+                    img.props[QStringLiteral("file")] = sm.next().captured(1);
+                    refs << img;
+                }
+                continue;
+            }
             for (auto pm = propRe.globalMatch(body); pm.hasNext();) {
                 const auto p = pm.next();
                 if (!r.props.contains(p.captured(1)))
@@ -90,7 +103,7 @@ QSet<QString> bundledFiles()
 {
     QFile f(QStringLiteral(VC_HANDBOOK_QRC));
     f.open(QIODevice::ReadOnly);
-    static const QRegularExpression aliasRe(QStringLiteral(R"re(<file alias="([^"]+)")re"));
+    static const QRegularExpression aliasRe(QString::fromUtf8("<file alias=\"([^\"]+)\""));
     QSet<QString> out;
     for (auto m = aliasRe.globalMatch(QString::fromUtf8(f.readAll())); m.hasNext();)
         out.insert(m.next().captured(1));
@@ -130,7 +143,7 @@ private slots:
             }
             if (!bundled.contains(file))
                 problems << where + QStringLiteral(" 没有打包进程序：") + file;
-            if (r.kind == QLatin1String("Entry"))
+            if (r.kind == QLatin1String("Entry") || r.kind == QLatin1String("Figure"))
                 continue;
 
             const QString region = r.props.value(r.kind == QLatin1String("Try") ? QStringLiteral("answerRegion") : QStringLiteral("region"));

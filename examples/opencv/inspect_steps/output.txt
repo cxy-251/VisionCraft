@@ -1,0 +1,8 @@
+scratch  标准答案 划痕 判定 划痕  centerOffset=0.1 chipDepth=0.9 elongation=6.0 holeR=46.8 otsu=127.0 outerR=114.5 surfaceArea=182.0 
+         黑帽超过阈值的像素：环形掩膜前 184 个，掩膜后 184 个
+spot     标准答案 污点 判定 污点  centerOffset=0.1 chipDepth=0.9 elongation=1.3 holeR=47.8 otsu=128.0 outerR=117.5 surfaceArea=182.0 
+         黑帽超过阈值的像素：环形掩膜前 189 个，掩膜后 189 个
+chip     标准答案 缺口 判定 缺口  centerOffset=0.1 chipDepth=18.6 holeR=48.7 otsu=128.0 outerR=116.5 
+offset   标准答案 内孔偏心 判定 内孔偏心  centerOffset=16.2 chipDepth=0.9 holeR=47.8 otsu=128.0 outerR=114.5 
+good     标准答案 合格 判定 合格  centerOffset=0.1 chipDepth=0.9 holeR=46.8 otsu=128.0 outerR=116.5 surfaceArea=0.0 
+         黑帽超过阈值的像素：环形掩膜前 0 个，掩膜后 0 个

@@ -122,6 +122,7 @@ qt_add_qml_module(VisionCraft
         qml/handbook/KeyPoints.qml
         qml/handbook/CodeRef.qml
         qml/handbook/Demo.qml
+        qml/handbook/Figure.qml
         qml/handbook/Pitfall.qml
         qml/handbook/Try.qml
         qml/handbook/InSystem.qml
@@ -187,7 +188,7 @@ target_sources(VisionCraft PRIVATE
 # 手册正文、示例代码与被引用的源码：打包进资源，CodeRef 运行时按文件路径读取
 file(GLOB_RECURSE VC_HANDBOOK_FILES CONFIGURE_DEPENDS
     RELATIVE ${CMAKE_CURRENT_SOURCE_DIR}
-    handbook/*.qml handbook/*.txt handbook/*.c
+    handbook/*.qml handbook/*.txt handbook/*.c handbook/*.png handbook/*.jpg
     scripts/*.sh
     examples/*.cpp examples/*.h examples/*.c examples/*.txt examples/*.qml
     src/*.cpp src/*.h

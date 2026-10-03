@@ -18,8 +18,12 @@ QString Inspector::defectName(vc_defect d)
     }
 }
 
-Inspector::Result Inspector::inspect(const cv::Mat &bgr) const
+Inspector::Result Inspector::inspect(const cv::Mat &bgr, Steps *steps) const
 {
+    auto keep = [steps](const char *name, const cv::Mat &m) {
+        if (steps)
+            steps->emplace_back(QString::fromUtf8(name), m.clone());
+    };
     QElapsedTimer clock;
     clock.start();
     Result res;
@@ -43,6 +47,9 @@ Inspector::Result Inspector::inspect(const cv::Mat &bgr) const
     cv::GaussianBlur(gray, blurred, cv::Size(5, 5), 0);
     const double otsu = cv::threshold(blurred, bin, 0, 255, cv::THRESH_BINARY | cv::THRESH_OTSU);
     res.measures[QStringLiteral("otsu")] = otsu;
+    keep("gray", gray);
+    keep("blurred", blurred);
+    keep("binary", bin);
 
     // ---- 2. 轮廓：外轮廓是最大的那个，它的子轮廓里最大的是内孔 ----
     std::vector<std::vector<cv::Point>> contours;
@@ -135,7 +142,11 @@ Inspector::Result Inspector::inspect(const cv::Mat &bgr) const
     cv::morphologyEx(blurred, blackhat, cv::MORPH_BLACKHAT, cv::getStructuringElement(cv::MORPH_ELLIPSE, cv::Size(21, 21)));
     cv::Mat suspect;
     cv::threshold(blackhat, suspect, params.surfaceThreshold, 255, cv::THRESH_BINARY);
+    keep("ring", ring);
+    keep("blackhat", blackhat);
+    keep("suspect-raw", suspect);
     suspect &= ring;
+    keep("suspect", suspect);
 
     cv::Mat labels, stats, centroids;
     const int n = cv::connectedComponentsWithStats(suspect, labels, stats, centroids, 8);

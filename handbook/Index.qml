@@ -134,7 +134,7 @@ HandbookIndex {
         }
         Chapter {
             title: qsTr("形态学")
-            Entry { title: qsTr("腐蚀、膨胀、开闭运算"); from: "形态学拓展变换" }
+            Entry { title: qsTr("腐蚀、膨胀、开闭运算"); file: "handbook/opencv/morphology/Morphology.qml"; from: "形态学拓展变换" }
             Entry { title: qsTr("距离变换与骨架"); from: "距离变换与骨架细化" }
         }
         Chapter {

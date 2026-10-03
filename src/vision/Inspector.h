@@ -5,6 +5,8 @@
 #include <QString>
 #include <QVariantMap>
 #include <opencv2/core.hpp>
+#include <utility>
+#include <vector>
 
 // 垫圈检测：找到工件 → 量外圆和内孔 → 查边缘缺口和偏心 → 查环面上的划痕和污点。
 // 输入一张 BGR 图（来自工位页面的截图），输出判定、缺陷类型、标注图和各项测量值。
@@ -27,7 +29,11 @@ public:
         double scratchElongation = 3.0;   // 长宽比超过它算划痕，否则算污点
     };
 
-    Result inspect(const cv::Mat &bgr) const;
+    // 中间结果：每一步处理后的图，按顺序记下来（名字, 图）。手册的配图就是用它导出的
+    using Steps = std::vector<std::pair<QString, cv::Mat>>;
+
+    // steps 不为空时，把中间结果记进去；平时传空，没有额外开销
+    Result inspect(const cv::Mat &bgr, Steps *steps = nullptr) const;
 
     Params params;
 

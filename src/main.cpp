@@ -9,20 +9,6 @@
 #include <QQuickItem>
 #include <QTimer>
 
-// 在可视树里按 objectName 找元素（Loader 加载的内容不一定是 QObject 意义上的子对象）
-static QQuickItem *findItem(QQuickItem *item, const QString &name)
-{
-    if (!item)
-        return nullptr;
-    if (item->objectName() == name)
-        return item;
-    for (QQuickItem *child : item->childItems()) {
-        if (QQuickItem *found = findItem(child, name))
-            return found;
-    }
-    return nullptr;
-}
-
 // 开发辅助：设置 VC_SNAPSHOT=<文件.png> 时，启动后等 VC_SNAPSHOT_DELAY 毫秒（默认 2500）
 // 把主窗口截图保存下来并退出，用于在没人看屏幕时检查界面
 static void scheduleSnapshot(QQmlApplicationEngine &engine)
@@ -61,7 +47,7 @@ static void scheduleSnapshot(QQmlApplicationEngine &engine)
             QObject *root = engine.rootObjects().first();
             if (auto *window = qobject_cast<QQuickWindow *>(root)) {
                 if (scroll > 0) {
-                    if (QQuickItem *section = findItem(window->contentItem(), QStringLiteral("handbookSection")))
+                    if (auto *section = window->findChild<QQuickItem *>(QStringLiteral("handbookSection")))
                         section->setProperty("contentY", scroll);
                 }
                 QTimer::singleShot(300, window, [window, file] {   // 等滚动后的一帧画完

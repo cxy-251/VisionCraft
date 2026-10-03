@@ -108,6 +108,26 @@ private slots:
         QCOMPARE(r.value("failed").toInt(), 0);
     }
 
+    // 持续有数据时，统计也要定期刷新（限频），而不是等数据停了才刷新一次
+    void statsRefreshDuringSustainedTraffic()
+    {
+        DeviceLink link;
+        link.connectSimulator();
+        QTRY_COMPARE(link.state(), DeviceLink::Connected);
+        QSignalSpy done(&link, &DeviceLink::throughputFinished);
+        QSignalSpy stats(&link, &DeviceLink::statsChanged);
+        QElapsedTimer t;
+        t.start();
+        link.runThroughputTest(256, 600, 4);
+        QTRY_COMPARE_WITH_TIMEOUT(done.size(), 1, 20000);
+        const qint64 ms = t.elapsed();
+        const qsizetype during = stats.size();
+        qInfo("吞吐测试 %lld ms，期间 statsChanged %lld 次", ms, qlonglong(during));
+        QVERIFY(ms > 1000);                       // 测试要足够长，才谈得上「期间」
+        QVERIFY(during >= ms / 200 / 2);          // 每 200 ms 最多一次；至少要有一半的机会刷新了
+        QVERIFY(during <= ms / 200 + 2);          // 也不能超过限频
+    }
+
     void imageTransferCompletes()
     {
         DeviceLink link;

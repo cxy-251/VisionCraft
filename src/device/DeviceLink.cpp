@@ -179,9 +179,20 @@ int DeviceLink::request(uint8_t type, const QByteArray &payload, Reply reply, in
     // [endregion]
     m_txFrames++;
     m_txBytes += quint64(n);
-    m_statsTimer.start();
+    noteStatsChanged();
     return seq;
 }
+
+// [region throttle]
+// 统计数字变化很快（每收一个包都变），界面每 200 ms 刷新一次就够了。
+// 计时器没在跑才启动它：第一次变化后 200 ms 发一次通知，期间的变化合并进这一次。
+// 不能每次都 start()：那会把计时器重新从 0 开始计，数据不停，通知就一直不来（防抖而不是限频）
+void DeviceLink::noteStatsChanged()
+{
+    if (!m_statsTimer.isActive())
+        m_statsTimer.start();
+}
+// [endregion]
 
 void DeviceLink::onBytes(const QByteArray &bytes)
 {
@@ -191,7 +202,7 @@ void DeviceLink::onBytes(const QByteArray &bytes)
         if (vc_decoder_feed(&m_decoder, uint8_t(c), &f))
             onFrame(f);
     }
-    m_statsTimer.start();
+    noteStatsChanged();
 }
 
 void DeviceLink::onFrame(const vc_frame &f)
@@ -277,7 +288,7 @@ void DeviceLink::checkTimeouts()
             p.reply(false, -1, {});
     }
     if (!expired.isEmpty())
-        m_statsTimer.start();
+        noteStatsChanged();
 }
 
 void DeviceLink::failAllPending(const QString &why)

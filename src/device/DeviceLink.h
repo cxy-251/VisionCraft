@@ -111,6 +111,7 @@ private:
     void onBytes(const QByteArray &bytes);
     void onFrame(const vc_frame &f);
     void checkTimeouts();
+    void noteStatsChanged();
     void failAllPending(const QString &why);
     void throughputStep();
     int simpleCommand(uint8_t type, const QByteArray &payload, const QString &label);

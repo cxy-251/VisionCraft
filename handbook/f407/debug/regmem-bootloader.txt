@@ -1,0 +1,11 @@
+# 同一个脚本，在芯片复位后停在 bootloader（固件没有运行）时跑的结果（本板实测）
+pc    = 0x1fff3da0
+sp    = 0x20001d80
+lr    = 0xffffffff
+xPSR  = 0x01000000
+固件变量 s_periodMs（遥测周期）= 0
+GPIOE->IDR = 0x0000（KEY0~2 在 PE4/PE3/PE2，没按时是 1）
+CPU 暂停中，TIM12->CNT 连读两次：0x0 → 0x0
+设置 DBGMCU_APB1_FZ 冻结 TIM12 之后：0x0 → 0x0
+转换后 ADC1->SR.EOC = 0
+调试器读过 DR 之后 SR.EOC = 0

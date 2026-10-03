@@ -1,0 +1,12 @@
+$ P=$(arm-none-eabi-nm firmware/station/build/Release/station.elf | awk '/ s_periodMs$/{print "0x"$1}')      # 得到 0x20013268
+$ openocd -f interface/stlink.cfg -f target/stm32f4x.cfg -c init -c "set period_addr $P" -f tools/regmem_probe.tcl -c exit
+pc    = 0x08002d24
+sp    = 0x20000d18
+lr    = 0x08003fa5
+xPSR  = 0x61000000
+固件变量 s_periodMs（遥测周期）= 0
+GPIOE->IDR = 0x457C（KEY0~2 在 PE4/PE3/PE2，没按时是 1）
+CPU 暂停中，TIM12->CNT 连读两次：0x177 → 0x2fc
+设置 DBGMCU_APB1_FZ 冻结 TIM12 之后：0xab → 0xab
+转换后 ADC1->SR.EOC = 1
+调试器读过 DR 之后 SR.EOC = 0

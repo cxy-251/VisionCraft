@@ -28,6 +28,7 @@ PartGenerator::Part PartGenerator::make(vc_defect defect, double difficulty)
     const double k = std::clamp(difficulty, 0.0, 1.0);
     auto lerp = [k](double easy, double hard) { return easy + (hard - easy) * k; };
 
+    // [region belt]
     // ---- 传送带：深灰，带横向条纹 ----
     cv::Mat img(kHeight, kWidth, CV_8UC3);
     for (int y = 0; y < kHeight; ++y) {
@@ -35,6 +36,8 @@ PartGenerator::Part PartGenerator::make(vc_defect defect, double difficulty)
         img.row(y).setTo(cv::Scalar(v, v, v + 4));
     }
 
+    // [endregion]
+    // [region washer]
     // ---- 垫圈：外圆 + 内孔，位置和大小有小幅随机 ----
     const cv::Point2d c(kWidth / 2.0 + uni(-14, 14), kHeight / 2.0 + uni(-10, 10));
     const double R = uni(112, 118);
@@ -65,6 +68,8 @@ PartGenerator::Part PartGenerator::make(vc_defect defect, double difficulty)
         img.row(y).setTo(cv::Scalar(v, v, v + 4), holeMask.row(y));
     }
 
+    // [endregion]
+    // [region defects]
     // ---- 缺陷 ----
     switch (defect) {
     case VC_DEFECT_SCRATCH: {
@@ -102,6 +107,8 @@ PartGenerator::Part PartGenerator::make(vc_defect defect, double difficulty)
         break;
     }
 
+    // [endregion]
+    // [region marks]
     // ---- 无害的加工痕迹：每件都可能有几道很浅的短纹，它们不算缺陷 ----
     // 真实工件的表面不会完美干净。没有这些痕迹，阈值调得再低也不会误报，「漏检和误报此消彼长」就体现不出来
     std::uniform_int_distribution<int> markCount(0, 4);
@@ -114,6 +121,8 @@ PartGenerator::Part PartGenerator::make(vc_defect defect, double difficulty)
         cv::line(img, mid - d, mid + d, cv::Scalar(v, v, v), 1, cv::LINE_AA);
     }
 
+    // [endregion]
+    // [region noise]
     // ---- 成像噪声：轻微模糊 + 高斯噪声 ----
     cv::GaussianBlur(img, img, cv::Size(3, 3), 0.8);
     cv::Mat noise(img.size(), CV_16SC3);
@@ -123,5 +132,6 @@ PartGenerator::Part PartGenerator::make(vc_defect defect, double difficulty)
     img16 += noise;
     img16.convertTo(img, CV_8UC3);
 
+    // [endregion]
     return {img, defect};
 }

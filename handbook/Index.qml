@@ -283,7 +283,7 @@ HandbookIndex {
         }
         Chapter {
             title: qsTr("检测")
-            Entry { title: qsTr("模拟产线") }
+            Entry { title: qsTr("模拟产线"); file: "handbook/system/inspection/PartLine.qml" }
             Entry { title: qsTr("检测管线") }
         }
     }

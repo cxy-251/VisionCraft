@@ -121,8 +121,8 @@ HandbookIndex {
         }
         Chapter {
             title: qsTr("滤波")
-            Entry { title: qsTr("高斯滤波"); from: "高斯滤波" }
-            Entry { title: qsTr("中值滤波"); from: "中值滤波" }
+            Entry { title: qsTr("高斯滤波"); file: "handbook/opencv/filter/Gaussian.qml"; from: "高斯滤波" }
+            Entry { title: qsTr("中值滤波"); file: "handbook/opencv/filter/Median.qml"; from: "中值滤波" }
             Entry { title: qsTr("双边滤波"); from: "双边滤波" }
             Entry { title: qsTr("均值与方框滤波"); from: "均值与方框滤波" }
             Entry { title: qsTr("频域滤波"); from: "频域傅里叶变换与陷波滤波去网纹" }

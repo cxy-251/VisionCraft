@@ -237,7 +237,8 @@ HandbookIndex {
         Chapter {
             title: qsTr("存储")
             Entry { title: qsTr("外部 SRAM"); from: "IS62WV51216 1MB 外部 SRAM 驱动与视频显存" }
-            Entry { title: qsTr("SPI Flash 与 EEPROM"); from: "W25Q128 SPI Flash 与 AT24C02 EEPROM 在线自检" }
+            Entry { title: qsTr("EEPROM：I2C 与掉电保存"); file: "handbook/f407/storage/Eeprom.qml"; from: "W25Q128 SPI Flash 与 AT24C02 EEPROM 在线自检" }
+            Entry { title: qsTr("SPI Flash"); from: "W25Q128 SPI Flash 与 AT24C02 EEPROM 在线自检" }
             Entry { title: qsTr("FatFs 文件系统"); from: "FatFs 多卷文件系统与图形化资源管理器" }
         }
         Chapter {

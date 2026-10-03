@@ -1,0 +1,4 @@
+$ openocd -f interface/stlink.cfg -f target/stm32f4x.cfg -c init -f tools/eeprom_probe.tcl -c exit
+总线上应答的 7 位地址：0x1A 0x50 0x68
+从 0x84 起写入 41 42 43 44 45 46 47 48（A~H），再从 0x80 读 16 字节：
+  0x80: 45 46 47 48 41 42 43 44 FF FF FF FF FF FF FF FF 

@@ -27,7 +27,7 @@ HandbookIndex {
         }
         Chapter {
             title: qsTr("嵌入式 C")
-            Entry { title: qsTr("volatile 与寄存器访问") }
+            Entry { title: qsTr("volatile 与寄存器访问"); file: "handbook/bridge/embedded/Volatile.qml" }
             Entry { title: qsTr("位运算") }
             Entry { title: qsTr("结构体对齐与大小端") }
             Entry { title: qsTr("中断上下文里能做什么") }

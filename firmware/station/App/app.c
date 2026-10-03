@@ -1,6 +1,7 @@
 #include "app.h"
 
 #include "cmsis_os2.h"
+#include "stm32f4xx.h"
 #include "vc_protocol.h"
 #include "vc_rtt.h"
 
@@ -91,8 +92,14 @@ uint8_t app_image_data(uint32_t offset, const uint8_t *data, uint16_t len)
         return VC_ERR_ARGS;
     memcpy((uint8_t *)s_image + offset, data, len);   /* 像素按小端存放，正好是 uint16_t 的内存布局 */
     s_imageReceived += len;
-    if (s_imageReceived >= total)
+    if (s_imageReceived >= total) {
+        // [region barrier]
+        /* volatile 只保证 s_imageState 这一次写入真的发生，不保证它排在前面的普通写入（memcpy）之后。
+         * __DMB() 同时是编译器屏障和 CPU 内存屏障：屏障之前的写入全部完成，才轮到后面的写入 */
+        __DMB();
         s_imageState = IMG_READY;
+        // [endregion]
+    }
     return VC_OK;
 }
 

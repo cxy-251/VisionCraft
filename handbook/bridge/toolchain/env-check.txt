@@ -1,0 +1,21 @@
+$ which gcc cmake        # 新开的终端，什么都没加载
+which: no gcc in (/usr/bin:/bin)
+which: no cmake in (/usr/bin:/bin)
+
+$ source scripts/steamdeck-env.sh
+$ which gcc cmake ninja qmake6 arm-none-eabi-gcc openocd
+~/Applications/gcc/usr/bin/gcc
+~/Applications/cmake/usr/bin/cmake
+~/Applications/ninja/usr/bin/ninja
+~/Applications/qt6/usr/lib/qt6/bin/qmake6
+~/Applications/arm-none-eabi/usr/bin/arm-none-eabi-gcc
+~/Applications/openocd/usr/bin/openocd
+
+$ gcc --version; cmake --version; ……（各工具的版本，每个只取第一行）
+gcc (GCC) 15.1.1 20250425
+cmake version 4.0.3-dirty
+ninja 1.12.1
+Qt 6.9.1
+OpenCV 4.12.0（读自 opencv2/core/version.hpp）
+arm-none-eabi-gcc (Arch Repository) 14.2.0
+Open On-Chip Debugger 0.12.0

@@ -20,7 +20,7 @@ HandbookIndex {
         Chapter {
             title: qsTr("编译与工具链")
             Entry { title: qsTr("编译、链接与 CMake"); file: "handbook/bridge/toolchain/CompileLink.qml" }
-            Entry { title: qsTr("本机环境：SteamOS 上的用户空间工具链"); from: "SteamOS 用户空间免 Root 工具链搭建" }
+            Entry { title: qsTr("本机环境：SteamOS 上的用户空间工具链"); file: "handbook/bridge/toolchain/SteamOS.qml"; from: "SteamOS 用户空间免 Root 工具链搭建" }
             Entry { title: qsTr("Linux 构建与依赖"); from: "Linux 主机构建与依赖包清单" }
             Entry { title: qsTr("交叉编译：arm-none-eabi 与 OpenOCD"); from: "STM32F407 交叉编译链与 OpenOCD" }
             Entry { title: qsTr("CubeMX 安装与命令行生成"); from: "STM32CubeMX 部署与命令行代码生成" }

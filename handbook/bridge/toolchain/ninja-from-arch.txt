@@ -1,0 +1,47 @@
+$ MIRROR=https://steamdeck-packages.steamos.cloud/archlinux-mirror
+$ curl -sSfLO $MIRROR/extra-3.8.1x/os/x86_64/ninja-1.12.1-2-x86_64.pkg.tar.zst
+$ tar --zstd -tf ninja-1.12.1-2-x86_64.pkg.tar.zst      # 先看里面有什么
+.BUILDINFO
+.MTREE
+.PKGINFO
+usr/
+usr/bin/
+usr/bin/ninja
+usr/lib/
+usr/lib/python3.13/
+usr/lib/python3.13/site-packages/
+usr/lib/python3.13/site-packages/ninja_syntax.py
+usr/share/
+usr/share/bash-completion/
+usr/share/bash-completion/completions/
+usr/share/bash-completion/completions/ninja
+usr/share/doc/
+usr/share/doc/ninja/
+usr/share/doc/ninja/manual.asciidoc
+usr/share/emacs/
+usr/share/emacs/site-lisp/
+usr/share/emacs/site-lisp/ninja-mode.el
+usr/share/emacs/site-lisp/ninja-mode.elc
+usr/share/licenses/
+usr/share/licenses/ninja/
+usr/share/licenses/ninja/COPYING
+usr/share/vim/
+usr/share/vim/vimfiles/
+usr/share/vim/vimfiles/syntax/
+usr/share/vim/vimfiles/syntax/ninja.vim
+usr/share/zsh/
+usr/share/zsh/site-functions/
+usr/share/zsh/site-functions/_ninja
+
+$ grep -E "^(pkgname|pkgver|depend) " <(tar --zstd -xOf ninja-1.12.1-2-x86_64.pkg.tar.zst .PKGINFO)
+pkgname = ninja
+pkgver = 1.12.1-2
+depend = gcc-libs
+
+$ mkdir -p ~/Applications/ninja
+$ tar --zstd -xf ninja-1.12.1-2-x86_64.pkg.tar.zst -C ~/Applications/ninja \
+      --exclude=.BUILDINFO --exclude=.MTREE --exclude=.PKGINFO      # 三个包管理元数据文件不要
+
+# 验证：本机现有的 ninja 和刚下载的包里的是同一个文件
+$ cmp usr/bin/ninja ~/Applications/ninja/usr/bin/ninja && echo 相同
+相同

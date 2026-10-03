@@ -1,0 +1,16 @@
+$ steamos-readonly status
+enabled
+
+$ lsblk -o NAME,PARTLABEL,SIZE,MOUNTPOINT
+NAME        PARTLABEL   SIZE MOUNTPOINT
+├─nvme0n1p1 esp          64M /esp
+├─nvme0n1p2 efi-A        32M 
+├─nvme0n1p3 efi-B        32M /efi
+├─nvme0n1p4 rootfs-A      5G 
+├─nvme0n1p5 rootfs-B      5G /
+├─nvme0n1p6 var-A       256M 
+├─nvme0n1p7 var-B       256M /var
+└─nvme0n1p8 home      466.3G /home
+
+$ ls /usr/include/stdio.h
+ls: 无法访问 '/usr/include/stdio.h': 没有那个文件或目录

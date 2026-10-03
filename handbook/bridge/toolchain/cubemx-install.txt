@@ -1,0 +1,20 @@
+$ du -sh ~/Applications/STM32CubeMX ~/Applications/STM32Cube/Repository
+1.6G	~/Applications/STM32CubeMX
+1.8G	~/Applications/STM32Cube/Repository
+
+$ ~/Applications/STM32CubeMX/jre/bin/java -version 2>&1 | head -1      # 自带的 Java
+openjdk version "21.0.10" 2026-01-20 LTS
+
+$ grep -E "RepositoryPath|SoftVersion|DbVersion" ~/.stm32cubemx/plugins/updater/updater.ini
+RepositoryPath=~/Applications/STM32Cube/Repository
+DbVersion=DB.6.0.181
+SoftVersion=MX.6.18.1
+
+$ ls ~/Applications/STM32Cube/Repository/STM32Cube_FW_F4_V1.28.3/{Drivers,Middlewares/Third_Party}
+BSP CMSIS STM32F4xx_HAL_Driver 
+FatFs FreeRTOS LibJPEG LwIP mbedTLS 
+
+$ find …/STM32Cube_FW_F4_V1.28.3/{Drivers,Middlewares} -type f | wc -l     # 固件包里的库文件
+11444
+$ find firmware/station/{Drivers,Middlewares} -type f | wc -l            # 拷进工程的
+133

@@ -2,18 +2,25 @@
 # 用 STM32CubeMX 的命令行重新生成固件工程（不打开图形界面）。
 #   tools/cubemx_generate.sh [firmware/station/station.ioc]
 #
-# CubeMX 的交互命令行（-i）从标准输入读命令。它启动要 40 秒左右，之后更新器还会联网检查一阵，
-# 期间命令会返回 "Updater is busy"，所以先等 100 秒再发命令。
+# -q 让 CubeMX 从脚本文件读命令、执行完退出。它会自己等启动和更新器检查结束，不用猜要等多久。
+# 本机一次大约 3 分钟。生成的代码只覆盖 USER CODE BEGIN/END 之外的部分。
 set -e
 IOC="$(realpath "${1:-$(dirname "$0")/../firmware/station/station.ioc}")"
 CUBEMX="${CUBEMX:-$HOME/Applications/STM32CubeMX/STM32CubeMX}"
-WAIT="${CUBEMX_WAIT:-100}"
 
-echo "生成：$IOC（先等 CubeMX 启动 ${WAIT} 秒）"
+# [region script]
+SCRIPT="$(mktemp --suffix=.txt)"
+trap 'rm -f "$SCRIPT"' EXIT
+cat > "$SCRIPT" <<CMDS
+config load $IOC
+project generate
+exit
+CMDS
+# [endregion]
+
+echo "生成：$IOC（大约 3 分钟）"
 cd "$(dirname "$CUBEMX")"
-( sleep "$WAIT"
-  echo "config load $IOC"
-  echo "project generate"
-  sleep 120
-  echo "exit" ) | "$CUBEMX" -i 2>&1 | grep -E "OK$|KO$|OptionalMessage_ERROR|not ready" || true
+# [region run]
+"$CUBEMX" -q "$SCRIPT" 2>&1 | grep -E "^OK$|^KO|ERROR|not ready" || true
+# [endregion]
 echo "完成。用 git diff 查看 CubeMX 改了哪些文件。"

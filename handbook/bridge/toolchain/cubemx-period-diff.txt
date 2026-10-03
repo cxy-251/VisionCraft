@@ -1,0 +1,17 @@
+$ sed -i "s/^TIM13.Period=369$/TIM13.Period=499/" firmware/station/station.ioc
+$ tools/cubemx_generate.sh
+$ git diff --stat
+ firmware/station/Core/Src/tim.c | 2 +-
+ firmware/station/station.ioc    | 2 +-
+ 2 files changed, 2 insertions(+), 2 deletions(-)
+
+$ git diff firmware/station/Core
+diff --git a/firmware/station/Core/Src/tim.c b/firmware/station/Core/Src/tim.c
+index ed8c841..7c3848c 100644
+--- a/firmware/station/Core/Src/tim.c
++++ b/firmware/station/Core/Src/tim.c
+@@ -92,3 +92,3 @@ void MX_TIM13_Init(void)
+   htim13.Init.CounterMode = TIM_COUNTERMODE_UP;
+-  htim13.Init.Period = 369;
++  htim13.Init.Period = 499;
+   htim13.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;

@@ -1,0 +1,14 @@
+# 在一个只有 station.ioc 的空目录（$NEW）里生成一次，和仓库里的工程比较（本机实测）
+$ cp station.ioc $NEW/ && STM32CubeMX -q script.txt        # script.txt：config load / project generate / exit
+$ diff <(cd $NEW && find Drivers Middlewares Core cmake -type f | sort) <(find Drivers Middlewares Core cmake -type f | grep -v build_stamp | sort) && echo 文件清单相同
+文件清单相同
+$ diff -rq --strip-trailing-cr $NEW/Drivers Drivers && echo 库文件相同
+库文件相同
+$ diff -rq --strip-trailing-cr $NEW/Core Core          # 生成的代码：只有两个文件不同
+文件 $NEW/Core/Src/freertos.c 和 Core/Src/freertos.c 不同
+文件 $NEW/Core/Src/main.c 和 Core/Src/main.c 不同
+$ diff --strip-trailing-cr $NEW/Core/Src/main.c Core/Src/main.c
+29a30
+> #include "lcd.h"
+101a103
+>   lcd_init();   /* 屏初始化要用 HAL_Delay，必须在调度器启动之前做（此时 TIM7 时基已在运行） */

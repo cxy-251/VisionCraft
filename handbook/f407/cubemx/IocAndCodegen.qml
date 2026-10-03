@@ -39,9 +39,10 @@ Section {
 
     Para {
         text: qsTr("本项目连 CubeMX 的界面都不用开：直接编辑 .ioc，再用 CubeMX 的命令行模式重新生成。"
-                 + "CubeMX 启动要 40 秒左右，之后它的更新器还会联网检查一阵，这期间发命令会被拒绝，所以脚本先等 100 秒：")
+                 + "脚本把三条命令写进一个临时文件，用 -q 交给 CubeMX 执行（安装和命令行的细节见衔接卷「CubeMX 安装与命令行生成」）：")
     }
-    CodeRef { file: "tools/cubemx_generate.sh"; from: "^\\( sleep"; to: "\\|\\| true" }
+    CodeRef { file: "tools/cubemx_generate.sh"; region: "script" }
+    CodeRef { file: "tools/cubemx_generate.sh"; region: "run" }
 
     Pitfall {
         text: qsTr("手改 .ioc 时，写错的配置不会报错，而是被 CubeMX 静默丢掉。下面三条都是本项目实际踩到的："

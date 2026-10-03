@@ -1,0 +1,24 @@
+$ head -8 build/qml/VisionCraft/qmldir          # qt_add_qml_module 生成的模块清单
+module VisionCraft
+typeinfo VisionCraft.qmltypes
+prefer :/qt/qml/VisionCraft/
+Main 254.0 qml/Main.qml
+singleton Theme 254.0 qml/Theme.qml
+NavRail 254.0 qml/shell/NavRail.qml
+LabPage 254.0 qml/shell/LabPage.qml
+DevicePage 254.0 qml/device/DevicePage.qml
+……
+
+$ ls build/.rcc/qmlcache/VisionCraft_qml/       # 构建时由 qmlcachegen 编译成 C++ 的 QML
+data/DataPage_qml.cpp
+data/TimeChart_qml.cpp
+demos/opencv/EvalView_qml.cpp
+demos/opencv/MatView_qml.cpp
+demos/opencv/ThresholdView_qml.cpp
+demos/qt/ConcurrencyView_qml.cpp
+……（共 30 个）
+
+$ grep -c "handbook/.*\.qml" build/.qt/rcc/vc_handbook_content.qrc      # 手册正文：作为普通文件打包
+47
+$ find build/.rcc/qmlcache -iname "*Volatile*" | wc -l                    # 它们没有被预先编译
+0

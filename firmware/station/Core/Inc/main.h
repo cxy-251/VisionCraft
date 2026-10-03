@@ -73,6 +73,7 @@ void Error_Handler(void);
 #define LED1_GPIO_Port GPIOF
 #define KEY_WKUP_Pin GPIO_PIN_0
 #define KEY_WKUP_GPIO_Port GPIOA
+#define KEY_WKUP_EXTI_IRQn EXTI0_IRQn
 #define LCD_BL_Pin GPIO_PIN_15
 #define LCD_BL_GPIO_Port GPIOB
 #define EEPROM_SCL_Pin GPIO_PIN_8

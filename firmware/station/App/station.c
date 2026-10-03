@@ -50,6 +50,31 @@ static void scan_keys(void)
 }
 // [endregion]
 
+// [region exti]
+/* KEY_WKUP（PA0）同时接了外部中断，上升沿、下降沿都触发。中断里只做计数和记时间，
+ * 用来观察按键抖动：按一次键，中断触发几次、间隔多久？按键事件本身仍由上面每 10 ms 的扫描负责。
+ * 这几个 volatile 全局变量调试器可以按名字直接读（tools/exti_probe.tcl）。 */
+#define EDGE_LOG 16u
+volatile uint32_t g_wkupEdges;                /* 中断触发的总次数 */
+volatile uint32_t g_wkupEdgeCycles[EDGE_LOG]; /* 最近 16 次触发的时刻：CPU 周期计数（168 MHz，约 25 秒绕回一次） */
+
+void HAL_GPIO_EXTI_Callback(uint16_t pin)
+{
+    if (pin == KEY_WKUP_Pin) {
+        g_wkupEdgeCycles[g_wkupEdges % EDGE_LOG] = DWT->CYCCNT;
+        g_wkupEdges++;
+    }
+}
+
+/* DWT 是内核里的调试计数单元，CYCCNT 每个 CPU 周期加 1。默认关着，要先打开 */
+static void cycle_counter_init(void)
+{
+    CoreDebug->DEMCR |= CoreDebug_DEMCR_TRCENA_Msk;
+    DWT->CYCCNT = 0;
+    DWT->CTRL |= DWT_CTRL_CYCCNTENA_Msk;
+}
+// [endregion]
+
 // [region loop]
 void StationTask(void *argument)
 {
@@ -58,6 +83,7 @@ void StationTask(void *argument)
     int beeping = 0;
     uint32_t lastUi = 0;
     ui_init();
+    cycle_counter_init();
 
     for (;;) {
         uint16_t ms;

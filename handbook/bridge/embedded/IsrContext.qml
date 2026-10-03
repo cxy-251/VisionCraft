@@ -22,7 +22,7 @@ Section {
     }
 
     Para {
-        text: qsTr("工位固件里唯一自己写了处理代码的中断，是给 HAL 计时用的 TIM7（FreeRTOS 占用了 SysTick，CubeMX 就把 HAL 的时基换成了 TIM7）。"
+        text: qsTr("先看工位固件里最基础的一个中断：给 HAL 计时用的 TIM7（FreeRTOS 占用了 SysTick，CubeMX 就把 HAL 的时基换成了 TIM7）。"
                  + "从向量表到最终执行的代码，一共四层：")
     }
     CodeRef { file: "firmware/station/startup_stm32f407xx.s"; match: "\\.word\\s+TIM7_IRQHandler"; caption: qsTr("① 向量表里的一项") }
@@ -78,7 +78,7 @@ Section {
     }
 
     Para {
-        text: qsTr("工位固件为什么几乎不用中断？两个主要输入都不适合。RTT 的数据是调试器悄悄写进内存的，没有任何硬件事件，只能轮询；"
+        text: qsTr("工位固件为什么不靠中断收输入？两个主要输入都不适合。RTT 的数据是调试器悄悄写进内存的，没有任何硬件事件，只能轮询；"
                  + "按键会抖动，一次按下引脚可能来回跳变好几次，用中断会触发好几次，反正还要靠定时采样来消抖，不如直接每 10 ms 扫一次：")
     }
     CodeRef { file: "firmware/station/App/link.c"; match: "osDelay\\(1\\)" }
@@ -92,7 +92,7 @@ Section {
     }
 
     InSystem {
-        text: qsTr("工位固件的时基中断 TIM7 只做 uwTick++；FreeRTOS 自己的 SysTick、PendSV 中断负责任务切换。其余输入都由任务轮询（App/link.c、App/station.c）。"
-                 + "F407 卷的「外部中断 EXTI」（待写）会把按键真正接到中断上。")
+        text: qsTr("工位固件的时基中断 TIM7 只做 uwTick++；FreeRTOS 自己的 SysTick、PendSV 中断负责任务切换。输入由任务轮询（App/link.c、App/station.c）；WK_UP 键另接了一个只做计数的外部中断，用来测抖动。"
+                 + "F407 卷的「外部中断 EXTI」把 WK_UP 键接到了中断上，用来测按键抖动。")
     }
 }

@@ -1,0 +1,8 @@
+# 在没用到的扇区 3（0x0800C000 起）写一个标记，重新烧录固件，再看标记还在不在；最后把扇区 3 擦回去
+$ openocd … -c "reset halt" -c "flash fillw 0x0800C000 0x12345678 1" -c exit
+写入标记后 0x0800C000 = 0x12345678
+$ openocd … -c "program firmware/station/build/Release/station.elf verify" -c exit
+** Verified OK **
+重新烧录后 0x0800C000 = 0x12345678
+$ openocd … -c "reset halt" -c "flash erase_sector 0 3 3" -c exit
+擦除扇区 3 后 0x0800C000 = 0xFFFFFFFF

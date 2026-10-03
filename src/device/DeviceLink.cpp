@@ -364,8 +364,9 @@ int DeviceLink::getInfo()
             {QStringLiteral("build"), QString::fromLatin1(info.build)},
         };
         emit infoChanged();
-        emit logLine(QStringLiteral("ok"), tr("固件 %1，编译于 %2").arg(m_info.value("firmware").toString(),
-                                                                     m_info.value("build").toString()));
+        emit logLine(QStringLiteral("ok"), tr("固件 %1，编译于 %2，芯片 UID %3").arg(m_info.value("firmware").toString(),
+                                                                                m_info.value("build").toString(),
+                                                                                m_info.value("uid").toString()));
     });
 }
 

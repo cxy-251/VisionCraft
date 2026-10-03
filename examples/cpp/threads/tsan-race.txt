@@ -1,0 +1,14 @@
+$ c++ -std=c++17 -O1 -g -fsanitize=thread main.cpp && ./a.out
+# 只保留第一份报告里属于 main.cpp 的行；两份报告都指向 g_plain，atomic 和 mutex 两组没有报告
+WARNING: ThreadSanitizer: data race (pid=…)
+  Read of size 4 at 0x… by thread T2:
+    #0 addPlain main.cpp:37
+  Previous write of size 4 at 0x… by thread T1:
+    #0 addPlain main.cpp:37
+  Location is global 'g_plain' of size 4 at 0x…
+……
+4 个线程，每个加 1000000 次，正确结果是 4000000
+volatile int ：结果  3245769，丢了   754231 次， 113.9 ms
+std::atomic  ：结果  4000000，丢了        0 次， 817.4 ms
+std::mutex   ：结果  4000000，丢了        0 次，3238.0 ms
+ThreadSanitizer: reported 2 warnings

@@ -15,7 +15,7 @@ HandbookIndex {
             Entry { title: qsTr("lambda 与捕获"); file: "handbook/bridge/cpp/Lambda.qml" }
             Entry { title: qsTr("拷贝、移动与隐式共享"); file: "handbook/bridge/cpp/CopyMove.qml" }
             Entry { title: qsTr("读懂模板签名"); file: "handbook/bridge/cpp/Templates.qml" }
-            Entry { title: qsTr("线程基础：thread / mutex / atomic") }
+            Entry { title: qsTr("线程基础：thread / mutex / atomic"); file: "handbook/bridge/cpp/Threads.qml" }
         }
         Chapter {
             title: qsTr("编译与工具链")

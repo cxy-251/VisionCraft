@@ -224,6 +224,7 @@ void DeviceLink::onFrame(const vc_frame &f)
     }
     // [endregion]
 
+    // [region telemetry]
     if (f.type == VC_TEL_ENV) {
         // 还没拿到时间换算（GET_INFO 应答之前）时收到的遥测，是连接之前就积压在板子缓冲区里的旧数据，丢掉
         if (!m_uptimeOffsetValid)
@@ -243,6 +244,7 @@ void DeviceLink::onFrame(const vc_frame &f)
         }
         return;
     }
+    // [endregion]
 
     QVariantMap ev{{QStringLiteral("type"), f.type}};
     switch (f.type) {
@@ -346,9 +348,11 @@ int DeviceLink::getInfo()
         vc_info info;
         if (!ok || vc_info_read(&info, reinterpret_cast<const uint8_t *>(payload.constData()), size_t(payload.size())) != 0)
             return;
+        // [region anchor]
         // 应答在路上花了约半个往返时间，板子报 uptime 的时刻大约是「现在 - 半个往返」
         m_uptimeOffsetMs = QDateTime::currentMSecsSinceEpoch() - qint64(m_lastRttMs / 2) - qint64(info.uptime_ms);
         m_uptimeOffsetValid = true;
+        // [endregion]
         QString uid;
         for (uint8_t b : info.uid)
             uid += QStringLiteral("%1").arg(b, 2, 16, QLatin1Char('0'));

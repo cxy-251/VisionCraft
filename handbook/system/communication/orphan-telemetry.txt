@@ -1,0 +1,4 @@
+# 用调试器把固件的遥测周期直接设成 1000 ms（相当于上位机订阅了遥测、没退订就消失了），等 60 秒再连接
+$ openocd … -c "mwh 0x20013268 1000" -c exit      # 0x20013268 是 s_periodMs 的地址
+$ sleep 60; ./build/tools/vclink_probe rtt
+[stats ] 上位机发 247 帧，收 317 帧，坏帧 0；遥测 9 次

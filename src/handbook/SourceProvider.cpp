@@ -98,10 +98,8 @@ QString SourceProvider::region(const QString &path, const QString &name) const
 
     static const QRegularExpression markerRe(QStringLiteral(R"(^\s*(?://|#)\s*\[(region\s+[\w\-.]+|endregion)\])"));
     QStringList out;
-    for (int i = r.begin; i < r.end; ++i) {
-        if (!markerRe.match(lines[i]).hasMatch())
-            out << lines[i];
-    }
+    for (int i = r.begin; i < r.end; ++i)
+        out << (markerRe.match(lines[i]).hasMatch() ? QString() : lines[i]);   // 嵌套的标记换成空行，保持行号对得上
 
     // 去掉公共缩进，空行不参与计算
     int indent = INT_MAX;
@@ -146,12 +144,15 @@ QString SourceProvider::between(const QString &path, const QString &fromPattern,
     const QStringList lines = read(path).split(QLatin1Char('\n'));
     QStringList out;
     bool in = false;
+    // region 标记是写给工具看的，摘录时不显示
+    static const QRegularExpression markerRe(QStringLiteral("^\\s*(?://|#)\\s*\\[(region\\s+[\\w\\-.]+|endregion)\\]"));
     for (const QString &l : lines) {
         if (!in && from.match(l).hasMatch())
             in = true;
         if (!in)
             continue;
-        out << l;
+        // 标记行换成空行而不是删掉：删掉的话，后面每一行显示的行号都会错一行
+        out << (markerRe.match(l).hasMatch() && out.size() > 0 ? QString() : l);
         if (out.size() > 1 && to.match(l).hasMatch())
             break;
     }

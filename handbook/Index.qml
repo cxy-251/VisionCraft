@@ -248,7 +248,7 @@ HandbookIndex {
         }
         Chapter {
             title: qsTr("模拟与时钟外设")
-            Entry { title: qsTr("ADC：光敏与片内温度"); from: "板载外设全量驱动（光敏、CPU 温度部分）" }
+            Entry { title: qsTr("ADC：光敏与片内温度"); file: "handbook/f407/analog/Adc.qml"; from: "板载外设全量驱动（光敏、CPU 温度部分）" }
             Entry { title: qsTr("DAC"); from: "12 位数模转换器 (DAC) 与 PA4 电压输出" }
             Entry { title: qsTr("DAC → ADC 回环示波器") }
             Entry { title: qsTr("RTC"); from: "RTC 硬件实时时钟与备份域走时" }

@@ -1,0 +1,7 @@
+$ openocd -f interface/stlink.cfg -f target/stm32f4x.cfg -c init -f tools/adc_probe.tcl -c exit
+出厂校准：VREFINT_CAL=1503  TS_CAL1(30°C)=936  TS_CAL2(110°C)=1203
+温度通道连续 64 次：最小 970，最大 983，平均 977.4（相差 13 个 LSB）
+前 16 次：982 981 972 983 983 976 977 972 977 976 976 983 979 979 975 983
+每 8 次取平均，8 个平均值：最小 976.5，最大 978.5（相差 2.0 个 LSB）
+内部参考电压读数 1511 → VDDA ≈ 3283 mV
+用平均值算温度：40.84 °C；单个 LSB 相当于 0.30 °C

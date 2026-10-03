@@ -199,6 +199,7 @@ file(GLOB_RECURSE VC_HANDBOOK_FILES CONFIGURE_DEPENDS
     firmware/station/cmake/gcc-arm-none-eabi.cmake firmware/station/CMakePresets.json
     firmware/station/Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal.c
     firmware/station/Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_gpio.c
+    firmware/station/Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_adc.c
     firmware/station/Middlewares/Third_Party/FreeRTOS/Source/CMSIS_RTOS_V2/cmsis_os2.c
     firmware/station/Middlewares/Third_Party/FreeRTOS/Source/portable/GCC/ARM_CM4F/port.c
     firmware/station/Drivers/CMSIS/Device/ST/STM32F4xx/Include/stm32f4xx.h

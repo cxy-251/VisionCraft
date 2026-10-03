@@ -19,7 +19,7 @@ void app_set_telemetry_period(uint16_t ms)
     s_periodMs = ms;
 }
 
-#define OVERSAMPLE 8u   /* 每个读数取 8 次平均：单次读数的噪声有十几个 LSB，温度会跳 ±1.5 °C */
+#define OVERSAMPLE 8u   /* 每个读数取 8 次平均：实测单次读数前后相差十几个 LSB（温度约 3.5 °C），8 次平均后约 2 个 LSB（tools/adc_probe.tcl） */
 
 static uint32_t read_channel(ADC_HandleTypeDef *hadc, uint32_t channel)
 {

@@ -75,6 +75,10 @@ void Error_Handler(void);
 #define KEY_WKUP_GPIO_Port GPIOA
 #define LCD_BL_Pin GPIO_PIN_15
 #define LCD_BL_GPIO_Port GPIOB
+#define EEPROM_SCL_Pin GPIO_PIN_8
+#define EEPROM_SCL_GPIO_Port GPIOB
+#define EEPROM_SDA_Pin GPIO_PIN_9
+#define EEPROM_SDA_GPIO_Port GPIOB
 
 /* USER CODE BEGIN Private defines */
 

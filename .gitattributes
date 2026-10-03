@@ -1,0 +1,6 @@
+# CubeMX 生成的文件是 CRLF 换行，手改过的是 LF。统一按 LF 存进仓库，
+# 否则每次重新生成，diff 里都是整个文件换了一遍，看不出真正改了什么
+firmware/station/Core/** text eol=lf
+firmware/station/cmake/** text eol=lf
+firmware/station/station.ioc text eol=lf
+firmware/station/.mxproject text eol=lf

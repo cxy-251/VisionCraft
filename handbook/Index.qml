@@ -43,7 +43,7 @@ HandbookIndex {
             title: qsTr("对象模型")
             Entry { title: qsTr("信号与槽"); file: "handbook/qt/object-model/SignalsSlots.qml"
                     from: "信号与槽机制；信号与槽 5 种连接类型深度剖析" }
-            Entry { title: qsTr("QObject 对象树与内存管理"); from: "QObject 对象树与自动内存管理" }
+            Entry { title: qsTr("QObject 对象树与内存管理"); file: "handbook/qt/object-model/ObjectTree.qml"; from: "QObject 对象树与自动内存管理" }
             Entry { title: qsTr("动态属性"); from: "动态属性与样式重载" }
         }
         Chapter {

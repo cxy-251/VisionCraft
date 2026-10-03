@@ -1,0 +1,16 @@
+==== 1. 按名字查找子对象 ====
+  station 的直接子对象：1 个
+  findChild<Sensor*>("temp")：找到了
+  只找直接子对象：没找到
+  树里的 Sensor 一共：2 个
+
+==== 2. moc 生成的元信息：运行时按名字访问 ====
+  类名：Sensor，父类：QObject
+  属性：temperature（类型 double）
+  setProperty 之后 temperature() = 36.5
+  calibrate() 被按名字调用了
+  inherits("QObject") = true
+
+==== 3. 父子对象必须在同一个线程 ====
+  [Qt] QObject::setParent: Cannot set parent, new parent is in a different thread
+  setParent 之后 child->parent() 仍为空

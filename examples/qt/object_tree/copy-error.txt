@@ -1,0 +1,4 @@
+$ c++ -std=c++17 -c copy_error.cpp
+copy_error.cpp: In function ‘void f()’:
+copy_error.cpp:7:17: error: use of deleted function ‘QObject::QObject(const QObject&)’
+<qt6>/QtCore/qobject.h:392:20: note: declared here

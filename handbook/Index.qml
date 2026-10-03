@@ -202,7 +202,7 @@ HandbookIndex {
             Entry { title: qsTr("OpenOCD 探测芯片"); from: "OpenOCD 芯片内核与 Flash 在线探测" }
             Entry { title: qsTr("OpenOCD 读寄存器与内存"); from: "OpenOCD 读取 CPU 寄存器与外设内存" }
             Entry { title: qsTr("烧录与复位"); from: "OpenOCD 固件静默烧录与自动复位" }
-            Entry { title: qsTr("启动模式：BOOT0 与 BOOT1") }
+            Entry { title: qsTr("启动模式：BOOT0 与 BOOT1"); file: "handbook/f407/debug/BootMode.qml" }
         }
         Chapter {
             title: qsTr("工程与 CubeMX")

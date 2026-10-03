@@ -194,7 +194,7 @@ file(GLOB_RECURSE VC_HANDBOOK_FILES CONFIGURE_DEPENDS
     protocol/*.c protocol/*.h
     firmware/station/App/*.c firmware/station/App/*.h
     firmware/station/Core/Src/*.c firmware/station/Core/Inc/*.h
-    firmware/station/station.ioc
+    firmware/station/station.ioc firmware/station/*.ld
     tests/*.cpp
     tools/*.cpp tools/*.sh tools/*.tcl
     CMakeLists.txt qml/*.qml)

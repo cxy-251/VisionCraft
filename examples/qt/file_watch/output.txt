@@ -1,0 +1,5 @@
+fileChanged 1 次，还在监视列表里：是  ← 1. 原地改写（打开、清空、写入）
+fileChanged 1 次，还在监视列表里：是  ← 2. 追加两次
+fileChanged 1 次，还在监视列表里：否  ← 3. 写临时文件再改名覆盖（很多编辑器这样存）
+fileChanged 0 次，还在监视列表里：否  ← 4. 再改一次（没有重新 addPath）
+fileChanged 1 次，还在监视列表里：是  ← 5. 重新 addPath 之后再改

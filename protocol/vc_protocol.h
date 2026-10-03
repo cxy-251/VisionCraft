@@ -45,6 +45,8 @@ enum vc_type {
     VC_CMD_BEEP      = 0x04, /* 负载：duration_ms(2) */
     VC_CMD_SUB_TEL   = 0x05, /* 负载：period_ms(2)，0 = 停止遥测 */
     VC_CMD_RESULT    = 0x06, /* 负载见 vc_result：一次检测的结果，板子显示并报警 */
+    VC_CMD_IMAGE_BEGIN = 0x07, /* 负载：width(2) height(2)，随后用 IMAGE_DATA 送 width×height 个 RGB565 像素 */
+    VC_CMD_IMAGE_DATA  = 0x08, /* 负载：offset(4，字节) + 像素数据；全部到齐后板子显示 */
 
     /* EVT：事件 */
     VC_EVT_HELLO     = 0x40, /* 板子启动完成，负载同 vc_info */
@@ -105,6 +107,11 @@ typedef struct {
     uint32_t ng;               /* 其中不合格件数 */
 } vc_result;
 #define VC_RESULT_SIZE (1u + 1u + 2u + 4u + 4u)
+
+/* 下发到板子屏幕的缩略图：固定最大尺寸，板子上预留这么大的缓冲区 */
+#define VC_THUMB_MAX_W 160u
+#define VC_THUMB_MAX_H 120u
+#define VC_IMAGE_CHUNK 1000u     /* 每个 IMAGE_DATA 帧最多带的像素字节数 */
 
 typedef struct {
     int16_t  cpu_temp_c100;    /* 片内温度 ×100，例如 3512 = 35.12 °C */

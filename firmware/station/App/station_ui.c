@@ -182,21 +182,25 @@ static const char *const DEFECT_NAMES[VC_DEFECT_COUNT] = {
     "PASS", "SCRATCH", "CHIP", "SPOT", "OFFSET", "NO PART",
 };
 
+/* 结果区布局：左边大字 OK/NG 和缺陷名，右边缩略图（160×120），底部计数 */
+#define THUMB_X (BOX_X + BOX_W - VC_THUMB_MAX_W - 20)
+#define THUMB_Y (BOX_Y + 40)
+
 void ui_result(const vc_result *r)
 {
     const uint16_t tone = r->ok ? C_OK : C_NG;
     lcd_fill(BOX_X, BOX_Y, BOX_W, BOX_H, C_SURFACE);
     lcd_fill(BOX_X, BOX_Y, BOX_W, 8, tone);   /* 顶部色条 */
 
-    /* 大字 OK / NG：每个字 64×128 */
-    const char *big = r->ok ? "OK" : "NG";
-    lcd_text((LCD_W - 2 * 64) / 2, BOX_Y + 30, big, tone, C_SURFACE, 8);
+    /* 大字 OK / NG：每个字 48×96 */
+    lcd_text(BOX_X + 28, BOX_Y + 40, r->ok ? "OK" : "NG", tone, C_SURFACE, 6);
 
     const char *name = DEFECT_NAMES[r->defect < VC_DEFECT_COUNT ? r->defect : VC_DEFECT_MISSING];
-    uint16_t len = 0;
-    while (name[len])
-        ++len;
-    lcd_text((uint16_t)((LCD_W - len * 24) / 2), BOX_Y + 172, name, C_TEXT, C_SURFACE, 3);
+    lcd_text(BOX_X + 28, BOX_Y + 160, name, C_TEXT, C_SURFACE, 2);
+
+    /* 缩略图位置先画一个框，图到了再填进去 */
+    lcd_fill(THUMB_X - 2, THUMB_Y - 2, VC_THUMB_MAX_W + 4, VC_THUMB_MAX_H + 4, C_MUTED);
+    lcd_fill(THUMB_X, THUMB_Y, VC_THUMB_MAX_W, VC_THUMB_MAX_H, C_BG);
 
     char line[32], *p = line;
     *p++ = 'T'; *p++ = 'O'; *p++ = 'T'; *p++ = 'A'; *p++ = 'L';
@@ -204,5 +208,10 @@ void ui_result(const vc_result *r)
     *p++ = ' '; *p++ = ' '; *p++ = 'N'; *p++ = 'G';
     p = put_uint(p, r->ng, 5);
     *p = '\0';
-    lcd_text(BOX_X + 24, BOX_Y + 240, line, C_MUTED, C_SURFACE, 2);
+    lcd_text(BOX_X + 28, BOX_Y + 250, line, C_MUTED, C_SURFACE, 2);
+}
+
+void ui_thumbnail(uint16_t w, uint16_t h, const uint16_t *pixels)
+{
+    lcd_draw_rgb565(THUMB_X + (VC_THUMB_MAX_W - w) / 2, THUMB_Y + (VC_THUMB_MAX_H - h) / 2, w, h, pixels);
 }

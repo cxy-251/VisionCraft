@@ -25,5 +25,6 @@ void     lcd_fill(uint16_t x, uint16_t y, uint16_t w, uint16_t h, uint16_t color
 /* 画 ASCII 文字：scale = 1 时每个字 8×16 像素，2 时 16×32……返回画完后的 x */
 uint16_t lcd_text(uint16_t x, uint16_t y, const char *s, uint16_t fg, uint16_t bg, uint8_t scale);
 uint16_t lcd_read_pixel(uint16_t x, uint16_t y);   /* 读回显存，用来自检 */
+void     lcd_draw_rgb565(uint16_t x, uint16_t y, uint16_t w, uint16_t h, const uint16_t *pixels);
 
 #endif

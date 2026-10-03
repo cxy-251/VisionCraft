@@ -117,8 +117,12 @@ void StationController::onInspected()
     emit resultChanged();
     emit statsChanged();
 
-    if (m_link && m_link->state() == DeviceLink::Connected)
+    if (m_link && m_link->state() == DeviceLink::Connected) {
         m_link->sendResult(r.ok, int(r.defect), int(r.ms + 0.5), m_total, m_ng);
+        // 不合格才发缩略图：一张约 38 KB，经 RTT 大约要 1 秒；上一张还没发完就跳过这张
+        if (!r.ok)
+            m_link->sendImage(m_resultImage);
+    }
 
     nextPart();   // 传送带送下一件
     setBusy(false);

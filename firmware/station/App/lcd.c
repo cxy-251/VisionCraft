@@ -110,6 +110,16 @@ void lcd_fill(uint16_t x, uint16_t y, uint16_t w, uint16_t h, uint16_t color)
 }
 // [endregion]
 
+void lcd_draw_rgb565(uint16_t x, uint16_t y, uint16_t w, uint16_t h, const uint16_t *pixels)
+{
+    if (x + w > LCD_W || y + h > LCD_H)
+        return;
+    set_window(x, y, w, h);
+    wr_reg(0x2C00);
+    for (uint32_t n = (uint32_t)w * h; n; --n)
+        wr_data(*pixels++);
+}
+
 uint16_t lcd_text(uint16_t x, uint16_t y, const char *s, uint16_t fg, uint16_t bg, uint8_t scale)
 {
     if (!scale) scale = 1;

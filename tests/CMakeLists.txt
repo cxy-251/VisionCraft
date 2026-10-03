@@ -26,7 +26,7 @@ qt_add_executable(tst_devicelink tst_devicelink.cpp
     ${PROJECT_SOURCE_DIR}/src/device/Transport.h
 )
 target_include_directories(tst_devicelink PRIVATE ${PROJECT_SOURCE_DIR}/protocol ${PROJECT_SOURCE_DIR}/src/device)
-target_link_libraries(tst_devicelink PRIVATE Qt6::Core Qt6::Network Qt6::SerialPort Qt6::Qml Qt6::Test)
+target_link_libraries(tst_devicelink PRIVATE Qt6::Core Qt6::Gui Qt6::Network Qt6::SerialPort Qt6::Qml Qt6::Test)
 add_test(NAME tst_devicelink COMMAND tst_devicelink)
 
 # 检测算法：用模拟产线的标准答案算混淆矩阵

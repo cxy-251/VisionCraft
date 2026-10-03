@@ -82,6 +82,16 @@ static void handle(const vc_frame *f)
         break;
     }
 
+    case VC_CMD_IMAGE_BEGIN:
+        reply(f->type, f->seq, f->len == 4 ? app_image_begin(vc_get_u16(f->payload), vc_get_u16(f->payload + 2))
+                                           : (uint8_t)VC_ERR_ARGS, NULL, 0);
+        break;
+
+    case VC_CMD_IMAGE_DATA:
+        reply(f->type, f->seq, f->len > 4 ? app_image_data(vc_get_u32(f->payload), f->payload + 4, (uint16_t)(f->len - 4))
+                                          : (uint8_t)VC_ERR_ARGS, NULL, 0);
+        break;
+
     default:   /* 包括 SET_TIME：RTC 还没配置 */
         if (VC_IS_CMD(f->type))
             reply(f->type, f->seq, VC_ERR_UNKNOWN, NULL, 0);

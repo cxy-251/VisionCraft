@@ -41,10 +41,17 @@ app_sensors app_latest_sensors(void);
 void app_post_result(const vc_result *r);
 int  app_take_result(vc_result *out);   /* 有新结果返回 1 */
 
+/* 缩略图：LinkTask 收 IMAGE_BEGIN / IMAGE_DATA，收齐后交给 StationTask 画 */
+uint8_t app_image_begin(uint16_t w, uint16_t h);                         /* 返回 vc_status */
+uint8_t app_image_data(uint32_t offset, const uint8_t *data, uint16_t len);
+int     app_take_image(uint16_t *w, uint16_t *h, const uint16_t **pixels);  /* 有新图返回 1 */
+void    app_image_done(void);                                            /* StationTask 画完后调用 */
+
 /* 屏幕（station_ui.c，只由 StationTask 调用） */
 void ui_init(void);
 void ui_update(void);
 void ui_key(uint8_t key, uint8_t down);
 void ui_result(const vc_result *r);
+void ui_thumbnail(uint16_t w, uint16_t h, const uint16_t *pixels);
 
 #endif

@@ -108,6 +108,22 @@ private slots:
         QCOMPARE(r.value("failed").toInt(), 0);
     }
 
+    void imageTransferCompletes()
+    {
+        DeviceLink link;
+        link.connectSimulator();
+        QTRY_COMPARE(link.state(), DeviceLink::Connected);
+        QSignalSpy sent(&link, &DeviceLink::imageSent);
+        QImage img(480, 360, QImage::Format_RGB32);
+        img.fill(Qt::red);
+        QVERIFY(link.sendImage(img));
+        QVERIFY(!link.sendImage(img));          // 上一张还在发：拒绝，不排队
+        QTRY_COMPARE_WITH_TIMEOUT(sent.size(), 1, 5000);
+        QCOMPARE(sent.at(0).at(0).toBool(), true);
+        QCOMPARE(sent.at(0).at(1).toInt(), 160 * 120 * 2);   // 480×360 按比例缩到 160×120
+        QVERIFY(!link.imageBusy());
+    }
+
     void disconnectFailsPendingRequests()
     {
         DeviceLink link;

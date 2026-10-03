@@ -123,6 +123,7 @@ void DeviceLink::connectWith(Transport *transport)
 void DeviceLink::disconnectDevice()
 {
     m_tp.running = false;
+    m_img.active = false;
     if (!m_transport)
         return;
     // 断开前让板子停止遥测：否则它会一直往没人读的缓冲区里写，写满后每帧都要等超时再丢弃
@@ -299,6 +300,8 @@ QString DeviceLink::commandName(uint8_t type)
     case VC_CMD_BEEP: return QStringLiteral("BEEP");
     case VC_CMD_SUB_TEL: return QStringLiteral("SUB_TEL");
     case VC_CMD_RESULT: return QStringLiteral("RESULT");
+    case VC_CMD_IMAGE_BEGIN: return QStringLiteral("IMAGE_BEGIN");
+    case VC_CMD_IMAGE_DATA: return QStringLiteral("IMAGE_DATA");
     }
     return QStringLiteral("0x%1").arg(type, 2, 16, QLatin1Char('0'));
 }
@@ -388,6 +391,70 @@ int DeviceLink::sendResult(bool ok, int defect, int inspectMs, int total, int ng
         if (!ok)
             emit logLine(QStringLiteral("error"), tr("下发检测结果失败（%1）").arg(status < 0 ? tr("超时") : QString::number(status)));
     });
+}
+
+// ------------------------------------------------------------------ 缩略图
+
+bool DeviceLink::sendImage(const QImage &image)
+{
+    if (m_state != Connected || m_img.active || image.isNull())
+        return false;
+    // [region rgb565]
+    const QImage small = image.scaled(VC_THUMB_MAX_W, VC_THUMB_MAX_H, Qt::KeepAspectRatio, Qt::SmoothTransformation)
+                             .convertToFormat(QImage::Format_RGB16);   // RGB565，每像素 2 字节
+    QByteArray pixels;
+    pixels.reserve(small.width() * small.height() * 2);
+    for (int y = 0; y < small.height(); ++y)   // 逐行拷贝：QImage 每行末尾可能有对齐填充
+        pixels.append(reinterpret_cast<const char *>(small.constScanLine(y)), small.width() * 2);
+    // [endregion]
+
+    m_img = {};
+    m_img.active = true;
+    m_img.pixels = pixels;
+    m_img.clock.start();
+    QByteArray begin(4, 0);
+    vc_put_u16(reinterpret_cast<uint8_t *>(begin.data()), uint16_t(small.width()));
+    vc_put_u16(reinterpret_cast<uint8_t *>(begin.data()) + 2, uint16_t(small.height()));
+    request(VC_CMD_IMAGE_BEGIN, begin, [this](bool ok, int, const QByteArray &) {
+        if (!ok) {
+            m_img.active = false;
+            emit imageSent(false, 0, 0);   // 板子正忙（还在画上一张）或参数不对
+            return;
+        }
+        imageStep();
+    });
+    return true;
+}
+
+void DeviceLink::imageStep()
+{
+    // 最多 4 块同时在路上：4 × 1 KB 小于板子 8 KB 的接收缓冲区
+    while (m_img.active && !m_img.failed && m_img.inFlight < 4 && m_img.next < m_img.pixels.size()) {
+        const int offset = m_img.next;
+        const int len = std::min<int>(VC_IMAGE_CHUNK, int(m_img.pixels.size()) - offset);
+        m_img.next += len;
+        m_img.inFlight++;
+        QByteArray p(4, 0);
+        vc_put_u32(reinterpret_cast<uint8_t *>(p.data()), uint32_t(offset));
+        p += m_img.pixels.mid(offset, len);
+        request(VC_CMD_IMAGE_DATA, p, [this](bool ok, int, const QByteArray &) {
+            if (!m_img.active)
+                return;
+            m_img.inFlight--;
+            if (!ok)
+                m_img.failed = true;
+            if (m_img.inFlight == 0 && (m_img.failed || m_img.next >= m_img.pixels.size())) {
+                m_img.active = false;
+                const double ms = m_img.clock.nsecsElapsed() / 1e6;
+                emit imageSent(!m_img.failed, int(m_img.pixels.size()), ms);
+                emit logLine(m_img.failed ? QStringLiteral("error") : QStringLiteral("ok"),
+                             m_img.failed ? tr("缩略图发送失败")
+                                          : tr("缩略图已发送：%1 字节，%2 ms").arg(m_img.pixels.size()).arg(ms, 0, 'f', 0));
+                return;
+            }
+            imageStep();
+        }, 3000);
+    }
 }
 
 // ------------------------------------------------------------------ 吞吐测试

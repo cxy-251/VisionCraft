@@ -76,6 +76,12 @@ void StationTask(void *argument)
         vc_result r;
         if (app_take_result(&r))
             ui_result(&r);
+        uint16_t iw, ih;
+        const uint16_t *pixels;
+        if (app_take_image(&iw, &ih, &pixels)) {
+            ui_thumbnail(iw, ih, pixels);
+            app_image_done();
+        }
         if (HAL_GetTick() - lastUi >= 250) {   /* 屏幕每 250 ms 刷新一次动态内容 */
             lastUi = HAL_GetTick();
             ui_update();

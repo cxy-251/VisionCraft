@@ -3,6 +3,7 @@
 #include "vc_protocol.h"
 
 #include <QElapsedTimer>
+#include <QImage>
 #include <QHash>
 #include <QObject>
 #include <QPointer>
@@ -60,6 +61,10 @@ public:
     Q_INVOKABLE int subscribeTelemetry(int periodMs);
     Q_INVOKABLE int sendResult(bool ok, int defect, int inspectMs, int total, int ng);
 
+    // 把图片缩到 160×120 以内、转成 RGB565，分块发给板子显示。正在发上一张时返回 false（不排队）
+    bool sendImage(const QImage &image);
+    bool imageBusy() const { return m_img.active; }
+
     // 连续发送 count 个带 payloadSize 字节负载的 PING，最多 window 个同时在途，测往返吞吐
     Q_INVOKABLE void runThroughputTest(int payloadSize, int count, int window = 4);
 
@@ -85,6 +90,7 @@ signals:
     void logLine(const QString &kind, const QString &text);
     void throughputFinished(const QVariantMap &result);
     void flashFinished(bool ok, const QString &message);
+    void imageSent(bool ok, int bytes, double ms);
 
 private:
     struct Pending {
@@ -125,6 +131,16 @@ private:
     quint64 m_rxBytes = 0;
     double m_lastRttMs = 0;
     QTimer m_statsTimer;          // 统计数据变化很快，限制刷新频率
+
+    struct ImageTransfer {
+        bool active = false;
+        QByteArray pixels;     // RGB565，小端
+        int next = 0;          // 下一个要发的字节偏移
+        int inFlight = 0;
+        bool failed = false;
+        QElapsedTimer clock;
+    } m_img;
+    void imageStep();
 
     struct Throughput {
         bool running = false;

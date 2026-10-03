@@ -109,6 +109,12 @@ void SimTransport::handle(const vc_frame &f)
         send(VC_RSP(VC_CMD_SUB_TEL), f.seq, QByteArray(1, ok));
         break;
     }
+    case VC_CMD_IMAGE_BEGIN:
+        send(VC_RSP(f.type), f.seq, QByteArray(1, char(f.len == 4 ? VC_OK : VC_ERR_ARGS)));
+        break;
+    case VC_CMD_IMAGE_DATA:
+        send(VC_RSP(f.type), f.seq, QByteArray(1, char(f.len > 4 ? VC_OK : VC_ERR_ARGS)));
+        break;
     case VC_CMD_RESULT: {
         vc_result r;
         if (vc_result_read(&r, f.payload, f.len) != 0) {

@@ -67,6 +67,21 @@ int main(int argc, char *argv[])
             link.flashFirmware(flashElf);
         };
     }
+    // 第二个参数 image：发一张四色方块缩略图（左上红、右上绿、左下蓝、右下白），然后退出
+    if (argc > 2 && QByteArray(argv[2]) == "image") {
+        steps << [&] {
+            QImage img(160, 120, QImage::Format_RGB32);
+            for (int y = 0; y < 120; ++y)
+                for (int x = 0; x < 160; ++x)
+                    img.setPixelColor(x, y, y < 60 ? (x < 80 ? QColor(255, 0, 0) : QColor(0, 255, 0))
+                                                   : (x < 80 ? QColor(0, 0, 255) : QColor(255, 255, 255)));
+            QObject::connect(&link, &DeviceLink::imageSent, &link, [&](bool ok, int bytes, double ms) {
+                say(QStringLiteral("[image ] %1：%2 字节，%3 ms").arg(ok ? "成功" : "失败").arg(bytes).arg(ms, 0, 'f', 0));
+                app.exit(ok ? 0 : 5);
+            });
+            link.sendImage(img);
+        };
+    }
     if (soak) {
         steps << [&] {
             QObject::connect(&link, &DeviceLink::throughputFinished, [&](const QVariantMap &r) {

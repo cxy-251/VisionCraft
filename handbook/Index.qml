@@ -139,8 +139,8 @@ HandbookIndex {
         }
         Chapter {
             title: qsTr("边缘、直线与圆")
-            Entry { title: qsTr("Canny"); from: "Canny 边缘检测" }
-            Entry { title: qsTr("Sobel"); from: "Sobel 一阶微分边缘算子" }
+            Entry { title: qsTr("Canny"); file: "handbook/opencv/edges/Canny.qml"; from: "Canny 边缘检测" }
+            Entry { title: qsTr("Sobel"); file: "handbook/opencv/edges/Sobel.qml"; from: "Sobel 一阶微分边缘算子" }
             Entry { title: qsTr("Laplacian"); from: "Laplacian 二阶微分算子" }
             Entry { title: qsTr("霍夫直线"); from: "霍夫直线检测" }
             Entry { title: qsTr("霍夫圆"); from: "霍夫圆变换" }

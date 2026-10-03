@@ -1,0 +1,5 @@
+$ openocd -f interface/stlink.cfg -f target/stm32f4x.cfg -c init -f tools/pwm_probe.tcl -c exit
+TIM12：PSC=3 ARR=999 CCR2=800 → 频率 84 MHz/(4×1000) = 21000 Hz，设定占空比 80.0%
+采样 2000 次 PB15，高电平占 80.3%
+CCR2 改成 200（20%）后，高电平占 19.0%
+已改回 CCR2=800

@@ -1,0 +1,33 @@
+==== 1. 程序不存在 ====
+  errorOccurred(FailedToStart)
+
+==== 2. 正常运行：输出、错误输出、退出码 ====
+  started
+  stdout: 正常输出
+  stderr: 出错信息
+  finished(exitCode=3, NormalExit)
+
+==== 3. 参数原样传给程序，不经过 shell ====
+  started
+  stdout: $HOME a b *.cpp
+  finished(exitCode=0, NormalExit)
+
+==== 4. 不读输出会怎样 ====
+  started
+  finished(exitCode=0, NormalExit)
+  子进程结束时，QProcess 里攒着 50000000 字节没人读
+
+==== 5. terminate：普通程序收到就退出 ====
+  started
+  stdout: 准备好了
+  errorOccurred(Crashed)
+  finished(exitCode=15, CrashExit)
+  用时 0 ms
+
+==== 6. terminate 被忽略：只好 kill ====
+  started
+  stdout: 准备好了（忽略 SIGTERM）
+  1 秒后还没退出，kill()
+  errorOccurred(Crashed)
+  finished(exitCode=9, CrashExit)
+  用时 1001 ms

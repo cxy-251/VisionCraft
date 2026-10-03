@@ -1,0 +1,4 @@
+$ openocd --version 2>/dev/null | wc -l       # 只看标准输出
+0
+$ openocd --version 2>&1 >/dev/null | head -1     # 只看标准错误
+Open On-Chip Debugger 0.12.0

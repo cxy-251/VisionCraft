@@ -1,0 +1,25 @@
+==== 1. 写入 ====
+  setValue 之后，文件存在吗？还不存在
+  sync() 之后，文件存在吗？存在
+
+==== 2. 文件内容 ====
+[handbook]
+expanded=true
+fontScale=1.25
+lastFile=handbook/qt/qml/Bindings.qml
+recent=a.qml, b.qml
+
+[ui]
+themeMode=2
+
+==== 3. 同一个程序里，再建一个 QSettings 读 ====
+  ui/themeMode：类型 int，toInt() = 2
+  handbook/expanded：类型 bool，toBool() = true，和 QVariant(true) 比较：相等
+  handbook/recent：a.qml, b.qml
+  不存在的键，给默认值：14
+
+==== 4. 另一个进程读（相当于下次启动程序） ====
+  ui/themeMode：类型 QString，toInt() = 2
+  handbook/expanded：类型 QString，toBool() = true，和 QVariant(true) 比较：相等
+  handbook/recent：a.qml, b.qml
+  不存在的键，给默认值：14

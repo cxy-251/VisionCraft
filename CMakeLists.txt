@@ -196,6 +196,7 @@ file(GLOB_RECURSE VC_HANDBOOK_FILES CONFIGURE_DEPENDS
     firmware/station/Core/Src/*.c firmware/station/Core/Inc/*.h
     firmware/station/station.ioc firmware/station/*.ld
     firmware/station/startup_stm32f407xx.s
+    firmware/station/cmake/gcc-arm-none-eabi.cmake firmware/station/CMakePresets.json
     firmware/station/Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal.c
     firmware/station/Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_gpio.c
     firmware/station/Middlewares/Third_Party/FreeRTOS/Source/CMSIS_RTOS_V2/cmsis_os2.c

@@ -1,0 +1,7 @@
+$ arm-none-eabi-gcc -mcpu=cortex-m4 -mthumb -mfloat-abi=soft -c lib.c                         # 「库」按软浮点编译
+$ arm-none-eabi-gcc -mcpu=cortex-m4 -mthumb -mfpu=fpv4-sp-d16 -mfloat-abi=hard -c app.c        # 固件按硬浮点编译
+$ arm-none-eabi-gcc -mcpu=cortex-m4 -mthumb -mfpu=fpv4-sp-d16 -mfloat-abi=hard --specs=nosys.specs app.o lib.o
+（省略 8 行 newlib 的 “_close is not implemented” 一类警告：示例没有实现系统调用，和本问题无关）
+ld: error: a.elf uses VFP register arguments, lib.o does not
+ld: failed to merge target specific data of file lib.o
+collect2: error: ld returned 1 exit status

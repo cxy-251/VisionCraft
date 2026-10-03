@@ -1,0 +1,12 @@
+$ grep -n 3748 ~/Applications/openocd/usr/lib/udev/rules.d/60-openocd.rules
+90:ATTRS{idVendor}=="0483", ATTRS{idProduct}=="3748", MODE="660", TAG+="uaccess"
+
+$ lsusb | grep 0483
+Bus 001 Device …: ID 0483:3748 STMicroelectronics ST-LINK/V2
+
+$ udevadm info /dev/bus/usb/001/020 | grep TAGS
+E: TAGS=:seat:uaccess:
+
+$ getfacl -p /dev/bus/usb/001/020 | grep user
+user::rw-
+user:deck:rw-

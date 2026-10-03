@@ -1,0 +1,13 @@
+$ arm-none-eabi-gcc -mcpu=cortex-m4 -mthumb -mfpu=fpv4-sp-d16 -mfloat-abi=hard -O2 -c lib.c && arm-none-eabi-objdump -d lib.o
+00000000 <scale>:
+   0:	eef7 7a08 	vmov.f32	s15, #120	@ 0x3fc00000  1.5
+   4:	ee20 0a27 	vmul.f32	s0, s0, s15
+   8:	4770      	bx	lr
+   a:	bf00      	nop
+
+$ arm-none-eabi-gcc -mcpu=cortex-m4 -mthumb -mfloat-abi=soft -O2 -c lib.c && arm-none-eabi-objdump -d lib.o
+00000000 <scale>:
+   0:	b508      	push	{r3, lr}
+   2:	f04f 517f 	mov.w	r1, #1069547520	@ 0x3fc00000
+   6:	f7ff fffe 	bl	0 <__aeabi_fmul>
+   a:	bd08      	pop	{r3, pc}

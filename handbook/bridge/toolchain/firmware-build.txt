@@ -1,0 +1,11 @@
+$ cmake --build --preset Release        # 只摘最后的链接输出
+Memory region         Used Size  Region Size  %age Used
+             RAM:       97400 B       128 KB     74.31%
+          CCMRAM:           0 B        64 KB      0.00%
+           FLASH:       28524 B         1 MB      2.72%
+   text	   data	    bss	    dec	    hex	filename
+  28448	     68	  97332	 125848	  1eb98	build/Release/station.elf
+
+$ file build/Release/station.elf ../../build/VisionCraft
+build/Release/station.elf: ELF 32-bit LSB executable, ARM, EABI5 version 1 (SYSV), statically linked, with debug_info, not stripped
+../../build/VisionCraft:   ELF 64-bit LSB pie executable, x86-64, version 1 (GNU/Linux), dynamically linked, interpreter /lib64/ld-linux-x86-64.so.2, not stripped

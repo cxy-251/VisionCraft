@@ -201,7 +201,7 @@ HandbookIndex {
             Entry { title: qsTr("ST-Link 与 USB 权限"); from: "ST-Link V2 USB 总线枚举与权限检查" }
             Entry { title: qsTr("OpenOCD 探测芯片"); file: "handbook/f407/debug/ChipProbe.qml"; from: "OpenOCD 芯片内核与 Flash 在线探测" }
             Entry { title: qsTr("OpenOCD 读寄存器与内存"); file: "handbook/f407/debug/RegMem.qml"; from: "OpenOCD 读取 CPU 寄存器与外设内存" }
-            Entry { title: qsTr("烧录与复位"); from: "OpenOCD 固件静默烧录与自动复位" }
+            Entry { title: qsTr("烧录与复位"); file: "handbook/f407/debug/Program.qml"; from: "OpenOCD 固件静默烧录与自动复位" }
             Entry { title: qsTr("启动模式：BOOT0 与 BOOT1"); file: "handbook/f407/debug/BootMode.qml" }
         }
         Chapter {

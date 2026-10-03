@@ -1,0 +1,44 @@
+$ readelf -d build/VisionCraft | grep NEEDED          # 程序直接依赖的库
+  libQt6QuickControls2.so.6
+  libQt6Widgets.so.6
+  libQt6Concurrent.so.6
+  libQt6SerialPort.so.6
+  libopencv_imgcodecs.so.412
+  libopencv_objdetect.so.412
+  libopencv_video.so.412
+  libfmt.so.11
+  libQt6Quick.so.6
+  libQt6QmlMeta.so.6
+  libQt6QmlWorkerScript.so.6
+  libQt6OpenGL.so.6
+  libQt6QmlModels.so.6
+  libQt6Qml.so.6
+  libQt6Network.so.6
+  libQt6Gui.so.6
+  libGLX.so.0
+  libOpenGL.so.0
+  libQt6Core.so.6
+  libopencv_calib3d.so.412
+  libopencv_features2d.so.412
+  libopencv_flann.so.412
+  libopencv_dnn.so.412
+  libopencv_imgproc.so.412
+  libopencv_core.so.412
+  libm.so.6
+  libgcc_s.so.1
+  libc.so.6
+  ld-linux-x86-64.so.2
+
+$ objdump -T build/VisionCraft | grep -o "GLIBC_[0-9.]*" | sort -V -u | tail -3
+GLIBC_2.35
+GLIBC_2.36
+GLIBC_2.38
+
+$ objdump -T build/VisionCraft | grep GLIBC_2.38           # 是哪些函数要求 2.38
+  __isoc23_strtoul
+  fmod
+  __isoc23_strtoll
+  __isoc23_strtoull
+
+$ ldd --version | head -1                               # 本机的 glibc
+ldd (GNU libc) 2.41

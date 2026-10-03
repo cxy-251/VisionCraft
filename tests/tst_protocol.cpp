@@ -82,6 +82,21 @@ private slots:
         QCOMPARE(got[1].payload, QByteArray("cd"));
     }
 
+    // [region sof-in-payload]
+    // 负载里出现帧头字节 A5 5A 不影响切帧：解码器按长度读负载，不在负载里找帧头
+    void sofBytesInsidePayload()
+    {
+        const QByteArray tricky = QByteArray::fromHex("a55aa55a00a5");
+        vc_decoder d;
+        vc_decoder_init(&d);
+        const auto got = decodeAll(d, encode(VC_CMD_PING, 1, tricky) + encode(VC_CMD_PING, 2, "ok"));
+        QCOMPARE(got.size(), 2);
+        QCOMPARE(got[0].payload, tricky);
+        QCOMPARE(got[1].payload, QByteArray("ok"));
+        QCOMPARE(d.errors, 0u);
+    }
+    // [endregion]
+
     void corruptedPayloadDropsOnlyThatFrame()
     {
         vc_decoder d;

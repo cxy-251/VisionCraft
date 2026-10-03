@@ -49,7 +49,7 @@ HandbookIndex {
         Chapter {
             title: qsTr("事件与定时")
             Entry { title: qsTr("事件派发与事件过滤器"); from: "事件派发管线与事件过滤器；全局与对象事件过滤器" }
-            Entry { title: qsTr("QTimer：定时、防抖、节流"); from: "QTimer 定时器体系与防抖节流" }
+            Entry { title: qsTr("QTimer：定时、防抖、节流"); file: "handbook/qt/events/Timers.qml"; from: "QTimer 定时器体系与防抖节流" }
         }
         Chapter {
             title: qsTr("线程与并发")

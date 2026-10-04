@@ -174,9 +174,9 @@ HandbookIndex {
         }
         Chapter {
             title: qsTr("视频与运动")
-            Entry { title: qsTr("VideoCapture"); from: "视频与摄像头流采集" }
-            Entry { title: qsTr("背景建模"); from: "动态背景建模与前景运动目标分离" }
-            Entry { title: qsTr("光流"); from: "Lucas-Kanade 稀疏光流运动追踪" }
+            Entry { title: qsTr("VideoCapture"); file: "handbook/opencv/video/VideoCapture.qml"; from: "视频与摄像头流采集" }
+            Entry { title: qsTr("背景建模"); file: "handbook/opencv/video/Background.qml"; from: "动态背景建模与前景运动目标分离" }
+            Entry { title: qsTr("光流"); file: "handbook/opencv/video/OpticalFlow.qml"; from: "Lucas-Kanade 稀疏光流运动追踪" }
         }
         Chapter {
             title: qsTr("三维与标定")

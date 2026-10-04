@@ -1,0 +1,23 @@
+==== 1. 动态属性 ====
+  收到 DynamicPropertyChange：station
+  收到 DynamicPropertyChange：retries
+  读回：station=A3 retries=2
+  dynamicPropertyNames：station, retries
+  收到 DynamicPropertyChange：retries
+  删除后 dynamicPropertyNames：station
+
+==== 2. 按键事件的旅程 ====
+  过滤器先看到 edit 的按键 a
+  输入框 keyPressEvent：a，处理后 isAccepted = true
+  过滤器先看到 edit 的按键 F5
+  输入框 keyPressEvent：F5，处理后 isAccepted = false
+  父窗口 keyPressEvent：收到冒泡上来的 F5
+  过滤器先看到 edit 的按键 7
+  过滤器拦下数字 7（返回 true，输入框收不到）
+  输入框现在的内容：「a」
+
+==== 3. sendEvent 与 postEvent ====
+  postEvent 刚返回，内容：「a」
+  过滤器先看到 edit 的按键 b
+  输入框 keyPressEvent：b，处理后 isAccepted = true
+  processEvents 之后，内容：「ab」

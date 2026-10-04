@@ -44,11 +44,11 @@ HandbookIndex {
             Entry { title: qsTr("信号与槽"); file: "handbook/qt/object-model/SignalsSlots.qml"
                     from: "信号与槽机制；信号与槽 5 种连接类型深度剖析" }
             Entry { title: qsTr("QObject 对象树与内存管理"); file: "handbook/qt/object-model/ObjectTree.qml"; from: "QObject 对象树与自动内存管理" }
-            Entry { title: qsTr("动态属性"); from: "动态属性与样式重载" }
+            Entry { title: qsTr("动态属性"); file: "handbook/qt/object-model/DynamicProperty.qml"; from: "动态属性与样式重载" }
         }
         Chapter {
             title: qsTr("事件与定时")
-            Entry { title: qsTr("事件派发与事件过滤器"); from: "事件派发管线与事件过滤器；全局与对象事件过滤器" }
+            Entry { title: qsTr("事件派发与事件过滤器"); file: "handbook/qt/events/Events.qml"; from: "事件派发管线与事件过滤器；全局与对象事件过滤器" }
             Entry { title: qsTr("QTimer：定时、防抖、节流"); file: "handbook/qt/events/Timers.qml"; from: "QTimer 定时器体系与防抖节流" }
         }
         Chapter {

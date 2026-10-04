@@ -1,0 +1,25 @@
+==== 1. 扫描目录，先只读元数据 ====
+  libinvert.so           IID=org.visioncraft.Operator/1.0   name=invert   已加载=0
+  libmislabeled.so       IID=org.visioncraft.Operator/0.9   name=         已加载=0
+  libthreshold_old.so    IID=org.visioncraft.Operator/0.9   name=         已加载=0
+
+==== 2. 加载并调用 ====
+  反色 v1：00 10 ff → ff ef 00
+
+==== 3. 接口版本不匹配 ====
+  libthreshold_old.so  元数据 IID org.visioncraft.Operator/0.9；instance() 非空，qobject_cast<Operator *> 得到 nullptr
+  libmislabeled.so     元数据 IID org.visioncraft.Operator/0.9；instance() 非空，qobject_cast<Operator *> 成功
+
+==== 4. 不是插件的库 ====
+  instance() 为空：Failed to extract plugin meta data from '/usr/lib/libz.so.1.3.1': '/usr/lib/libz.so.1.3.1' is not a Qt plugin (metadata not found)
+
+==== 5. 运行中替换插件 ====
+  第一次加载：反色 v1
+  unload=1，换成 v2 后重新加载：反色 v1
+  unload 之后，/proc/self/maps 里还有这个 .so：是
+  v2 换个文件名加载：反色 v2
+  同一个文件再建一个 QPluginLoader：instance 与上一个是同一个对象
+
+==== nm -D plugins/v1/libinvert.so 里类型为 u（STB_GNU_UNIQUE）的符号 ====
+  u _ZN9QtPrivate16QMetaTypeForTypeI14InvertOperatorE4nameE
+  u _ZN9QtPrivate25QMetaTypeInterfaceWrapperI14InvertOperatorE8metaTypeE

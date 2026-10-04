@@ -1,0 +1,25 @@
+==== 1. CPU 暂停，给屏发软件复位（0x0100），只做最少几步，整屏填红（一个一个像素写）====
+$ openocd -f interface/stlink.cfg -f target/stm32f4x.cfg -c init -c "set NT_STEP minimal" -f tools/nt35510_minimal.tcl -c exit
+已发最少初始化并整屏填红（填屏用了 233832 ms）
+读回 (240,400) 的像素：0xf800（红色是 0xF800）
+→ 看屏幕的人：红色（颜色正常）
+
+==== 2. 整个芯片复位后马上做（reset halt），连续写 64 个像素一批 ====
+$ openocd ... -c "set NT_STEP hw-reset" ...（那时脚本还没有停在 lcd_init 的步骤）
+已发最少初始化并整屏填红（填屏用了 26246 ms）
+读回 (240,400) 的像素：0x0000（红色是 0xF800）
+→ 复位后固件还没运行，FSMC 和引脚都没配置，写屏全部落空
+
+==== 3. 整个芯片复位，让固件跑到 lcd_init 入口停下，再做最少几步 ====
+$ openocd ... -c "set NT_STEP hw-reset; set LCD_INIT 0x08005514" -f tools/nt35510_minimal.tcl -c exit
+停在 lcd_init 入口：PC=0x08005514
+已发最少初始化并整屏填红（填屏用了 26297 ms）
+读回 (240,400) 的像素：0xf800（红色是 0xF800）
+→ 看屏幕的人：黑屏
+用调试器把背光引脚 PB15 设成输出高电平：GPIOB_MODER 0x800a0280 → 0x400a0280，ODR=0x8000
+→ 看屏幕的人：红色（颜色正常）
+
+==== 4. 复位板子，固件重新初始化屏幕 ====
+$ openocd ... -c "set NT_STEP restore" -f tools/nt35510_minimal.tcl -c exit
+已复位，固件重新运行；读回标题栏 (10,10) 的像素：0x1947
+RTOS 节拍 1000 次/秒

@@ -109,13 +109,13 @@ HandbookIndex {
         Chapter {
             title: qsTr("基础")
             Entry { title: qsTr("cv::Mat 内存模型"); file: "handbook/opencv/basics/MatMemory.qml"; from: "cv::Mat 内存模型与深浅拷贝" }
-            Entry { title: qsTr("图像混合"); from: "图像线性混合与加权融合" }
+            Entry { title: qsTr("图像混合"); file: "handbook/opencv/basics/Blend.qml"; from: "图像线性混合与加权融合" }
             Entry { title: qsTr("位运算与掩膜"); file: "handbook/opencv/basics/Masks.qml"; from: "逻辑位运算与非规则掩膜" }
-            Entry { title: qsTr("FileStorage 持久化"); from: "参数与矩阵持久化" }
+            Entry { title: qsTr("FileStorage 持久化"); file: "handbook/opencv/basics/FileStorage.qml"; from: "参数与矩阵持久化" }
         }
         Chapter {
             title: qsTr("色彩与阈值")
-            Entry { title: qsTr("HSV 颜色提取"); from: "HSV 颜色区间提取；HSV 色彩空间颜色阈值提取" }
+            Entry { title: qsTr("HSV 颜色提取"); file: "handbook/opencv/color/Hsv.qml"; from: "HSV 颜色区间提取；HSV 色彩空间颜色阈值提取" }
             Entry { title: qsTr("全局阈值与 OTSU"); file: "handbook/opencv/threshold/Otsu.qml"; from: "阈值化与 OTSU 大津法" }
             Entry { title: qsTr("自适应阈值"); file: "handbook/opencv/threshold/Adaptive.qml"; from: "自适应局部阈值" }
         }
@@ -129,8 +129,8 @@ HandbookIndex {
         }
         Chapter {
             title: qsTr("增强")
-            Entry { title: qsTr("直方图均衡与 CLAHE"); from: "直方图均衡化 (equalizeHist / CLAHE)；自适应直方图均衡化" }
-            Entry { title: qsTr("图像金字塔"); from: "图像金字塔与残差细节" }
+            Entry { title: qsTr("直方图均衡与 CLAHE"); file: "handbook/opencv/enhance/Histogram.qml"; from: "直方图均衡化 (equalizeHist / CLAHE)；自适应直方图均衡化" }
+            Entry { title: qsTr("图像金字塔"); file: "handbook/opencv/enhance/Pyramid.qml"; from: "图像金字塔与残差细节" }
         }
         Chapter {
             title: qsTr("形态学")

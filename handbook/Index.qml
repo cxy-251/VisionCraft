@@ -97,7 +97,7 @@ HandbookIndex {
             Entry { title: qsTr("国际化"); file: "handbook/qt/eng/I18n.qml"; from: "多语言国际化免重启热更体系" }
             Entry { title: qsTr("插件"); file: "handbook/qt/eng/Plugins.qml"; from: "工业算子动态热插拔插件架构" }
             Entry { title: qsTr("状态机"); file: "handbook/qt/eng/StateMachine.qml"; from: "工业机台有限状态机引擎" }
-            Entry { title: qsTr("Windows 崩溃转储"); from: "Windows 崩溃拦截与全自动 MiniDump 转储" }
+            Entry { title: qsTr("崩溃转储"); file: "handbook/qt/eng/CrashDump.qml"; from: "Windows 崩溃拦截与全自动 MiniDump 转储" }
         }
     }
 

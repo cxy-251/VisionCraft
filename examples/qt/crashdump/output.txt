@@ -1,0 +1,32 @@
+==== 子进程：null ====
+  exitStatus=CrashExit，exitCode=11，子进程 pid=139536（十六进制 22110）
+  崩溃记录第一行：signal SIGSEGV addr 0x0000000000000008
+    measureScratch(Part const*)  crashdump/main.cpp:63
+    inspectPart(Part const*)     crashdump/main.cpp:64
+    main                         crashdump/main.cpp:76
+    _start                       ??:?
+  （记录共 9 行）
+
+==== 子进程：abort ====
+  exitStatus=CrashExit，exitCode=6，子进程 pid=139557（十六进制 22125）
+  崩溃记录第一行：signal SIGABRT addr 0x000003e800022125
+    main                         crashdump/main.cpp:87
+    _start                       ??:?
+  （记录共 10 行）
+
+==== 子进程：overflow ====
+  exitStatus=CrashExit，exitCode=11，子进程 pid=139578（十六进制 2213a）
+  崩溃记录第一行：signal SIGSEGV addr 0x00007fff0173fc40
+    recurse(int)                 crashdump/main.cpp:65
+    recurse(int)                 crashdump/main.cpp:65
+    recurse(int)                 crashdump/main.cpp:65
+    recurse(int)                 crashdump/main.cpp:65
+    recurse(int)                 crashdump/main.cpp:65
+  （记录共 33 行）
+
+==== 子进程：overflow-noalt ====
+  exitStatus=CrashExit，exitCode=11，子进程 pid=139607（十六进制 22157）
+  崩溃记录：空（处理函数没有运行）
+
+==== 同一个程序崩溃后，systemd-coredump 的记录（coredumpctl list，最后一行）====
+Sun 2026-10-04 17:00:36 CST 139607 1000 1000 SIGSEGV inaccessible …/build/examples/qt/crashdump/example_qt_crashdump      -

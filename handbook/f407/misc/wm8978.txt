@@ -1,0 +1,30 @@
+==== 0. I2C1 上谁在应答 ====
+addr 0x1a: ACK（WM8978）
+addr 0x50: ACK（AT24C02 EEPROM）
+
+$ openocd -f interface/stlink.cfg -f target/stm32f4x.cfg -c init -c "set TONE_SECONDS 5; set HP_VOL 25" -f tools/wm8978_probe.tcl -c exit
+==== 1. 配置 WM8978（I2C1，地址 0x1A），耳机音量 25 ====
+  11 个寄存器都写进去了（每次都有应答）
+==== 2. I2S2：48 kHz、16 位、主机发送，同时输出 MCLK ====
+  正在播放 1 kHz 正弦，5 秒……
+  播放中 DMA 计数在变：28 → 44；SPI2_SR=0x84
+已恢复：RCC_CR=0x03036f83 APB1ENR=0x102000e0 AHB1ENR=0x001000fb
+  → 听的人：什么都没听到
+
+$ openocd -f interface/stlink.cfg -f target/stm32f4x.cfg -c init -c "set TONE_SECONDS 5; set HP_VOL 40; set SPK_VOL 40" -f tools/wm8978_probe.tcl -c exit
+==== 1. 配置 WM8978（I2C1，地址 0x1A），耳机音量 40 ====
+  11 个寄存器都写进去了（每次都有应答）  ← 当时脚本的提示是写死的；这次另外写了 3 个喇叭寄存器，实际共 14 个。之后已改成按实际次数打印
+==== 2. I2S2：48 kHz、16 位、主机发送，同时输出 MCLK ====
+  正在播放 1 kHz 正弦，5 秒……
+  播放中 DMA 计数在变：29 → 28；SPI2_SR=0xc5
+已恢复：RCC_CR=0x03036f83 APB1ENR=0x102000e0 AHB1ENR=0x001000fb
+  → 听的人：喇叭或耳机里有「嘟」声
+
+$ openocd -f interface/stlink.cfg -f target/stm32f4x.cfg -c init -c "set TONE_SECONDS 5; set HP_VOL 40" -f tools/wm8978_probe.tcl -c exit
+==== 1. 配置 WM8978（I2C1，地址 0x1A），耳机音量 40 ====
+  11 个寄存器都写进去了（每次都有应答）
+==== 2. I2S2：48 kHz、16 位、主机发送，同时输出 MCLK ====
+  正在播放 1 kHz 正弦，5 秒……
+  播放中 DMA 计数在变：27 → 62；SPI2_SR=0xc1
+已恢复：RCC_CR=0x03036f83 APB1ENR=0x102000e0 AHB1ENR=0x001000fb
+  → 听的人：耳机里有「嘟」声（喇叭没开）

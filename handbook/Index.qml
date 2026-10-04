@@ -221,7 +221,7 @@ HandbookIndex {
         }
         Chapter {
             title: qsTr("串行通信")
-            Entry { title: qsTr("UART：轮询、中断、DMA"); from: "Linux 串口终端与调试波特率监测" }
+            Entry { title: qsTr("UART：轮询、中断、DMA"); file: "handbook/f407/serial/Uart.qml"; from: "Linux 串口终端与调试波特率监测" }
             Entry { title: qsTr("RS232"); from: "SP3232 RS232 串口与 DB9 接口" }
             Entry { title: qsTr("RS485"); from: "SP3485 差分 RS485 通信与半双工控制" }
             Entry { title: qsTr("RTT：经调试口通信"); file: "handbook/f407/serial/Rtt.qml" }

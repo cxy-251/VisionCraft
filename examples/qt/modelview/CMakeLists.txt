@@ -1,3 +1,5 @@
 find_package(Qt6 REQUIRED COMPONENTS Test)
 qt_add_executable(example_qt_modelview main.cpp partmodel.h)
 target_link_libraries(example_qt_modelview PRIVATE Qt6::Widgets Qt6::Test)
+qt_add_executable(example_qt_delegate delegate.cpp partmodel.h)
+target_link_libraries(example_qt_delegate PRIVATE Qt6::Widgets Qt6::Test)

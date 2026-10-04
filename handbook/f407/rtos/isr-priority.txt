@@ -1,0 +1,36 @@
+==== 1. 优先级相关的寄存器（固件正常运行时读取）====
+  AIRCR=0xfa050300（PRIGROUP=3）  SHPR2=0x00000000（SVCall 优先级 0）  SHPR3=0xf0f00000（PendSV 15，SysTick 15）
+  已使能的中断  6，优先级 5
+  已使能的中断 55，优先级 15
+  随机停 200 次，BASEPRI 的取值分布：0x00 199 0x50 1
+  （6 = EXTI0_IRQHandler，55 = TIM7_IRQHandler，见 startup_stm32f407xx.s 的向量表）
+
+==== 2. 实验固件：在 App/station.c 的 HAL_GPIO_EXTI_Callback 里加了两行（只在临时副本里改，没有提交）====
++        uint16_t ms = 20;
++        osMessageQueuePut(g_beepQueue, &ms, 0, 0);
+
+$ openocd ... -c "set TEST_ELF 实验固件.elf; set RESTORE_ELF 原固件.elf; set EDGES 0x2001325c; set TICK 0x200000c4; set VALIDATE 0x0800425c" -f tools/isr_priority_probe.tcl -c exit
+==== 烧录实验固件 ====
+** Verified OK **
+  RTOS 节拍：1001 次/秒
+==== EXTI0 优先级 5 ====
+  按键中断计数 0 → 1；RTOS 节拍 1001 次/秒；PC=0x08002d24 BASEPRI=0x00 PRIMASK=0x00
+==== EXTI0 优先级 2 ====
+  按键中断计数 1 → 2；RTOS 节拍 0 次/秒；PC=0x08004280（在 vPortValidateInterruptPriority 里） BASEPRI=0x50 PRIMASK=0x00
+==== 烧回原来的固件 ====
+** Verified OK **
+  RTOS 节拍：1001 次/秒
+
+==== 3. 另一个实验固件：回调里那两行换成 HAL_Delay(10) ====
++        HAL_Delay(10);
+==== 烧录实验固件 ====
+** Verified OK **
+  RTOS 节拍：1000 次/秒
+==== EXTI0 优先级 5 ====
+  按键中断计数 0 → 1；RTOS 节拍 0 次/秒；PC=0x0800165e BASEPRI=0x00 PRIMASK=0x00
+==== EXTI0 优先级 2 ====
+  按键中断计数 1 → 1；RTOS 节拍 0 次/秒；PC=0x08001638 BASEPRI=0x00 PRIMASK=0x00
+==== 烧回原来的固件 ====
+** Verified OK **
+  RTOS 节拍：1000 次/秒
+  （PC 0x0800165e、0x08001638 用 addr2line 查：HAL_Delay、HAL_GetTick）

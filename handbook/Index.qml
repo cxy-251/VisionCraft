@@ -87,7 +87,7 @@ HandbookIndex {
             Entry { title: qsTr("QTcpSocket 与二进制协议"); file: "handbook/qt/comm/Tcp.qml"; from: "高性能 TCP 工业网络与二进制防粘包协议" }
             Entry { title: qsTr("QUdpSocket 设备发现"); file: "handbook/qt/comm/Udp.qml"; from: "局域网设备自发现与组播推流" }
             Entry { title: qsTr("QNetworkAccessManager"); file: "handbook/qt/comm/Network.qml"; from: "网络请求管理器与异步客户端" }
-            Entry { title: qsTr("共享内存"); from: "跨进程共享内存与互斥守护" }
+            Entry { title: qsTr("共享内存"); file: "handbook/qt/comm/SharedMemory.qml"; from: "跨进程共享内存与互斥守护" }
             Entry { title: qsTr("QProcess 子进程"); file: "handbook/qt/comm/Process.qml"; from: "外部子进程异步调度与管道交互" }
         }
         Chapter {

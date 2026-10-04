@@ -1,0 +1,13 @@
+==== 1. 创建并写入一帧 ====
+  共享内存 1310744 字节，主进程算的像素和 163839751
+
+==== 2. 另一个进程读 ====
+  [子进程] 第 1 帧 1280x1024，像素和 163839751
+
+==== 3. 两个进程同时改一个数 ====
+  add-nolock 两个进程各加 100 万次：结果 1036244（应为 2000000），17 ms
+  add-lock   两个进程各加 100 万次：结果 2000000（应为 2000000），10868 ms
+
+==== 4. 创建者崩溃之后 ====
+  直接 create：QSharedMemory::create: already exists；再 attach：QSharedMemory::handle: doesn't exist
+  先 attach 再 detach，然后 create：成功

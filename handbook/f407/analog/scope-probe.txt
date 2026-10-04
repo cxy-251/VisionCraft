@@ -1,0 +1,39 @@
+$ openocd ... -c "set SCOPE_OUT s200000.txt; set ADC_RATE 200000" -f tools/scope_probe.tcl -c exit
+  开始前：DAC_SR=0x00000000 ADC2_SR=0x00000000 DMA1_HISR=0x00000c00 DMA2_LISR=0x00300000
+  采满 2048 个点用了约 11 ms；DMA2 流 2 剩余计数 0
+  DAC 更新 128000 次/秒（正弦 1000.0 Hz），ADC 采样 200000 次/秒；数据写进 s200000.txt
+已恢复：AHB1ENR=0x001000fb APB1ENR=0x102000e0 APB2ENR=0x00004500 GPIOA_MODER=0xa8000000 DAC_CR=0x00000000
+$ tools/scope_analyze.py s200000.txt 200000
+  分析：第 1 个点 = 47；其余 2047 个点 最小 406 最大 3704 平均 2055；上升穿越 11 次 → 看到的频率 1000.50 Hz
+
+$ openocd ... -c "set SCOPE_OUT s500000.txt; set ADC_RATE 500000" -f tools/scope_probe.tcl -c exit
+  开始前：DAC_SR=0x00000000 ADC2_SR=0x00000000 DMA1_HISR=0x00000c00 DMA2_LISR=0x00300000
+  采满 2048 个点用了约 5 ms；DMA2 流 2 剩余计数 0
+  DAC 更新 128000 次/秒（正弦 1000.0 Hz），ADC 采样 500000 次/秒；数据写进 s500000.txt
+已恢复：AHB1ENR=0x001000fb APB1ENR=0x102000e0 APB2ENR=0x00004500 GPIOA_MODER=0xa8000000 DAC_CR=0x00000000
+$ tools/scope_analyze.py s500000.txt 500000
+  分析：第 1 个点 = 20；其余 2047 个点 最小 395 最大 3715 平均 2032；上升穿越 4 次 → 看到的频率 1000.67 Hz
+
+$ openocd ... -c "set SCOPE_OUT s50000.txt; set ADC_RATE 50000" -f tools/scope_probe.tcl -c exit
+  开始前：DAC_SR=0x00000000 ADC2_SR=0x00000000 DMA1_HISR=0x00000c00 DMA2_LISR=0x00300000
+  采满 2048 个点用了约 42 ms；DMA2 流 2 剩余计数 0
+  DAC 更新 128000 次/秒（正弦 1000.0 Hz），ADC 采样 50000 次/秒；数据写进 s50000.txt
+已恢复：AHB1ENR=0x001000fb APB1ENR=0x102000e0 APB2ENR=0x00004500 GPIOA_MODER=0xa8000000 DAC_CR=0x00000000
+$ tools/scope_analyze.py s50000.txt 50000
+  分析：第 1 个点 = 30；其余 2047 个点 最小 405 最大 3708 平均 2054；上升穿越 41 次 → 看到的频率 1000.00 Hz
+
+$ openocd ... -c "set SCOPE_OUT s1100.txt; set ADC_RATE 1100" -f tools/scope_probe.tcl -c exit
+  开始前：DAC_SR=0x00000000 ADC2_SR=0x00000000 DMA1_HISR=0x00000c00 DMA2_LISR=0x00300000
+  采满 2048 个点用了约 1863 ms；DMA2 流 2 剩余计数 0
+  DAC 更新 128000 次/秒（正弦 1000.0 Hz），ADC 采样 1100 次/秒；数据写进 s1100.txt
+已恢复：AHB1ENR=0x001000fb APB1ENR=0x102000e0 APB2ENR=0x00004500 GPIOA_MODER=0xa8000000 DAC_CR=0x00000000
+$ tools/scope_analyze.py s1100.txt 1100
+  分析：第 1 个点 = 42；其余 2047 个点 最小 403 最大 3705 平均 2051；上升穿越 186 次 → 看到的频率 99.61 Hz
+
+
+$ openocd ... -c "set SCOPE_OUT s2000.txt; set ADC_RATE 2000" -f tools/scope_probe.tcl -c exit
+  采满 2048 个点用了约 989 ms；DMA2 流 2 剩余计数 0
+$ tools/scope_analyze.py s2000.txt 2000
+  分析：第 1 个点 = 44；其余 2047 个点 最小 468 最大 3632 平均 2052；上升穿越 921 次 → 看到的频率 900.64 Hz
+  开头 12 个点： 3628 512 3600 481 3592 468 3625 515 3600 475 3592 482
+  每隔 200 个点取一个： 3628 3467 3192 2879 2513 2232 1818 1414 1064 809 597

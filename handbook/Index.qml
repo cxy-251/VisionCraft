@@ -142,8 +142,8 @@ HandbookIndex {
             Entry { title: qsTr("Canny"); file: "handbook/opencv/edges/Canny.qml"; from: "Canny 边缘检测" }
             Entry { title: qsTr("Sobel"); file: "handbook/opencv/edges/Sobel.qml"; from: "Sobel 一阶微分边缘算子" }
             Entry { title: qsTr("Laplacian"); file: "handbook/opencv/edges/Laplacian.qml"; from: "Laplacian 二阶微分算子" }
-            Entry { title: qsTr("霍夫直线"); from: "霍夫直线检测" }
-            Entry { title: qsTr("霍夫圆"); from: "霍夫圆变换" }
+            Entry { title: qsTr("霍夫直线"); file: "handbook/opencv/edges/HoughLine.qml"; from: "霍夫直线检测" }
+            Entry { title: qsTr("霍夫圆"); file: "handbook/opencv/edges/HoughCircle.qml"; from: "霍夫圆变换" }
         }
         Chapter {
             title: qsTr("轮廓与几何")
@@ -155,8 +155,8 @@ HandbookIndex {
         }
         Chapter {
             title: qsTr("几何变换")
-            Entry { title: qsTr("仿射变换"); from: "仿射变换与中心旋转；仿射变换与中心旋转微调" }
-            Entry { title: qsTr("透视变换"); from: "透视变换与梯形校正；四点透视变换与文档工件拍平" }
+            Entry { title: qsTr("仿射变换"); file: "handbook/opencv/geometry/Affine.qml"; from: "仿射变换与中心旋转；仿射变换与中心旋转微调" }
+            Entry { title: qsTr("透视变换"); file: "handbook/opencv/geometry/Perspective.qml"; from: "透视变换与梯形校正；四点透视变换与文档工件拍平" }
             Entry { title: qsTr("单应性配准"); from: "单应性矩阵与多图精准配准对齐" }
         }
         Chapter {

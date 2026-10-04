@@ -10,7 +10,11 @@ RttTransport::RttTransport(QObject *parent)
     connect(&m_process, &QProcess::readyReadStandardError, this, &RttTransport::onStderr);
     connect(&m_process, &QProcess::readyReadStandardOutput, this, [this] { m_process.readAllStandardOutput(); });
     connect(&m_process, &QProcess::finished, this, [this](int code) {
-        if (m_step != Step::Idle)
+        if (m_step == Step::StartingProcess && code == 1)
+            // 最常见的原因：另一个 OpenOCD（终端里的脚本、上次没退干净的上位机）占着 ST-Link。
+            // OpenOCD 这时不打印任何错误（只有 -d3 才看得到 claim interface failed），所以这里替它说
+            fail(tr("OpenOCD 退出了（退出码 1）。ST-Link 可能正被另一个程序占用，用 pgrep -xa openocd 检查"));
+        else if (m_step != Step::Idle)
             fail(tr("OpenOCD 退出了（退出码 %1）").arg(code));
     });
     connect(&m_process, &QProcess::errorOccurred, this, [this](QProcess::ProcessError e) {

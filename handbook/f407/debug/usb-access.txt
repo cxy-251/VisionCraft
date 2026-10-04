@@ -1,0 +1,10 @@
+$ lsusb | grep 0483
+Bus 001 Device …: ID 0483:3748 STMicroelectronics ST-LINK/V2
+
+$ ls -l /dev/bus/usb/001/002; getfacl -p /dev/bus/usb/001/002 | grep user
+crw-rw-r--+ 1 root root 189, 1
+user::rw-
+user:deck:rw-
+
+$ udevadm info /dev/bus/usb/001/002 | grep TAGS
+E: TAGS=:uaccess:seat:

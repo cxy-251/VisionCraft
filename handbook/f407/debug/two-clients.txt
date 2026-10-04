@@ -1,0 +1,12 @@
+# 第一个 OpenOCD 已经连着 ST-Link（比如上位机正连着板子），这时再开一个：
+$ openocd -f interface/stlink.cfg -f target/stm32f4x.cfg -c init -c exit
+Open On-Chip Debugger 0.12.0
+Info : auto-selecting first available session transport "hla_swd". To override use 'transport select <transport>'.
+Info : The selected transport took over low-level target control. The results might differ compared to plain JTAG/SWD
+Info : clock speed 2000 kHz
+（就到这里结束，没有任何 Error；退出码 1）
+
+$ openocd -d3 …      # 打开最详细的调试输出，摘出关键几行
+stlink_usb.c:3381 stlink_usb_usb_open(): claim interface failed
+stlink_usb.c:684 jtag_libusb_bulk_transfer_n(): ERROR, failed to submit transfer 0, error -1
+hla_layout.c:36 hl_layout_open(): failed

@@ -1,0 +1,28 @@
+==== 1. LSE 和 LSI，各等 30 秒后测 180 秒 ====
+$ openocd -f interface/stlink.cfg -f target/stm32f4x.cfg -c init -c "set RTC_WARMUP 30; set RTC_SECONDS 180" -f tools/rtc_probe.tcl -c exit
+开始前：RCC_BDCR=0x00000000 RCC_CSR=0x0e000000
+==== LSE ====
+  LSE 起振用了 543 ms
+  先等 30 秒，让振荡器稳定下来
+  LSE：91 个采样，181 秒。RTC 相对 HSE：+139 ppm（每天 +12.0 秒）；同一段时间里电脑时钟相对 HSE：+2955 ppm
+==== LSI ====
+  LSI 起振用了 2 ms
+  先等 30 秒，让振荡器稳定下来
+  LSI：91 个采样，180 秒。RTC 相对 HSE：+24980 ppm（每天 +2158.2 秒）；同一段时间里电脑时钟相对 HSE：+3815 ppm
+已恢复：RCC_BDCR=0x00000000 RCC_CSR=0x0e000000
+
+==== 2. 再测一次 LSE，300 秒 ====
+$ openocd ... -c "set RTC_SOURCES LSE; set RTC_WARMUP 30; set RTC_SECONDS 300" -f tools/rtc_probe.tcl -c exit
+  LSE 起振用了 547 ms
+  LSE：151 个采样，300 秒。RTC 相对 HSE：+136 ppm（每天 +11.7 秒）；同一段时间里电脑时钟相对 HSE：+782 ppm
+已恢复：RCC_BDCR=0x00000000 RCC_CSR=0x0e000000
+
+==== 3. 参照时钟靠得住吗：60 秒里 DWT、HAL 毫秒计数（TIM7）、FreeRTOS 节拍、电脑时间各走了多少 ====
+uwTick +59862 ms, xTickCount +59861, DWT 59.861 s, host 60.002 s
+
+==== 4. 电脑这边：timedatectl timesync-status（节选），以及 20 秒里系统时间相对单调时钟的偏移 ====
+       Delay: 3.008295s
+      Jitter: 2.181392s
+   Frequency: +500.000ppm
+wall-mono over 20s (ms): -853.1501102261245
+

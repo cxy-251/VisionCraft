@@ -1,0 +1,70 @@
+==== 对 station.ioc 副本的改动（Middleware → FATFS → User-defined）====
++Mcu.IP10=FATFS
++Mcu.Pin40=VP_FATFS_VS_Generic
++VP_FATFS_VS_Generic.Mode=User_defined
++VP_FATFS_VS_Generic.Signal=FATFS_VS_Generic
+（以及 IPNb、PinsNb 各加 1）
+
+==== CubeMX 新增、改动的文件 ====
+ M .mxproject
+ M Core/Src/main.c
+ M cmake/stm32cubemx/CMakeLists.txt
+ M station.ioc
+?? FATFS/
+?? Middlewares/Third_Party/FatFs/
+  新增的文件：
+    FATFS/App/fatfs.c
+    FATFS/App/fatfs.h
+    FATFS/Target/ffconf.h
+    FATFS/Target/user_diskio.c
+    FATFS/Target/user_diskio.h
+    Middlewares/Third_Party/FatFs/src/diskio.c
+    Middlewares/Third_Party/FatFs/src/diskio.h
+    Middlewares/Third_Party/FatFs/src/ff.c
+    Middlewares/Third_Party/FatFs/src/ff_gen_drv.c
+    Middlewares/Third_Party/FatFs/src/ff_gen_drv.h
+    Middlewares/Third_Party/FatFs/src/ff.h
+    Middlewares/Third_Party/FatFs/src/integer.h
+    Middlewares/Third_Party/FatFs/src/option/syscall.c
+
+==== main.c 的改动 ====
++#include "fatfs.h"
++  MX_FATFS_Init();
+
+==== FATFS/Target/user_diskio.c（生成，节选）====
+DSTATUS USER_initialize (
+	BYTE pdrv           /* Physical drive nmuber to identify the drive */
+)
+{
+  /* USER CODE BEGIN INIT */
+    Stat = STA_NOINIT;
+    return Stat;
+  /* USER CODE END INIT */
+}
+
+DRESULT USER_read (
+	BYTE pdrv,      /* Physical drive nmuber to identify the drive */
+	BYTE *buff,     /* Data buffer to store read data */
+	DWORD sector,   /* Sector address in LBA */
+	UINT count      /* Number of sectors to read */
+)
+{
+  /* USER CODE BEGIN READ */
+    return RES_OK;
+  /* USER CODE END READ */
+}
+
+==== FATFS/Target/ffconf.h（生成的默认值，节选）====
+33:#define _FS_READONLY         0      /* 0:Read/Write or 1:Read only */
+60:#define _USE_MKFS            1
+84:#define _CODE_PAGE         850
+112:#define _USE_LFN     0    /* 0 to 3 */
+157:#define _VOLUMES    1
+177:#define _MIN_SS    512  /* 512, 1024, 2048 or 4096 */
+178:#define _MAX_SS    512  /* 512, 1024, 2048 or 4096 */
+241:#define _FS_REENTRANT    1  /* 0:Disable or 1:Enable */
+
+==== 同一个短文件名的原始字节，按不同代码页解码（python3）====
+  原始字节       b2 e2 ca d4 d3 c3 7e 31
+  按 850 解码    ▓Ô╩ÈË├~1
+  按 936（GBK）  测试用~1

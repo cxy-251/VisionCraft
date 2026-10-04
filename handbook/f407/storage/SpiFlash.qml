@@ -11,8 +11,8 @@ Section {
                  + "工位固件不用 SPI1。本节用调试器直接操作 SPI1 的寄存器，和芯片一条条命令地对话；实验只在最后一个 4 KB 扇区里做，做之前先整扇区备份，做完写回。")
     }
 
-    CodeRef { file: "tools/spiflash_probe.tcl"; region: "spi" }
-    CodeRef { file: "tools/spiflash_probe.tcl"; region: "setup" }
+    CodeRef { file: "tools/spiflash_lib.tcl"; region: "spi" }
+    CodeRef { file: "tools/spiflash_lib.tcl"; region: "setup" }
 
     KeyPoints {
         label: qsTr("SPI 怎么传数据")
@@ -24,7 +24,7 @@ Section {
         ]
     }
 
-    CodeRef { file: "tools/spiflash_probe.tcl"; region: "flash-ops" }
+    CodeRef { file: "tools/spiflash_lib.tcl"; region: "flash-ops" }
     CodeRef { file: "handbook/f407/storage/spiflash-probe.txt"; from: "==== 1"; to: "地址 0 开始"; caption: qsTr("在板子上读 ID") }
 
     KeyPoints {

@@ -180,9 +180,9 @@ HandbookIndex {
         }
         Chapter {
             title: qsTr("三维与标定")
-            Entry { title: qsTr("相机标定"); from: "工业相机张正友标定法与畸变矫正" }
-            Entry { title: qsTr("位姿估计 solvePnP"); from: "PnP 空间 6 自由度位姿估计" }
-            Entry { title: qsTr("双目深度"); from: "双目立体视觉与深度测量" }
+            Entry { title: qsTr("相机标定"); file: "handbook/opencv/calib/Calibration.qml"; from: "工业相机张正友标定法与畸变矫正" }
+            Entry { title: qsTr("位姿估计 solvePnP"); file: "handbook/opencv/calib/Pnp.qml"; from: "PnP 空间 6 自由度位姿估计" }
+            Entry { title: qsTr("双目深度"); file: "handbook/opencv/calib/Stereo.qml"; from: "双目立体视觉与深度测量" }
         }
         Chapter {
             title: qsTr("深度学习")

@@ -123,8 +123,8 @@ HandbookIndex {
             title: qsTr("滤波")
             Entry { title: qsTr("高斯滤波"); file: "handbook/opencv/filter/Gaussian.qml"; from: "高斯滤波" }
             Entry { title: qsTr("中值滤波"); file: "handbook/opencv/filter/Median.qml"; from: "中值滤波" }
-            Entry { title: qsTr("双边滤波"); from: "双边滤波" }
-            Entry { title: qsTr("均值与方框滤波"); from: "均值与方框滤波" }
+            Entry { title: qsTr("双边滤波"); file: "handbook/opencv/filter/Bilateral.qml"; from: "双边滤波" }
+            Entry { title: qsTr("均值与方框滤波"); file: "handbook/opencv/filter/Box.qml"; from: "均值与方框滤波" }
             Entry { title: qsTr("频域滤波"); from: "频域傅里叶变换与陷波滤波去网纹" }
         }
         Chapter {
@@ -141,7 +141,7 @@ HandbookIndex {
             title: qsTr("边缘、直线与圆")
             Entry { title: qsTr("Canny"); file: "handbook/opencv/edges/Canny.qml"; from: "Canny 边缘检测" }
             Entry { title: qsTr("Sobel"); file: "handbook/opencv/edges/Sobel.qml"; from: "Sobel 一阶微分边缘算子" }
-            Entry { title: qsTr("Laplacian"); from: "Laplacian 二阶微分算子" }
+            Entry { title: qsTr("Laplacian"); file: "handbook/opencv/edges/Laplacian.qml"; from: "Laplacian 二阶微分算子" }
             Entry { title: qsTr("霍夫直线"); from: "霍夫直线检测" }
             Entry { title: qsTr("霍夫圆"); from: "霍夫圆变换" }
         }

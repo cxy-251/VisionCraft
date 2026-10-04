@@ -229,7 +229,7 @@ HandbookIndex {
         Chapter {
             title: qsTr("显示")
             Entry { title: qsTr("FSMC 与 8080 并口"); file: "handbook/f407/display/Fsmc.qml"; from: "FSMC 8080 并口总线与 LCD 地址映射原理" }
-            Entry { title: qsTr("FSMC 时序与屏幕识别"); from: "FSMC 时序配置、ID 自适应探测与绘图原语" }
+            Entry { title: qsTr("FSMC 时序与屏幕识别"); file: "handbook/f407/display/FsmcTiming.qml"; from: "FSMC 时序配置、ID 自适应探测与绘图原语" }
             Entry { title: qsTr("NT35510 排查实录"); from: "NT35510 纯白屏与字模乱码排查实录" }
             Entry { title: qsTr("PWM 背光"); file: "handbook/f407/display/Backlight.qml"; from: "TIM12 PWM 屏幕背光调节与 21kHz 啸叫消除" }
             Entry { title: qsTr("GT9147 电容触摸"); from: "GT9147 电容触摸屏驱动与连续轨迹插值" }

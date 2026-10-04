@@ -1,0 +1,65 @@
+######## QT_QPA_PLATFORM=offscreen
+平台：offscreen
+
+==== 1. 有边框和无边框 ====
+  有边框：geometry 400x300 @(202,202)，frameGeometry 404x304 @(200,200)
+  无边框：geometry 400x300 @(200,200)，frameGeometry 400x300 @(200,200)
+  show() 之后再 setWindowFlags：isVisible=0
+
+==== 2. 拖动自绘标题栏 ====
+  拖之前 (200,200)，拖之后 (320,280)，移动了 (120,80)
+  双击标题栏：isMaximized=1，大小 800x800
+  再双击：isMaximized=0，大小 400x300
+
+==== 3. 边缘判断 ====
+  (  2,  2) → 左上角
+  (398,298) → 右下角
+  (  3,150) → 左边
+  (200,297) → 下边
+  (200,150) → （不在边缘）
+  (  7,150) → （不在边缘）
+
+==== 4. 悬停换光标 ====
+  setMouseTracking(false)，鼠标移到右下角：光标 ArrowCursor（普通箭头）
+  setMouseTracking(true)，鼠标移到右下角：光标 SizeFDiagCursor（斜向双箭头）
+  在右下角按下：startSystemResize 返回 false
+
+==== 5. 交给窗口管理器：startSystemMove / startSystemResize ====
+  没有按下鼠标时调用：startSystemMove 返回 false，startSystemResize 返回 false
+
+==== 6. 圆角：透明背景 ====
+  不设透明：左上角像素 #efefef alpha=255，中心 #1e293b
+  WA_TranslucentBackground：左上角像素 #000000 alpha=0，中心 #1e293b
+
+######## 桌面（KDE Plasma Wayland 会话，Qt 经 XWayland 用 xcb）
+平台：xcb
+
+==== 1. 有边框和无边框 ====
+  有边框：geometry 400x300 @(201,228)，frameGeometry 402x329 @(200,200)
+  无边框：geometry 400x300 @(200,200)，frameGeometry 400x300 @(200,200)
+  show() 之后再 setWindowFlags：isVisible=0
+
+==== 2. 拖动自绘标题栏 ====
+  拖之前 (200,200)，拖之后 (320,280)，移动了 (120,80)
+  双击标题栏：isMaximized=1，大小 2560x1408
+  再双击：isMaximized=0，大小 400x300
+
+==== 3. 边缘判断 ====
+  (  2,  2) → 左上角
+  (398,298) → 右下角
+  (  3,150) → 左边
+  (200,297) → 下边
+  (200,150) → （不在边缘）
+  (  7,150) → （不在边缘）
+
+==== 4. 悬停换光标 ====
+  setMouseTracking(false)，鼠标移到右下角：光标 ArrowCursor（普通箭头）
+  setMouseTracking(true)，鼠标移到右下角：光标 SizeFDiagCursor（斜向双箭头）
+  在右下角按下：startSystemResize 返回 true
+
+==== 5. 交给窗口管理器：startSystemMove / startSystemResize ====
+  没有按下鼠标时调用：startSystemMove 返回 true，startSystemResize 返回 true
+
+==== 6. 圆角：透明背景 ====
+  不设透明：左上角像素 #24272c alpha=255，中心 #1e293b
+  WA_TranslucentBackground：左上角像素 #000000 alpha=0，中心 #1e293b

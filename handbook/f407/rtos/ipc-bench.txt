@@ -1,0 +1,16 @@
+$ tools/fw_bench/build_variant.sh <临时目录>
+Build type: Release
+             RAM:       97520 B       128 KB     74.40%
+          CCMRAM:           0 B        64 KB      0.00%
+           FLASH:       29680 B         1 MB      2.83%
+$ openocd ... -c "set TEST_ELF 实验固件.elf; set RESTORE_ELF 原固件.elf; set BENCH 0x200172cc" -f tools/fw_bench/run_bench.tcl -c exit
+** Verified OK **
+每项 1000 次，DWT 周期数 → 平均每次（168 MHz）：
+  两个任务之间用队列来回一次（两次切换）  3320490 周期 →   3320 周期 = 19.76 µs
+  两个任务之间用任务通知来回一次（两次切换）  1149596 周期 →   1150 周期 =  6.84 µs
+  无竞争的互斥锁：取 + 还              339122 周期 →    339 周期 =  2.02 µs
+  锁住调度器再解开（vTaskSuspendAll / xTaskResumeAll）   128551 周期 →    129 周期 =  0.77 µs
+  临界区进出一次（taskENTER/EXIT_CRITICAL）    45014 周期 →     45 周期 =  0.27 µs
+  同一个任务里往队列放一个、再取出来（不切换）   388173 周期 →    388 周期 =  2.31 µs
+** Verified OK **
+已烧回原固件，RTOS 节拍 1004 次/秒

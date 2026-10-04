@@ -197,7 +197,7 @@ HandbookIndex {
 
         Chapter {
             title: qsTr("调试与烧录")
-            Entry { title: qsTr("SWD 接线"); from: "20-Pin JTAG 座 SWD 接线引脚映射" }
+            Entry { title: qsTr("SWD 接线"); file: "handbook/f407/debug/SwdWiring.qml"; from: "20-Pin JTAG 座 SWD 接线引脚映射" }
             Entry { title: qsTr("ST-Link 与 USB 权限"); file: "handbook/f407/debug/StLink.qml"; from: "ST-Link V2 USB 总线枚举与权限检查" }
             Entry { title: qsTr("OpenOCD 探测芯片"); file: "handbook/f407/debug/ChipProbe.qml"; from: "OpenOCD 芯片内核与 Flash 在线探测" }
             Entry { title: qsTr("OpenOCD 读寄存器与内存"); file: "handbook/f407/debug/RegMem.qml"; from: "OpenOCD 读取 CPU 寄存器与外设内存" }

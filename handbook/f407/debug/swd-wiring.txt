@@ -1,0 +1,30 @@
+==== 1. 连接：ST-Link V2（0483:3748）经 20 针排线接板子的 JTAG 座 ====
+$ openocd -f interface/stlink.cfg -c "transport select hla_swd" -f target/stm32f4x.cfg -c init ...
+Info : Target voltage: 3.167876
+DBGMCU_IDCODE=0x10076413
+$ openocd -f interface/stlink.cfg -c "transport select hla_jtag" -f target/stm32f4x.cfg -c init ...
+Info : Target voltage: 3.166321
+Info : [stm32f4x.cpu] Cortex-M4 r0p1 processor detected
+DBGMCU_IDCODE=0x10076413
+
+==== 2. 读 64 KB Flash 用的时间（adapter speed 写在 target 配置之后才生效）====
+hla_swd   100 kHz: 8222 ms
+hla_swd   240 kHz: 3330 ms
+hla_swd   480 kHz: 1765 ms
+hla_swd   950 kHz:  982 ms
+hla_swd  1800 kHz:  611 ms
+hla_swd  4000 kHz:  381 ms
+hla_jtag 1800 kHz:  920 ms
+hla_jtag 4000 kHz:  569 ms
+（adapter speed 放在 -f target/stm32f4x.cfg 前面时，配置文件把它改回 2000 kHz：六种设置都约 610 ms）
+
+==== 3. 用 JTAG 连接时，运行会把 PB3/PB4 改成 SPI 的脚本 ====
+运行前（SWD 读）：GPIOB_MODER=0x800a0280 GPIOB_AFRL=0x00000000 APB2ENR=0x00004500
+before open: GPIOB_MODER=0x800a0280
+Error: jtag status contains invalid mode value - communication failure
+Polling target stm32f4x.cpu failed, trying to reexamine
+出错：
+恢复时出错：
+改用 SWD 连接读到：GPIOB_AFRL=0x00005000（PB3 已是 AF5 = SPI1_SCK）APB2ENR=0x00005500（SPI1 时钟已开）
+写回原值后：GPIOB_AFRL=0x00000000 APB2ENR=0x00004500，RTOS 节拍 1023 次/秒（固件照常运行）
+再用 JTAG 连接：DBGMCU_IDCODE=0x10076413（恢复正常）

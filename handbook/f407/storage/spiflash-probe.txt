@@ -1,0 +1,21 @@
+$ openocd -f interface/stlink.cfg -f target/stm32f4x.cfg -c init -f tools/spiflash_probe.tcl -c exit
+==== 1. 读 ID ====
+  JEDEC ID（0x9F）：ef 40 18
+  厂商/器件 ID（0x90）：ef 17
+  状态寄存器 1：0x00
+  地址 0 开始的 16 字节：eb fe 90 4d 53 44 4f 53 35 2e 30 00 02 08 01 00
+==== 2. 备份最后一个扇区（0xFFF000，4096 字节）====
+  读 4 KB 用了 9670 ms；原来的内容不是全空
+==== 3. 擦除 ====
+  擦除一个扇区：约 68 ms（期间查询 BUSY 8 次）；擦完读前 8 字节：ff ff ff ff ff ff ff ff
+==== 4. 只能把 1 变成 0 ====
+  写 0xF0 → 读回 0xf0；不擦除再写 0x0F → 读回 0x00；再写 0xFF → 读回 0x00
+==== 5. 页编程跨过 256 字节边界 ====
+  页尾 0x1F8–0x1FF：a0 a1 a2 a3 a4 a5 a6 a7
+  下一页开头 0x200–0x207：ff ff ff ff ff ff ff ff
+  本页开头 0x100–0x107：a8 a9 aa ab ac ad ae af
+==== 6. 写一页要多久 ====
+  写 256 字节后查询 BUSY 0 次就好了；读回一致
+==== 7. 恢复扇区原内容 ====
+  恢复后与备份一致
+已恢复：APB2ENR=0x00004500 GPIOB_MODER=0x800a0280 SPI1_CR1=0x00000000

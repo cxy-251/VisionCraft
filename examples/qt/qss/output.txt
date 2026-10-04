@@ -1,0 +1,48 @@
+==== 1. 没有样式表（fusion 风格的默认外观）====
+  停止按钮 #fbfbfb，结果标签 #efefef
+
+==== 2. 浅色主题 ====
+  启动 #2f80ed，停止 #dde3ea，禁用 #e8e8e8，结果(ok) #27ae60
+
+==== 3. 属性变了，样式会跟着变吗 ====
+  只 setProperty：结果标签 #27ae60
+  unpolish + polish 之后：结果标签 #eb5757
+
+==== 4. 优先级 ====
+  启动按钮自己的样式表 vs 程序的 #start：#9b51e0
+  清掉自己的样式表：#2f80ed
+
+==== 5. 换肤 ====
+  切到深色：0.9 ms，启动 #2d9cdb，停止 #323a45，结果(ng) #c0392b
+  再加一个有 500 个按钮的窗口，切回浅色：60.1 ms
+
+==== 6. 样式表写错了 ====
+  1. QPushButton { background: #ff0000; border: none; }                       → 停止按钮 #ff0000
+  2. QPushButton { background: #ff0000; }                                     → 停止按钮 #fe8484
+  3. QPushButton { background: #ff0000; border: none;                         → 停止按钮 #fbfbfb
+  4. QPushButton { background: #ff0000; border: none; } QLabel { color:       → 停止按钮 #ff0000
+  5. QPushButton { backgrund: #ff0000; border: none; }                        → 停止按钮 #efefef
+  6. QPushButton { background: #ff0000; border: none; }; QLabel { color: red; } → 停止按钮 #ff0000
+
+==== 7. 自己写的 QWidget 子类 ====
+  Panel 背景 #ffffff
+  设置 WA_StyledBackground 之后 #f2994a
+
+==== 8. 补充核对 ====
+  禁用按钮改成可用（没有 polish）：#dde3ea
+  QPushButton 的子类：#dde3ea
+  #start 规则写在前面：启动 #2f80ed，停止 #dde3ea
+  启动按钮自己的样式表带选择器 QPushButton：#9b51e0
+  启动按钮自己的样式表带选择器 QLabel：#2f80ed
+
+==== 用 QT_FORCE_STDERR_LOGGING=1 运行时 stderr 上的内容（去掉重复行）====
+      1 [第 1 份]
+      1 [第 2 份]
+      1 [第 3 份]
+      1 Could not parse application stylesheet
+      1 [第 4 份]
+      1 Could not parse application stylesheet
+      1 [第 5 份]
+     12 Unknown property backgrund
+      1 [第 6 份]
+      1 Could not parse application stylesheet

@@ -61,7 +61,7 @@ HandbookIndex {
         Chapter {
             title: qsTr("界面：Widgets")
             Entry { title: qsTr("布局与伸缩因子"); file: "handbook/qt/widgets/Layout.qml"; from: "弹性布局与伸缩因子" }
-            Entry { title: qsTr("QSS 样式表与换肤"); from: "QSS 样式表引擎与暗黑模式换肤" }
+            Entry { title: qsTr("QSS 样式表与换肤"); file: "handbook/qt/widgets/Qss.qml"; from: "QSS 样式表引擎与暗黑模式换肤" }
             Entry { title: qsTr("无边框窗口"); from: "现代化无边框沉浸式窗口" }
             Entry { title: qsTr("QPainter 绘图与双缓冲"); from: "QPainter 2D 绘图与双缓冲技术；高级几何自绘与抗锯齿变换" }
             Entry { title: qsTr("自定义控件"); from: "工业自定义控件封装范式" }

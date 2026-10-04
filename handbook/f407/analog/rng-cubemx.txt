@@ -1,0 +1,72 @@
+==== 对 station.ioc 副本的改动（相当于在 CubeMX 图形界面里勾选 Security → RNG → Activated）====
+-Mcu.IPNb=10
++Mcu.IP10=RNG
++Mcu.IPNb=11
++Mcu.Pin40=VP_RNG_VS_RNG
+-Mcu.PinsNb=40
++Mcu.PinsNb=41
++VP_RNG_VS_RNG.Mode=RNG_Activate
++VP_RNG_VS_RNG.Signal=RNG_VS_RNG
+
+==== 在 station.ioc 里打开 RNG（副本，不是真正的工程）后，CubeMX 改动的文件 ====
+ M .mxproject
+ M Core/Inc/stm32f4xx_hal_conf.h
+ M Core/Src/main.c
+ M cmake/stm32cubemx/CMakeLists.txt
+ M station.ioc
+?? Core/Inc/rng.h
+?? Core/Src/rng.c
+?? Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal_rng.h
+?? Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_ll_rng.h
+?? Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_rng.c
+
+==== Core/Src/rng.c（生成）====
+void MX_RNG_Init(void)
+{
+
+  /* USER CODE BEGIN RNG_Init 0 */
+
+  /* USER CODE END RNG_Init 0 */
+
+  /* USER CODE BEGIN RNG_Init 1 */
+
+  /* USER CODE END RNG_Init 1 */
+  hrng.Instance = RNG;
+  if (HAL_RNG_Init(&hrng) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN RNG_Init 2 */
+
+  /* USER CODE END RNG_Init 2 */
+
+}
+void HAL_RNG_MspInit(RNG_HandleTypeDef* rngHandle)
+{
+
+  if(rngHandle->Instance==RNG)
+  {
+  /* USER CODE BEGIN RNG_MspInit 0 */
+
+  /* USER CODE END RNG_MspInit 0 */
+    /* RNG clock enable */
+    __HAL_RCC_RNG_CLK_ENABLE();
+  /* USER CODE BEGIN RNG_MspInit 1 */
+
+  /* USER CODE END RNG_MspInit 1 */
+  }
+}
+
+==== Core/Src/main.c、stm32f4xx_hal_conf.h、cmake/stm32cubemx/CMakeLists.txt 的改动 ====
+-/* #define HAL_RNG_MODULE_ENABLED */
++#define HAL_RNG_MODULE_ENABLED
++#include "rng.h"
++  MX_RNG_Init();
++    ${CMAKE_CURRENT_SOURCE_DIR}/../../Core/Src/rng.c
++    ${CMAKE_CURRENT_SOURCE_DIR}/../../Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_rng.c
+
+==== 编译（Release）====
+             RAM:       97488 B       128 KB     74.38%
+          CCMRAM:           0 B        64 KB      0.00%
+           FLASH:       28780 B         1 MB      2.74%
+（原工程：RAM 97472 B，FLASH 28644 B）

@@ -1,0 +1,6 @@
+$ openocd -f interface/stlink.cfg -f target/stm32f4x.cfg -c init -c "set RNG_OUT rng.txt" -f tools/rng_probe.tcl -c exit
+AHB2ENR 0x00000000 -> 0x00000040，RNG_CR=0x4，RNG_SR=0x1
+读了 4096 个 32 位数；读之前 DRDY 还没好的次数 0；错误标志出现 0 次
+不等 DRDY 连读两次：0x48231617 0xbc42be12
+已恢复：AHB2ENR=0x00000000
+real	0m3.990s

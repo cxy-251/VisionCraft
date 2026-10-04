@@ -232,7 +232,7 @@ HandbookIndex {
             Entry { title: qsTr("FSMC 时序与屏幕识别"); file: "handbook/f407/display/FsmcTiming.qml"; from: "FSMC 时序配置、ID 自适应探测与绘图原语" }
             Entry { title: qsTr("NT35510 排查实录"); from: "NT35510 纯白屏与字模乱码排查实录" }
             Entry { title: qsTr("PWM 背光"); file: "handbook/f407/display/Backlight.qml"; from: "TIM12 PWM 屏幕背光调节与 21kHz 啸叫消除" }
-            Entry { title: qsTr("GT9147 电容触摸"); from: "GT9147 电容触摸屏驱动与连续轨迹插值" }
+            Entry { title: qsTr("GT9147 电容触摸"); file: "handbook/f407/display/Touch.qml"; from: "GT9147 电容触摸屏驱动与连续轨迹插值" }
         }
         Chapter {
             title: qsTr("存储")

@@ -157,13 +157,13 @@ HandbookIndex {
             title: qsTr("几何变换")
             Entry { title: qsTr("仿射变换"); file: "handbook/opencv/geometry/Affine.qml"; from: "仿射变换与中心旋转；仿射变换与中心旋转微调" }
             Entry { title: qsTr("透视变换"); file: "handbook/opencv/geometry/Perspective.qml"; from: "透视变换与梯形校正；四点透视变换与文档工件拍平" }
-            Entry { title: qsTr("单应性配准"); from: "单应性矩阵与多图精准配准对齐" }
+            Entry { title: qsTr("单应性配准"); file: "handbook/opencv/geometry/Homography.qml"; from: "单应性矩阵与多图精准配准对齐" }
         }
         Chapter {
             title: qsTr("特征与匹配")
-            Entry { title: qsTr("Harris 角点"); from: "Harris 角点检测；Harris 亚像素角点特征检测" }
-            Entry { title: qsTr("ORB 特征"); from: "ORB 特征提取与关键点可视化；ORB 特征提取与关键点绘制" }
-            Entry { title: qsTr("模板匹配"); from: "金字塔多尺度加速模板匹配" }
+            Entry { title: qsTr("Harris 角点"); file: "handbook/opencv/features/Harris.qml"; from: "Harris 角点检测；Harris 亚像素角点特征检测" }
+            Entry { title: qsTr("ORB 特征"); file: "handbook/opencv/features/Orb.qml"; from: "ORB 特征提取与关键点可视化；ORB 特征提取与关键点绘制" }
+            Entry { title: qsTr("模板匹配"); file: "handbook/opencv/features/Template.qml"; from: "金字塔多尺度加速模板匹配" }
         }
         Chapter {
             title: qsTr("工业检测")

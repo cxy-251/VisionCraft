@@ -186,7 +186,7 @@ HandbookIndex {
         }
         Chapter {
             title: qsTr("深度学习")
-            Entry { title: qsTr("DNN 推理"); from: "OpenCV DNN 深度学习推理管线" }
+            Entry { title: qsTr("DNN 推理"); file: "handbook/opencv/dnn/Dnn.qml"; from: "OpenCV DNN 深度学习推理管线" }
         }
     }
 

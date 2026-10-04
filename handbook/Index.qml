@@ -135,7 +135,7 @@ HandbookIndex {
         Chapter {
             title: qsTr("形态学")
             Entry { title: qsTr("腐蚀、膨胀、开闭运算"); file: "handbook/opencv/morphology/Morphology.qml"; from: "形态学拓展变换" }
-            Entry { title: qsTr("距离变换与骨架"); from: "距离变换与骨架细化" }
+            Entry { title: qsTr("距离变换与骨架"); file: "handbook/opencv/morphology/Distance.qml"; from: "距离变换与骨架细化" }
         }
         Chapter {
             title: qsTr("边缘、直线与圆")
@@ -151,7 +151,7 @@ HandbookIndex {
             Entry { title: qsTr("连通域"); file: "handbook/opencv/contours/Components.qml"; from: "连通域统计与几何矩分析" }
             Entry { title: qsTr("外接圆与拟合椭圆"); file: "handbook/opencv/contours/Fitting.qml"; from: "最小外接圆与拟合椭圆" }
             Entry { title: qsTr("凸包与凹缺陷"); file: "handbook/opencv/contours/Hull.qml"; from: "凸包多边形与凹缺陷检测" }
-            Entry { title: qsTr("分水岭"); from: "分水岭算法解决重叠粘连物体分割" }
+            Entry { title: qsTr("分水岭"); file: "handbook/opencv/contours/Watershed.qml"; from: "分水岭算法解决重叠粘连物体分割" }
         }
         Chapter {
             title: qsTr("几何变换")
@@ -167,8 +167,8 @@ HandbookIndex {
         }
         Chapter {
             title: qsTr("工业检测")
-            Entry { title: qsTr("卡尺测量"); from: "亚像素一维卡尺边缘测距" }
-            Entry { title: qsTr("标准样差分"); from: "黄金标样差分缺陷排查" }
+            Entry { title: qsTr("卡尺测量"); file: "handbook/opencv/industrial/Caliper.qml"; from: "亚像素一维卡尺边缘测距" }
+            Entry { title: qsTr("标准样差分"); file: "handbook/opencv/industrial/Golden.qml"; from: "黄金标样差分缺陷排查" }
             Entry { title: qsTr("二维码与条码"); from: "工业二维码与条形码全自动定位与解码" }
             Entry { title: qsTr("怎样评价一个检测算法"); file: "handbook/opencv/industrial/Evaluation.qml" }
         }

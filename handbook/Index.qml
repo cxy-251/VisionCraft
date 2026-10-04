@@ -76,7 +76,7 @@ HandbookIndex {
         }
         Chapter {
             title: "Model / View"
-            Entry { title: qsTr("Model / View 架构"); from: "Model / View 架构设计哲学" }
+            Entry { title: qsTr("Model / View 架构"); file: "handbook/qt/modelview/ModelView.qml"; from: "Model / View 架构设计哲学" }
             Entry { title: qsTr("委托：自定义单元格"); from: "自定义单元格委托代理；自定义项委托与单元格嵌入组件" }
             Entry { title: qsTr("代理模型：筛选与排序"); from: "代理模型与动态搜索排序；多列实时筛选与虚拟多态排序" }
             Entry { title: qsTr("图形视图 QGraphicsView"); from: "交互式图形视图架构" }

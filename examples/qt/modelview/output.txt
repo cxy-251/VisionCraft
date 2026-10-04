@@ -1,0 +1,25 @@
+==== 1. 10 万行，视图读了多少 ====
+  模型里放 100000 行：45 ms
+  显示出来：546 ms，data() 被调用 800445 次
+  表格滚到第 50000 行：data() 又被调用 189 次
+  单独显示 QTableView                              3 ms，data() 210 次
+  单独显示 QListView                             536 ms，data() 800716 次
+  单独显示 QListView + setUniformItemSizes(true)    6 ms，data() 127 次
+
+==== 2. 改一格，两个视图都知道 ====
+  第 4 行改之前：划痕 17.5，结果 OK
+  dataChanged：行 4，列 1–2
+  第 4 行改之后：划痕 25.0，结果 NG，颜色 #dc2626
+  第 4 行划痕格：DisplayRole = "25.0"（QString），EditRole = 25（double）
+
+==== 3. 选择也可以共享 ====
+  表格选中第 5 行后，列表的当前选中：A00005
+
+==== 4. 模型写错了 ====
+  忘了 beginInsertRows：模型有 3 行，视图里第 3 行 没有位置（visualRect 无效，画不出来）
+  接上 QAbstractItemModelTester，再用错误的范围插入一行（警告见 stderr）：
+qt.modeltest: FAIL! Compared values are not the same:
+   Actual (model->rowCount(parent)) 4
+   Expected (c.oldSize + (end - start + 1)) 5
+   (/usr/src/debug/qt6-base/qtbase/src/testlib/qabstractitemmodeltester.cpp:857)
+  PartModel 接上 QAbstractItemModelTester 后再加一行：（stderr 上没有新警告）

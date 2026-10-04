@@ -1,0 +1,23 @@
+==== 1. 一个 500 ms 的动画，属性被设置了多少次 ====
+  设置了 34 次，平均间隔 15.5 ms，最大间隔 16.4 ms；第一次 0.0 ms 时值 0.00，最后一次 512.9 ms 时值 100.00
+
+==== 2. 缓动曲线：进度 25%、50%、75% 时的值（0→100）====
+  Linear        25.0    50.0    75.0   最大值 100.0
+  InOutQuad     12.5    50.0    87.5   最大值 100.0
+  OutCubic      57.8    87.5    98.4   最大值 100.0
+  OutBack       81.7   108.8   106.4   最大值 110.0
+  OutBounce     47.3    76.6    97.3   最大值 100.0
+
+==== 3. 事件循环被卡住时 ====
+  设置了 19 次；最大间隔 254.2 ms，这期间值从 19.4 直接跳到 70.2；总用时 511 ms
+
+==== 4. 动画组 ====
+  a 到达 100 于 207 ms，暂停后 304 ms 开始下降，回到 0 于 511 ms；b 到达 50 于 304 ms；组总时长 500 ms
+
+==== 5. 属性名写错 ====
+  动画照样跑完（finished 信号照常发出）；value 被设置 0 次，仍是 0；动态属性 valeu 也没有被创建
+
+==== 用 QT_FORCE_STDERR_LOGGING=1 运行时 stderr 上的内容 ====
+QPropertyAnimation: you're trying to animate a non-existing property valeu of your QObject
+QPropertyAnimation: you're trying to animate a non-existing property valeu of your QObject
+QPropertyAnimation::updateState (valeu, Needle, ): starting an animation without start value

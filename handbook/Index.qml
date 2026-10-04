@@ -259,7 +259,7 @@ HandbookIndex {
             title: qsTr("其他外设")
             Entry { title: qsTr("红外遥控 NEC 解码"); from: "板载外设全量驱动（红外遥控部分）" }
             Entry { title: qsTr("WM8978 音频"); from: "WM8978 音频 CODEC 与 I2S2 飞利浦标准传输" }
-            Entry { title: qsTr("USB Host 鼠标"); from: "USB OTG FS 主机 HID 鼠标协议栈与光标渲染" }
+            Entry { title: qsTr("USB Host 鼠标"); file: "handbook/f407/misc/UsbHost.qml"; from: "USB OTG FS 主机 HID 鼠标协议栈与光标渲染" }
             Entry { title: qsTr("独立看门狗"); file: "handbook/f407/misc/Iwdg.qml"; from: "独立看门狗 (IWDG) 硬件防死锁监控" }
             Entry { title: qsTr("触屏终端与软键盘"); from: "4.3寸触屏嵌入式控制台与 QWERTY 软键盘" }
         }

@@ -1,0 +1,81 @@
+==== 1. 从零配置并编译 Release（cmake + ninja，4 线程）====
+arm-none-eabi-gcc (Arch Repository) 14.2.0
+Build type: Release
+Linking C executable station.elf
+Memory region         Used Size  Region Size  %age Used
+             RAM:       97472 B       128 KB     74.37%
+          CCMRAM:           0 B        64 KB      0.00%
+           FLASH:       28644 B         1 MB      2.73%
+   text	   data	    bss	    dec	    hex	filename
+  28568	     68	  97404	 126040	  1ec58	station.elf
+real	0m3.367s
+
+==== 2. 按来源统计（tools/fw_size.py，Release）====
+来源                                Flash 字节      RAM 字节
+FreeRTOS                              8711       36173
+HAL 库                                 8053           9
+App：应用代码                              6723       58135
+CubeMX 生成（Core/、启动文件）                 2797         544
+App：字库                                1520           0
+C 运行库（newlib-nano、libgcc）             1010          25
+合计                                   28814       94886
+
+==== 3. 同样的代码，Debug（-O0 -g3）====
+Memory region         Used Size  Region Size  %age Used
+             RAM:       97472 B       128 KB     74.37%
+          CCMRAM:           0 B        64 KB      0.00%
+           FLASH:       46644 B         1 MB      4.45%
+来源                                Flash 字节      RAM 字节
+HAL 库                                15567           9
+FreeRTOS                             14442       36177
+App：应用代码                             10336       58135
+CubeMX 生成（Core/、启动文件）                 3718         544
+App：字库                                1520           0
+C 运行库（newlib-nano、libgcc）             1010          25
+合计                                   46593       94890
+
+==== 4. 去掉链接选项 --gc-sections（Release）====
+Memory region         Used Size  Region Size  %age Used
+             RAM:       98104 B       128 KB     74.85%
+          CCMRAM:           0 B        64 KB      0.00%
+           FLASH:       78824 B         1 MB      7.52%
+
+==== 5. 文件大小（字节）====
+  rel/station.elf 72492
+  rel/station.bin 28644
+  dbg/station.elf 1521776
+  dbg/station.bin 46644
+
+==== 6. RAM 里最大的几个变量（arm-none-eabi-nm -S --size-sort，Release）====
+  s_decoder              1048 字节
+  pxReadyTasksLists      1120 字节
+  s_down                 8192 字节
+  s_up                   8192 字节
+  ucHeap                32768 字节
+  s_image               38400 字节
+  STM32F407xx_FLASH.ld:67:_Min_Heap_Size = 0x200;      /* required amount of heap  */
+  STM32F407xx_FLASH.ld:68:_Min_Stack_Size = 0x800; /* required amount of stack */
+
+==== 7. 改一个文件之后，ninja 重新做了哪些事 ====
+--- 什么都不改：
+[1/3] （重新生成 build_stamp.c）
+[2/3] Building C object CMakeFiles/station.dir/build_stamp.c.obj
+[3/3] Linking C executable station.elf
+--- touch App/station.c：
+[1/4] （重新生成 build_stamp.c）
+[2/4] Building C object CMakeFiles/station.dir/build_stamp.c.obj
+[3/4] Building C object CMakeFiles/station.dir/App/station.c.obj
+[4/4] Linking C executable station.elf
+--- touch Core/Inc/main.h：
+[1/18] （重新生成 build_stamp.c）
+[2/18] Building C object CMakeFiles/station.dir/build_stamp.c.obj
+[3/18] Building C object CMakeFiles/station.dir/Core/Src/stm32f4xx_hal_msp.c.obj
+[18/18] Linking C executable station.elf
+
+==== 8. 把 s_image 加上 __attribute__((section(".ccmram"))) 后重新编译（Release）====
+Memory region         Used Size  Region Size  %age Used
+             RAM:       59072 B       128 KB     45.07%
+          CCMRAM:       38400 B        64 KB     58.59%
+           FLASH:       67044 B         1 MB      6.39%
+  station.bin 67044 字节
+  startup_stm32f407xx.s 里提到 ccmram 的行数：0

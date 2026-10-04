@@ -205,7 +205,8 @@ file(GLOB_RECURSE VC_HANDBOOK_FILES CONFIGURE_DEPENDS
     firmware/station/Middlewares/Third_Party/FreeRTOS/Source/portable/GCC/ARM_CM4F/port.c
     firmware/station/Drivers/CMSIS/Device/ST/STM32F4xx/Include/stm32f4xx.h
     tests/*.cpp
-    tools/*.cpp tools/*.sh tools/*.tcl
+    tools/*.cpp tools/*.sh tools/*.tcl tools/*.py
+    firmware/station/CMakeLists.txt firmware/station/cmake/stm32cubemx/CMakeLists.txt firmware/station/cmake/build_stamp.cmake
     CMakeLists.txt qml/*.qml .github/workflows/*.yml run.sh .gitattributes)
 # 这些文件在主程序里只是被展示的文本：示例各自是独立的可执行文件（在 examples/ 子目录里有自己的 moc），
 # 不能让主程序的 AutoMoc 去扫描它们，否则两个示例都 #include "main.moc" 会冲突

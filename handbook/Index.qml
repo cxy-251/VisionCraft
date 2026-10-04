@@ -206,7 +206,7 @@ HandbookIndex {
         }
         Chapter {
             title: qsTr("工程与 CubeMX")
-            Entry { title: qsTr("工程目录与 CMake"); from: "固件工程目录结构与 CMake 编译流水线" }
+            Entry { title: qsTr("工程目录与 CMake"); file: "handbook/f407/project/ProjectCMake.qml"; from: "固件工程目录结构与 CMake 编译流水线" }
             Entry { title: qsTr(".ioc 文件与代码生成"); file: "handbook/f407/cubemx/IocAndCodegen.qml"; from: "CubeMX .ioc 配置文件协同机制与外设初衷" }
         }
         Chapter {

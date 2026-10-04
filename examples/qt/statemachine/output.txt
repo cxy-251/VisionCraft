@@ -1,0 +1,33 @@
+==== 1. 一个正常的周期 ====
+      0 ms  转换：Idle       ─Start      → WaitPart
+      0 ms  转换：WaitPart   ─PartArrived→ Capturing
+      0 ms  转换：Capturing  ─Captured   → Inspecting
+      0 ms  转换：Inspecting ─Inspected  → WaitPart
+      0 ms  转换：WaitPart   ─Stop       → Idle
+
+==== 2. 不该出现的事件 ====
+      0 ms  拒绝：Captured    在 Idle       时不允许
+      0 ms  转换：Idle       ─Start      → WaitPart
+      0 ms  拒绝：Start       在 WaitPart   时不允许
+      0 ms  拒绝：Inspected   在 WaitPart   时不允许
+      0 ms  拒绝：Reset       在 WaitPart   时不允许
+  共拒绝 4 个事件，现在是 WaitPart
+
+==== 3. 拍照超时 ====
+      0 ms  转换：Idle       ─Start      → WaitPart
+      0 ms  转换：WaitPart   ─PartArrived→ Capturing
+    209 ms  转换：Capturing  ─Timeout    → Fault
+    300 ms  拒绝：Captured    在 Fault      时不允许
+    300 ms  转换：Fault      ─Reset      → Idle
+
+==== 4. 周期中途按停止 ====
+      0 ms  转换：Idle       ─Start      → WaitPart
+      0 ms  转换：WaitPart   ─PartArrived→ Capturing
+      0 ms  推迟：Stop        在 Capturing  时先记下，这件做完再停
+      0 ms  转换：Capturing  ─Captured   → Inspecting
+      0 ms  转换：Inspecting ─Inspected  → WaitPart
+      0 ms  转换：WaitPart   ─Stop       → Idle
+
+==== 5. 布尔变量版本 ====
+  running=0 busy=1 fault=0 —— 没在运行，却「正在检测」
+  三个布尔量能表示 2×2×2 = 8 种组合，有意义的状态只有 5 种

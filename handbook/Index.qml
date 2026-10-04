@@ -125,7 +125,7 @@ HandbookIndex {
             Entry { title: qsTr("中值滤波"); file: "handbook/opencv/filter/Median.qml"; from: "中值滤波" }
             Entry { title: qsTr("双边滤波"); file: "handbook/opencv/filter/Bilateral.qml"; from: "双边滤波" }
             Entry { title: qsTr("均值与方框滤波"); file: "handbook/opencv/filter/Box.qml"; from: "均值与方框滤波" }
-            Entry { title: qsTr("频域滤波"); from: "频域傅里叶变换与陷波滤波去网纹" }
+            Entry { title: qsTr("频域滤波"); file: "handbook/opencv/filter/Frequency.qml"; from: "频域傅里叶变换与陷波滤波去网纹" }
         }
         Chapter {
             title: qsTr("增强")
@@ -169,7 +169,7 @@ HandbookIndex {
             title: qsTr("工业检测")
             Entry { title: qsTr("卡尺测量"); file: "handbook/opencv/industrial/Caliper.qml"; from: "亚像素一维卡尺边缘测距" }
             Entry { title: qsTr("标准样差分"); file: "handbook/opencv/industrial/Golden.qml"; from: "黄金标样差分缺陷排查" }
-            Entry { title: qsTr("二维码与条码"); from: "工业二维码与条形码全自动定位与解码" }
+            Entry { title: qsTr("二维码与条码"); file: "handbook/opencv/industrial/Codes.qml"; from: "工业二维码与条形码全自动定位与解码" }
             Entry { title: qsTr("怎样评价一个检测算法"); file: "handbook/opencv/industrial/Evaluation.qml" }
         }
         Chapter {

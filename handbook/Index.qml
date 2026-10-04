@@ -66,7 +66,7 @@ HandbookIndex {
             Entry { title: qsTr("QPainter 绘图与双缓冲"); file: "handbook/qt/widgets/Painter.qml"; from: "QPainter 2D 绘图与双缓冲技术；高级几何自绘与抗锯齿变换" }
             Entry { title: qsTr("自定义控件"); file: "handbook/qt/widgets/CustomWidget.qml"; from: "工业自定义控件封装范式" }
             Entry { title: qsTr("属性动画"); file: "handbook/qt/widgets/Animation.qml"; from: "动效与属性动画；现代化流畅动效与缓动插值" }
-            Entry { title: qsTr("拖放"); from: "原生桌面拖放与 MIME 交互系统" }
+            Entry { title: qsTr("拖放"); file: "handbook/qt/widgets/DragDrop.qml"; from: "原生桌面拖放与 MIME 交互系统" }
         }
         Chapter {
             title: qsTr("界面：QML")

@@ -1,0 +1,23 @@
+$ openocd -f interface/stlink.cfg -f target/stm32f4x.cfg -c init -f tools/iwdg_probe.tcl -c exit
+==== 1. 启动后不喂狗：多久复位 ====
+  第 1 次：约 979 ms 后复位，IWDGRSTF=1
+    （复位后停在 PC=0x08004b14）
+  第 2 次：约 979 ms 后复位，IWDGRSTF=1
+    （复位后停在 PC=0x08004b14）
+  第 3 次：约 979 ms 后复位，IWDGRSTF=1
+    （复位后停在 PC=0x08004b14）
+==== 2. 每 500 ms 喂一次狗，持续 5 秒 ====
+  5 秒后 IWDGRSTF=0（0 表示没有复位过）
+  停止喂狗，等它复位……
+  约 974 ms 后复位
+    （复位后停在 PC=0x08004b14）
+==== 3. 调试器把 CPU 停住 3 秒 ====
+  DBG_IWDG_STOP=1：停住 3 秒期间 IWDGRSTF=0
+    （复位后停在 PC=0x08004b14）
+  DBG_IWDG_STOP=0：停住 3 秒期间 IWDGRSTF=1
+    （复位后停在 PC=0x08004b14）
+结束：DBGMCU_APB1_FZ=0x00001800，CPU running
+
+==== 核对：脚本结束 3 秒后，以及普通复位（reset run）之后 ====
+RCC_CSR=0x00000000（3 秒内没有看门狗复位）
+after plain reset: pc=0x08002d22 VTOR=0x00000000（直接从 Flash 运行）

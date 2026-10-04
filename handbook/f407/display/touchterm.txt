@@ -1,0 +1,17 @@
+$ tools/fw_touchterm/build_variant.sh <临时目录>
+             RAM:       97488 B       128 KB     74.38%
+           FLASH:       27740 B         1 MB      2.65%
+$ openocd ... -c "program 实验固件.elf verify reset" ...
+** Verified OK **
+presses=0 last=(0,0)
+
+（在屏上按顺序点：A、3、SPC、0、0、4、2、OK，再随便点几个字母和一次 DEL。点的人：屏上显示和按的一致）
+
+$ openocd ... 读 g_term_last、g_term_text、g_term_presses（地址取自 arm-none-eabi-nm 实验固件.elf）
+g_term_last = "A3 0042"
+g_term_text = "IIIOP"
+g_term_presses = 22, 最后一次按下的坐标 (65535,65535)
+
+$ openocd ... -c "program 原固件.elf verify reset" ...
+** Verified OK **
+RTOS 节拍 1000 次/秒

@@ -1,0 +1,19 @@
+==== 1. GET：取配方 ====
+  get() 已经返回，isFinished = 0
+  阈值 18，曝光 1200 µs
+
+==== 2. POST：上报检测结果 ====
+  服务器收到：{"defect":"scratch","length":23.1,"ok":false,"part":"A3-0042"}
+  服务器回答：{"accepted":true}
+
+==== 3. 出错的几种样子 ====
+  服务器 500  error=401（Error transferring http://127.0.0.1:45431/crash - server rep）HTTP 状态=500，正文={"error":"database locked"}
+  路径不存在 error=203（Error transferring http://127.0.0.1:45431/nope - server repl）HTTP 状态=404，正文={"error":"no such path"}
+  端口没人听 error=1（Connection refused）HTTP 状态=无，正文=
+
+==== 4. 超时 ====
+  526 ms 后结束：error=5（Operation canceled）
+  不设超时：3035 ms 后结束，error=0
+
+==== 5. 同时发 20 个请求 ====
+  20 个全部完成：406 ms；服务器同时最多 6 个连接

@@ -1,0 +1,32 @@
+$ head -c 1048576 /dev/urandom > sram.bin
+$ openocd -f interface/stlink.cfg -f target/stm32f4x.cfg -c init -c "set SRAM_IMAGE sram.bin; set SRAM_DUMP sram-back.bin" -f tools/sram_probe.tcl -c exit
+==== 1. 字节选择脚 NBL0/NBL1 还没配置时，按字节写 ====
+  先写半字 0x1234，再往高字节写 0xAB：读回 0xab00（期望 0xAB34）
+  配上 NBL0/NBL1，往旁边写一个 0x5555 后，重新读刚才那个地址：0xab00（芯片里实际存的）
+  配上 NBL0/NBL1 之后：读回 0xab34
+==== 2. 地址线：每根地址线单独翻转，看会不会写到别处 ====
+  19 根地址线逐一检查，有问题的：无
+==== 3. 时序：DATAST 从大到小，每档写读 512 个半字 ====
+  ADDSET=0 DATAST=15（数据阶段约  89 ns）：512 个里错了 0 个
+  ADDSET=0 DATAST= 8（数据阶段约  47 ns）：512 个里错了 0 个
+  ADDSET=0 DATAST= 7（数据阶段约  41 ns）：512 个里错了 0 个
+  ADDSET=0 DATAST= 6（数据阶段约  35 ns）：512 个里错了 0 个
+  ADDSET=0 DATAST= 5（数据阶段约  29 ns）：512 个里错了 0 个
+  ADDSET=0 DATAST= 4（数据阶段约  23 ns）：512 个里错了 512 个
+  ADDSET=0 DATAST= 3（数据阶段约  17 ns）：512 个里错了 512 个
+  ADDSET=0 DATAST= 2（数据阶段约  11 ns）：512 个里错了 512 个
+  ADDSET=0 DATAST= 1（数据阶段约   5 ns）：512 个里错了 512 个
+==== 4. 整片 1 MB ====
+  写入 1 MB 用了 10306 ms，读出 1 MB 用了 9639 ms（经调试器）
+已恢复：BCR3=0x000030d2 BTR3=0x0fffffff GPIOF_MODER=0x0216c000
+$ cmp sram.bin sram-back.bin && echo 一致
+一致
+
+==== 对照：不配置片选 NE3（PG10），其余相同（不做第 4 步）====
+  先写半字 0x1234，再往高字节写 0xAB：读回 0xab00（期望 0xAB34）
+  配上 NBL0/NBL1，往旁边写一个 0x5555 后，重新读刚才那个地址：0x5555（芯片里实际存的）
+  配上 NBL0/NBL1 之后：读回 0xab00
+  19 根地址线逐一检查，有问题的：A0–A18 全部「读回不对」
+  ADDSET=0 DATAST=15（数据阶段约  89 ns）：512 个里错了 511 个
+  ADDSET=0 DATAST= 8（数据阶段约  47 ns）：512 个里错了 511 个
+已恢复：BCR3=0x000030d2 BTR3=0x0fffffff GPIOF_MODER=0x0216c000

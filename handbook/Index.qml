@@ -94,7 +94,7 @@ HandbookIndex {
             title: qsTr("工程化")
             Entry { title: qsTr("QSettings 配置与配方"); file: "handbook/qt/eng/Settings.qml"; from: "工业配方与持久化配置管理" }
             Entry { title: qsTr("文件监视与热重载"); file: "handbook/qt/eng/FileWatch.qml"; from: "文件目录监控与热重载体系" }
-            Entry { title: qsTr("国际化"); from: "多语言国际化免重启热更体系" }
+            Entry { title: qsTr("国际化"); file: "handbook/qt/eng/I18n.qml"; from: "多语言国际化免重启热更体系" }
             Entry { title: qsTr("插件"); from: "工业算子动态热插拔插件架构" }
             Entry { title: qsTr("状态机"); from: "工业机台有限状态机引擎" }
             Entry { title: qsTr("Windows 崩溃转储"); from: "Windows 崩溃拦截与全自动 MiniDump 转储" }

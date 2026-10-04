@@ -1,0 +1,27 @@
+==== 1. 没有翻译器 ====
+  合格 / 检测结果 / 已检测 5 件
+
+==== 2. 安装英文翻译 ====
+  load=1
+  Messages::ok()             → Pass
+  同一个词，Report 上下文      → Accepted
+  构造时设置的标签            → 检测结果
+  changeEvent 里重设的标签    → Inspected 5 parts
+  main 之前 tr() 的全局变量    → 视觉检测工位
+  QT_TRANSLATE_NOOP 标记、现在才 tr() → Vision Inspection Station
+
+==== 3. 复数 ====
+  n=0  → Inspected 0 parts
+  n=1  → Inspected 1 part
+  n=2  → Inspected 2 parts
+  n=21 → Inspected 21 parts
+
+==== 4. 移除翻译器，回到中文 ====
+  合格 / 已检测 21 件
+
+==== 5. 数字和日期：QLocale ====
+  zh_CN  1,234,567.89     2026年10月4日星期日    2026/10/4
+  en_US  1,234,567.89     Sunday, October 4, 2026      10/4/26
+  de_DE  1.234.567,89     Sonntag, 4. Oktober 2026     04.10.26
+  fr_FR  1 234 567,89 dimanche 4 octobre 2026      04/10/2026
+  德语格式的 "1.234,5"：QLocale(de_DE).toDouble → 1234.5（ok=1）；QString::toDouble → 0

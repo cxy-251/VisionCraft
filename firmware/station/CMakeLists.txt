@@ -62,6 +62,12 @@ target_sources(${CMAKE_PROJECT_NAME} PRIVATE
     App/lcd_font.c
     App/station_ui.c
     App/eeprom.c
+    App/gui.c
+    App/page_home.c
+    App/page_station.c
+    App/page_sensors.c
+    App/page_device.c
+    App/touch.c
     # 与上位机共用的协议代码
     ${CMAKE_CURRENT_SOURCE_DIR}/../../protocol/vc_protocol.c
 )

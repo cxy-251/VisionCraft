@@ -57,6 +57,7 @@ Section {
     }
 
     InSystem {
-        text: qsTr("工位固件现在用的是 CubeMX 默认的 15/60，不开扩展模式（BCR4 = 0x1091，EXTMOD 为 0）。屏幕内容不多、刷新不频繁，目前够用；以后要在板子上显示整帧检测图像时，再按本节改时序。")
+        text: qsTr("工位固件已经按本节改了：station.ioc 里打开扩展模式（ExtendedMode1），写时序 ADDSET=2、DATAST=5，读时序保持 15/60，由 CubeMX 生成进 Core/Src/fsmc.c。"
+                 + "实测换一页整屏重画从 242–353 ms 降到 31–45 ms，读回显存仍然正确，看屏的人确认画面正常（见「事件与控件：一个最小的界面框架」）。")
     }
 }

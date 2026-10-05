@@ -1,7 +1,7 @@
 /* 工位屏幕（竖屏 480×800）。只由 StationTask 调用，所以不需要给 LCD 加锁。
  *
  *   ┌──────────────────────────────┐
- *   │ VISIONCRAFT          STATION │  标题栏
+ *   │ <  STATION                   │  标题栏（由 gui.c 画）
  *   │ HOST  CONNECTED / WAITING    │  上位机是否在线（3 秒内收到过有效帧）
  *   │ RX 1234   ERR 0              │
  *   │ ┌──────────────────────────┐ │
@@ -93,11 +93,7 @@ static void label(uint16_t y, const char *name)
 
 void ui_init(void)
 {
-    lcd_fill(0, 0, LCD_W, LCD_H, C_BG);
-    lcd_fill(0, 0, LCD_W, 76, C_SURFACE);
-    lcd_text(24, 14, "VISIONCRAFT", C_ACCENT, C_SURFACE, 3);
-    lcd_text(LCD_W - 24 - 7 * 16, 30, "STATION", C_MUTED, C_SURFACE, 2);
-
+    /* 背景和顶部标题栏由界面框架（gui.c）画，这里只画标题栏以下的内容 */
     label(100, "HOST");
     label(140, "RX");
 

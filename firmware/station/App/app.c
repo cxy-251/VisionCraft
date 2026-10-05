@@ -118,3 +118,10 @@ void app_image_done(void)
 {
     s_imageState = IMG_IDLE;
 }
+
+/* ---- 「设备」页要显示的信息 ---- */
+#include "FreeRTOS.h"
+#include "task.h"
+void app_chip_uid(uint32_t uid[3]) { memcpy(uid, (const void *)UID_BASE, 12); }   /* 芯片出厂烧录的 96 位唯一 ID */
+uint32_t app_free_heap(void) { return (uint32_t)xPortGetFreeHeapSize(); }
+uint32_t app_task_count(void) { return (uint32_t)uxTaskGetNumberOfTasks(); }

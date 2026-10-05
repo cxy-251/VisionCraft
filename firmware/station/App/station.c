@@ -5,6 +5,9 @@
 #include "tim.h"
 #include "cmsis_os2.h"
 #include "vc_protocol.h"
+#include "lcd.h"
+#include "pages.h"
+#include "touch.h"
 
 extern osMessageQueueId_t g_beepQueue;
 
@@ -75,15 +78,53 @@ static void cycle_counter_init(void)
 }
 // [endregion]
 
+/* 给界面框架计时用：DWT 周期计数器，168 MHz */
+uint32_t gui_cycles(void) { return DWT->CYCCNT; }
+
+// [region pointer]
+/* 触摸 → 指针事件：手指刚接触是「按下」，之后每次读到坐标是「移动」，离开时在最后的位置「抬起」 */
+static void poll_touch(void)
+{
+    static int touching;
+    static int16_t lx, ly;
+    uint16_t x, y;
+    const int n = touch_read(&x, &y);
+    if (n > 0 && x < LCD_W && y < LCD_H) {               /* 坐标越界的读数丢掉（实测出现过 65535） */
+        const gui_event e = {touching ? GUI_MOVE : GUI_DOWN, (int16_t)x, (int16_t)y};
+        touching = 1; lx = (int16_t)x; ly = (int16_t)y;
+        gui_handle(&e);
+    } else if (n == 0 && touching) {
+        const gui_event e = {GUI_UP, lx, ly};
+        touching = 0;
+        gui_handle(&e);
+    }
+}
+
+/* 调试用的事件注入口：一个能放 8 个事件的环形队列。调试器往 ev[head % 8] 写 type、x、y，再把 head 加 1；
+ * 固件每轮循环把 tail 追到 head。只有一个槽的话，固件忙着重画时（换页要一两百毫秒）后写的事件会覆盖先写的 */
+#define INJECT_N 8
+volatile struct { uint32_t head, tail; struct { int16_t type, x, y, pad; } ev[INJECT_N]; } g_gui_inject;
+static void poll_inject(void)
+{
+    while (g_gui_inject.tail != g_gui_inject.head) {
+        const uint32_t i = g_gui_inject.tail % INJECT_N;
+        const gui_event e = {(gui_event_type)g_gui_inject.ev[i].type, g_gui_inject.ev[i].x, g_gui_inject.ev[i].y};
+        g_gui_inject.tail++;
+        gui_handle(&e);
+    }
+}
+// [endregion]
+
 // [region loop]
 void StationTask(void *argument)
 {
     (void)argument;
     uint32_t beepUntil = 0;
     int beeping = 0;
-    uint32_t lastUi = 0;
-    ui_init();
+    uint32_t lastTouch = 0, lastGui = 0;
     cycle_counter_init();
+    gui_init(&g_page_home);             /* 先把首页画出来，触摸芯片的复位要几百毫秒 */
+    touch_init();
 
     for (;;) {
         uint16_t ms;
@@ -99,18 +140,16 @@ void StationTask(void *argument)
             beeping = 0;
         }
         scan_keys();
-        vc_result r;
-        if (app_take_result(&r))
-            ui_result(&r);
-        uint16_t iw, ih;
-        const uint16_t *pixels;
-        if (app_take_image(&iw, &ih, &pixels)) {
-            ui_thumbnail(iw, ih, pixels);
-            app_image_done();
+        const uint32_t now = HAL_GetTick();
+        if (now - lastTouch >= 20u) {   /* 触摸每 20 ms 读一次 */
+            lastTouch = now;
+            poll_touch();
         }
-        if (HAL_GetTick() - lastUi >= 250) {   /* 屏幕每 250 ms 刷新一次动态内容 */
-            lastUi = HAL_GetTick();
-            ui_update();
+        poll_inject();
+        pages_background(now);          /* 取走上位机的结果 / 缩略图、记录传感器历史 */
+        if (now - lastGui >= 20u) {     /* 页面刷新 + 重画变了的控件 */
+            lastGui = now;
+            gui_tick(now);
         }
     }
 }

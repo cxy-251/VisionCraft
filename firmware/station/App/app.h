@@ -47,6 +47,11 @@ uint8_t app_image_data(uint32_t offset, const uint8_t *data, uint16_t len);
 int     app_take_image(uint16_t *w, uint16_t *h, const uint16_t **pixels);  /* 有新图返回 1 */
 void    app_image_done(void);                                            /* StationTask 画完后调用 */
 
+/* 给「设备」页的信息（app.c；电脑上的模拟器另有一份假的实现） */
+void     app_chip_uid(uint32_t uid[3]);
+uint32_t app_free_heap(void);
+uint32_t app_task_count(void);
+
 /* 屏幕（station_ui.c，只由 StationTask 调用） */
 void ui_init(void);
 void ui_update(void);

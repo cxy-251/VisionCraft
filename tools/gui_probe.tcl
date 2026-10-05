@@ -1,7 +1,7 @@
 # 在板子上测试界面框架：用调试器往 g_gui_inject 写事件（等于在屏上点一下），读 g_gui_title 看现在是哪一页，
 # 再暂停 CPU 读回几个像素，和电脑上模拟器的截图对比。
 #   openocd -f interface/stlink.cfg -f target/stm32f4x.cfg -c init \
-#     -c "set INJECT 0x20013294; set TITLE 0x20017398; set CLICKS 0x200173a0; set SHOW 0x20017394" -f tools/gui_probe.tcl -c exit
+#     -c "set INJECT 0x20013294; set TITLE 0x20017450; set CLICKS 0x20017458; set SHOW 0x2001744c" -f tools/gui_probe.tcl -c exit
 # 四个地址取自 arm-none-eabi-nm station.elf（g_gui_inject、g_gui_title、g_gui_clicks、g_gui_show_cycles）
 
 source [file join [file dirname [info script]] lcd_lib.tcl]       ;# lcd_pixel

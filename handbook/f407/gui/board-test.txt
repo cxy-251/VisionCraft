@@ -1,0 +1,53 @@
+$ openocd ... -c "program firmware/station/build/Release/station.elf verify reset" -c exit
+** Verified OK **
+
+$ openocd ... -c "reset run" -c "after 3000" -c "set INJECT 0x20013294; set TITLE 0x20017398; set CLICKS 0x200173a0; set SHOW 0x20017394" -f tools/gui_probe.tcl -c exit   （第 1 次）
+开机后的页面：VISIONCRAFT，点击次数 0x0
+  点 STATION 图标 → 页面 STATION      点击次数 1，最近一次换页重画 38.5 ms
+  点返回键     → 页面 VISIONCRAFT  点击次数 2，最近一次换页重画 31.0 ms
+  点 SENSORS 图标 → 页面 SENSORS      点击次数 3，最近一次换页重画 45.7 ms
+  点返回键     → 页面 VISIONCRAFT  点击次数 4，最近一次换页重画 30.9 ms
+  点 DEVICE 图标 → 页面 DEVICE       点击次数 5，最近一次换页重画 34.5 ms
+  点返回键     → 页面 VISIONCRAFT  点击次数 6，最近一次换页重画 31.0 ms
+连续快速点：STATION、返回、SENSORS，每次按下到抬起 100 ms、两次点击间不等待：
+  → 页面 SENSORS      点击次数 9
+按下 SENSORS 后拖到图标外再抬起：
+  → 页面 VISIONCRAFT  点击次数 10（没有增加）
+首页几个点的像素（暂停 CPU 读回显存）：
+  ( 10, 10) 标题栏            0x1947
+  ( 88,150) STATION图标的蓝色方块 0x231d
+  (240,150) SENSORS图标的绿色方块 0x1509
+  (240,500) 背景               0x08a5
+
+$ openocd ... -c "reset run" -c "after 3000" -c "set INJECT 0x20013294; set TITLE 0x20017398; set CLICKS 0x200173a0; set SHOW 0x20017394" -f tools/gui_probe.tcl -c exit   （第 2 次）
+开机后的页面：VISIONCRAFT，点击次数 0x0
+  点 STATION 图标 → 页面 STATION      点击次数 1，最近一次换页重画 38.5 ms
+  点返回键     → 页面 VISIONCRAFT  点击次数 2，最近一次换页重画 31.0 ms
+  点 SENSORS 图标 → 页面 SENSORS      点击次数 3，最近一次换页重画 45.1 ms
+  点返回键     → 页面 VISIONCRAFT  点击次数 4，最近一次换页重画 31.0 ms
+  点 DEVICE 图标 → 页面 DEVICE       点击次数 5，最近一次换页重画 34.5 ms
+  点返回键     → 页面 VISIONCRAFT  点击次数 6，最近一次换页重画 31.0 ms
+连续快速点：STATION、返回、SENSORS，每次按下到抬起 100 ms、两次点击间不等待：
+  → 页面 SENSORS      点击次数 9
+按下 SENSORS 后拖到图标外再抬起：
+  → 页面 VISIONCRAFT  点击次数 10（没有增加）
+首页几个点的像素（暂停 CPU 读回显存）：
+  ( 10, 10) 标题栏            0x1947
+  ( 88,150) STATION图标的蓝色方块 0x231d
+  (240,150) SENSORS图标的绿色方块 0x1509
+  (240,500) 背景               0x08a5
+
+（之后由人用手指试：点每个图标进入、点左上角返回——「变快了，画面正常」）
+
+==== 工位页加了「字段缓存」（station_ui.c 的 field()）之后 ====
+$ openocd ... -c "program firmware/station/build/Release/station.elf verify reset" -c exit
+** Verified OK **
+$ （gui_probe.tcl 第 3 次，地址改为 TITLE 0x20017450 CLICKS 0x20017458 SHOW 0x2001744c）
+  点 STATION 图标 → 页面 STATION      点击次数 1，最近一次换页重画 38.5 ms
+  ……其余各行与前两次相同：快速连点后点击次数 9，拖出取消后仍是 10，四个像素 0x1947 0x231d 0x1509 0x08a5
+$ 进工位页，暂停 CPU 采样两行像素（每隔 2 个像素读一个，统计不是背景色 0x08a5 的个数）：
+工位页 STATION：TEMP 数值行 非背景 7 个，摘要 771af2
+  运行时间行（第一次）非背景 16 个，摘要 ee521c
+  运行时间行（2 秒后）非背景 14 个，摘要 99d3dc
+返回：VISIONCRAFT
+（运行时间行变了：有缓存之后，真正变了的字段照样会重画）

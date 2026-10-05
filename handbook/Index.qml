@@ -235,6 +235,16 @@ HandbookIndex {
             Entry { title: qsTr("GT9147 电容触摸"); file: "handbook/f407/display/Touch.qml"; from: "GT9147 电容触摸屏驱动与连续轨迹插值" }
         }
         Chapter {
+            title: qsTr("图形界面")
+            Entry { title: qsTr("事件与控件：一个最小的界面框架"); file: "handbook/f407/gui/Framework.qml" }
+            Entry { title: qsTr("首页与页面"); file: "handbook/f407/gui/Pages.qml" }
+            Entry { title: qsTr("在电脑上运行界面代码"); file: "handbook/f407/gui/Simulator.qml" }
+            Entry { title: qsTr("重画的代价：局部刷新与写屏时序"); file: "handbook/f407/gui/Redraw.qml" }
+            Entry { title: qsTr("指针事件：触摸和鼠标") }
+            Entry { title: qsTr("移植 LVGL") }
+            Entry { title: qsTr("用 LVGL 重做工位界面") }
+        }
+        Chapter {
             title: qsTr("存储")
             Entry { title: qsTr("外部 SRAM"); file: "handbook/f407/storage/Sram.qml"; from: "IS62WV51216 1MB 外部 SRAM 驱动与视频显存" }
             Entry { title: qsTr("EEPROM：I2C 与掉电保存"); file: "handbook/f407/storage/Eeprom.qml"; from: "W25Q128 SPI Flash 与 AT24C02 EEPROM 在线自检" }

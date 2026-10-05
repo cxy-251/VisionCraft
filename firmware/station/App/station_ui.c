@@ -20,6 +20,8 @@
 #include "lcd.h"
 #include "main.h"
 
+#include <string.h>
+
 #define C_BG      RGB565(15, 23, 42)     /* 与上位机深色主题同一套 Slate 色值 */
 #define C_SURFACE RGB565(30, 41, 59)
 #define C_TEXT    RGB565(241, 245, 249)
@@ -86,6 +88,23 @@ static char *put_fixed(char *p, int32_t value, int decimals, int width)
     return p;
 }
 
+// [region cache]
+/* 动态文字的缓存：每个字段记住上次画的内容和颜色，没变就不再写屏。
+ * ui_update 每 250 ms 调一次，而大多数字段几秒甚至几分钟才变一次 */
+enum { F_HOST, F_RX, F_TEMP, F_LIGHT, F_VDDA, F_KEY, F_UPTIME, F_COUNT };
+static char s_shown[F_COUNT][24];
+static uint16_t s_shownColor[F_COUNT];
+
+static void field(int f, uint16_t x, uint16_t y, const char *text, uint16_t fg, uint8_t scale)
+{
+    if (s_shownColor[f] == fg && strcmp(s_shown[f], text) == 0)
+        return;
+    strncpy(s_shown[f], text, sizeof s_shown[f] - 1);
+    s_shownColor[f] = fg;
+    lcd_text(x, y, text, fg, C_BG, scale);
+}
+// [endregion]
+
 static void label(uint16_t y, const char *name)
 {
     lcd_text(24, y, name, C_MUTED, C_BG, 2);
@@ -94,6 +113,7 @@ static void label(uint16_t y, const char *name)
 void ui_init(void)
 {
     /* 背景和顶部标题栏由界面框架（gui.c）画，这里只画标题栏以下的内容 */
+    memset(s_shown, 0, sizeof s_shown);   /* 整页重画过了，缓存作废：下次 ui_update 每个字段都要画 */
     label(100, "HOST");
     label(140, "RX");
 
@@ -123,29 +143,29 @@ void ui_update(void)
     /* 上位机在线状态 */
     const uint32_t last = app_last_rx_tick();
     const int online = last != 0 && now - last < ONLINE_TIMEOUT_MS;
-    lcd_text(120, 100, online ? "CONNECTED" : "WAITING  ", online ? C_OK : C_WARN, C_BG, 2);
+    field(F_HOST, 120, 100, online ? "CONNECTED" : "WAITING  ", online ? C_OK : C_WARN, 2);
 
     p = line;
     p = put_uint(p, app_rx_frames(), 7);
     *p++ = ' '; *p++ = ' '; *p++ = 'E'; *p++ = 'R'; *p++ = 'R';
     p = put_uint(p, app_rx_errors(), 5);
     *p = '\0';
-    lcd_text(120, 140, line, C_TEXT, C_BG, 2);
+    field(F_RX, 120, 140, line, C_TEXT, 2);
 
     /* 传感器 */
     const app_sensors s = app_latest_sensors();
     if (s.valid) {
         p = put_fixed(line, s.cpu_temp_c100 / 10, 1, 6);
         *p++ = ' '; *p++ = 'C'; *p = '\0';
-        lcd_text(160, 532, line, C_TEXT, C_BG, 3);
+        field(F_TEMP, 160, 532, line, C_TEXT, 3);
 
         p = put_fixed(line, s.light_permille, 1, 6);
         *p++ = ' '; *p++ = '%'; *p = '\0';
-        lcd_text(160, 582, line, C_TEXT, C_BG, 3);
+        field(F_LIGHT, 160, 582, line, C_TEXT, 3);
 
         p = put_fixed(line, s.vdda_mv, 3, 6);
         *p++ = ' '; *p++ = 'V'; *p = '\0';
-        lcd_text(160, 632, line, C_TEXT, C_BG, 3);
+        field(F_VDDA, 160, 632, line, C_TEXT, 3);
     }
 
     /* 最近一次按键 */
@@ -157,7 +177,7 @@ void ui_update(void)
         while (*a)
             *p++ = *a++;
         *p = '\0';
-        lcd_text(120, 700, line, s_lastKeyDown ? C_ACCENT : C_TEXT, C_BG, 2);
+        field(F_KEY, 120, 700, line, s_lastKeyDown ? C_ACCENT : C_TEXT, 2);
     }
 
     /* 运行时间 mm:ss */
@@ -171,7 +191,7 @@ void ui_update(void)
     *p = '\0';
     if (line[3] == ' ')
         line[3] = '0';
-    lcd_text(24, 760, line, C_MUTED, C_BG, 2);
+    field(F_UPTIME, 24, 760, line, C_MUTED, 2);
 }
 
 static const char *const DEFECT_NAMES[VC_DEFECT_COUNT] = {

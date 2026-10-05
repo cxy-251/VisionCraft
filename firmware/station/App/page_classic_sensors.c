@@ -95,4 +95,4 @@ static void draw_all(void)
 static void sensors_enter(void) { draw_all(); s_fresh = 0; }
 static void sensors_tick(uint32_t now) { (void)now; if (s_fresh) { draw_all(); s_fresh = 0; } }
 
-const gui_page g_page_classic_sensors = {"SENSORS", 0, 0, sensors_enter, sensors_tick};
+const gui_page g_page_classic_sensors = {"OLD SENSORS", 0, 0, sensors_enter, sensors_tick};

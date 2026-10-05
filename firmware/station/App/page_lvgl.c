@@ -2,6 +2,7 @@
 #include "pages.h"
 
 #include "app.h"
+#include "lcd.h"
 #include "lv_port.h"
 #include "lvgl.h"
 
@@ -24,6 +25,7 @@ static void clicked(lv_event_t *e)
 static void slid(lv_event_t *e)
 {
     g_lv_slider = lv_slider_get_value(lv_event_get_target_obj(e));
+    lcd_backlight((uint8_t)g_lv_slider);   /* 真的去改背光 PWM 的占空比（TIM12 通道 2） */
     lv_label_set_text_fmt(s_value, "亮度 %d %%", (int)g_lv_slider);
 }
 
@@ -51,13 +53,14 @@ void lvgl_page_build(void)
 
     lv_obj_t *slider = lv_slider_create(s_screen);
     lv_obj_set_width(slider, LV_PCT(100));
-    lv_slider_set_value(slider, 50, LV_ANIM_OFF);
-    g_lv_slider = 50;
+    lv_slider_set_range(slider, 10, 100);   /* 最低 10 %：滑到 0 背光全灭，就看不见屏幕、也找不到滑块了 */
+    lv_slider_set_value(slider, 80, LV_ANIM_OFF);   /* 和开机时 lcd_init 设的背光一致 */
+    g_lv_slider = 80;
     lv_obj_add_event_cb(slider, slid, LV_EVENT_VALUE_CHANGED, NULL);
 
     s_value = lv_label_create(s_screen);
     lv_obj_set_style_text_font(s_value, &vc_font_cjk_20, 0);
-    lv_label_set_text(s_value, "亮度 50 %");
+    lv_label_set_text(s_value, "亮度 80 %");
 
     lv_obj_t *cap = lv_label_create(s_screen);
     lv_obj_set_style_text_font(cap, &vc_font_cjk_20, 0);

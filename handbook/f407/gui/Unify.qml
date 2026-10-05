@@ -33,7 +33,7 @@ Section {
         points: [
             qsTr("三个 LVGL 页面都要卡片、一行左右撑开的文字、只在变化时才改的标签、定点数转文字，这些挪进了 lv_ui.c。页面文件里只剩「这一页有什么」。"),
             qsTr("设备页就是几张卡片，每行左边名字、右边数值。新加了一行「LVGL 内存池」，用的是移植层每秒更新一次的统计。"),
-            qsTr("CLASSIC 是手写框架的一个普通页面，带三个图标控件，点进去是手写版的工位、传感器、设备。框架的页面栈有 4 层，首页 → CLASSIC → 页面只用 3 层。")
+            qsTr("CLASSIC 是手写框架的一个普通页面，带三个图标控件（OLD ST、OLD SE、OLD DV），点进去是手写版的工位、传感器、设备。框架的页面栈有 4 层，首页 → CLASSIC → 页面只用 3 层。")
         ]
     }
 
@@ -71,6 +71,6 @@ Section {
     }
 
     InSystem {
-        text: qsTr("首页现在是：STATION、SENSORS、DEVICE（LVGL 版）、LVGL（演示页）、CLASSIC（手写版的三页）。首页本身和标题栏、返回键仍是手写框架画的——它够简单，没有必要换。")
+        text: qsTr("首页现在是：STATION、SENSORS、DEVICE（LVGL 版）、LVGL（演示页）、CLASSIC（手写版的三页：OLD STATION、OLD SENSORS、OLD DEVICE。和首页上的 LVGL 版界面不同，所以名字前加了 OLD，不用同名）。首页本身和标题栏、返回键仍是手写框架画的——它够简单，没有必要换。")
     }
 }

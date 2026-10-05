@@ -27,15 +27,15 @@ static void classic_tick(uint32_t now)
     }
 }
 
-const gui_page g_page_classic_station = {"STATION", 0, 0, classic_enter, classic_tick};
+const gui_page g_page_classic_station = {"OLD STATION", 0, 0, classic_enter, classic_tick};
 
-/* 二级首页：和首页一样的图标，点进去是手写版的页面 */
+/* 二级首页：点进去是手写版的页面。名字前面加 OLD：和首页上的 LVGL 版是两套实现、界面不同，不能同名 */
 static void open_page(gui_widget *w) { gui_open((const gui_page *)w->user); }
 static void draw_tile(const gui_widget *w);
 static gui_widget s_tiles[] = {
-    {16, GUI_BAR_H + 24, 144, 184, "STATION", RGB565(37, 99, 235), 0, 0, draw_tile, open_page, (void *)&g_page_classic_station},
-    {168, GUI_BAR_H + 24, 144, 184, "SENSORS", RGB565(22, 163, 74), 0, 0, draw_tile, open_page, (void *)&g_page_classic_sensors},
-    {320, GUI_BAR_H + 24, 144, 184, "DEVICE", RGB565(100, 116, 139), 0, 0, draw_tile, open_page, (void *)&g_page_classic_device},
+    {16, GUI_BAR_H + 24, 144, 184, "OLD ST", RGB565(37, 99, 235), 0, 0, draw_tile, open_page, (void *)&g_page_classic_station},
+    {168, GUI_BAR_H + 24, 144, 184, "OLD SE", RGB565(22, 163, 74), 0, 0, draw_tile, open_page, (void *)&g_page_classic_sensors},
+    {320, GUI_BAR_H + 24, 144, 184, "OLD DV", RGB565(100, 116, 139), 0, 0, draw_tile, open_page, (void *)&g_page_classic_device},
 };
 static const char *const kGlyph[] = {"ST", "SE", "DV"};
 static void draw_tile(const gui_widget *w)

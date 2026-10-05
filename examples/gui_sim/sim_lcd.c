@@ -38,3 +38,6 @@ void lcd_draw_rgb565(uint16_t x, uint16_t y, uint16_t w, uint16_t h, const uint1
 }
 
 uint16_t lcd_read_pixel(uint16_t x, uint16_t y) { return g_fb[y][x]; }
+
+uint8_t g_sim_backlight = 80;          /* 模拟器没有背光，只记下最后设的值 */
+void lcd_backlight(uint8_t percent) { g_sim_backlight = percent > 100 ? 100 : percent; }

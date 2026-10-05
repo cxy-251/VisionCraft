@@ -63,4 +63,4 @@ static void device_tick(uint32_t now)
     if (now - last >= 1000u) { last = now; draw_dynamic(now); }
 }
 
-const gui_page g_page_classic_device = {"DEVICE", 0, 0, device_enter, device_tick};
+const gui_page g_page_classic_device = {"OLD DEVICE", 0, 0, device_enter, device_tick};

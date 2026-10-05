@@ -26,7 +26,7 @@ proc frame {} {
 }
 proc stats {} { return [format "一共写了 %d 块、%d 像素；%s" [v g_lv_flushes] [v g_lv_flush_px] [frame]] }
 
-echo "开始：页面 [title]，[stats]"
+echo [format "开始：页面 %s，%s；背光 PWM 占空比 %.1f %%" [title] [stats] [expr {100.0 * [read_memory 0x40001838 32 1] / ([read_memory 0x4000182C 32 1] + 1)}]]
 tap 88 380                                                        ;# 抬起后 0.4 秒读：还没到第一次曲线更新
 echo "点 LVGL 图标 → 页面 [title]，[stats]"
 after 1500
@@ -39,7 +39,8 @@ echo "点两下 TAP ME → 按钮回调 [v g_lv_clicks] 次，[stats]"
 inject 0 240 286; after 100
 for {set x 260} {$x <= 420} {incr x 20} { inject 1 $x 286; after 20 }
 inject 2 420 286; after 500
-echo "拖滑块到右边 → 滑块的值 [v g_lv_slider]"
+set ccr [expr {[read_memory 0x40001838 32 1] + 0}]; set arr [expr {[read_memory 0x4000182C 32 1] + 0}]
+echo [format "拖滑块到右边 → 滑块的值 %d；背光 PWM（TIM12）CCR2=%d、ARR=%d，占空比 %.1f %%" [v g_lv_slider] $ccr $arr [expr {100.0 * $ccr / ($arr + 1)}]]
 echo "LVGL 内存池（44 KB）：现在用 [v g_lv_mem_used] 字节，最多用过 [v g_lv_mem_peak] 字节"
 halt
 foreach {x y what} {240 160 按钮 100 286 滑块左半 400 286 滑块右半 240 700 LVGL背景} {

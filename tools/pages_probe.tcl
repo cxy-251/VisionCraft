@@ -41,9 +41,9 @@ lvgl_page LVGL 88 380
 echo "CLASSIC 里的手写版页面："
 tap 240 380
 echo "  CLASSIC  → 页面 [title]（二级首页）"
-classic_page STATION 88 190
-classic_page SENSORS 240 190
-classic_page DEVICE 392 190
+classic_page "OLD ST" 88 190
+classic_page "OLD SE" 240 190
+classic_page "OLD DV" 392 190
 tap 40 38
 echo "回到：[title]"
 after 1500

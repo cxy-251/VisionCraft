@@ -1,16 +1,16 @@
-==== 1. 每个页面进入时那一帧（tools/pages_probe.tcl，开机后第一次进入）====
+==== 1. 每个页面进入时那一帧（tools/pages_probe.tcl，开机后第一次进入；手写版页面已改名 OLD …）====
 首页上的 LVGL 页面：
   STATION  → 页面 STATION  进入时一帧 347520 像素、 95.8 ms，其中写屏 24.3 ms
-  SENSORS  → 页面 SENSORS  进入时一帧 347520 像素、100.1 ms，其中写屏 24.2 ms
-  DEVICE   → 页面 DEVICE   进入时一帧 347520 像素、 96.3 ms，其中写屏 24.3 ms
+  SENSORS  → 页面 SENSORS  进入时一帧 347520 像素、100.1 ms，其中写屏 24.3 ms
+  DEVICE   → 页面 DEVICE   进入时一帧 347520 像素、 96.7 ms，其中写屏 24.2 ms
   LVGL     → 页面 LVGL     进入时一帧 347520 像素、 69.4 ms，其中写屏 24.3 ms
 CLASSIC 里的手写版页面：
   CLASSIC  → 页面 CLASSIC（二级首页）
-  STATION  → 页面 STATION  换页整屏重画  39.0 ms
-  SENSORS  → 页面 SENSORS  换页整屏重画  47.3 ms
-  DEVICE   → 页面 DEVICE   换页整屏重画  35.0 ms
+  OLD ST   → 页面 OLD STATION 换页整屏重画  39.4 ms
+  OLD SE   → 页面 OLD SENSORS 换页整屏重画  47.3 ms
+  OLD DV   → 页面 OLD DEVICE 换页整屏重画  35.5 ms
 回到：VISIONCRAFT
-LVGL 内存池（45056 字节）：现在用 27300 字节，最多用过 29612 字节
+LVGL 内存池（45056 字节）：现在用 27276 字节，最多用过 29612 字节
 
 ==== 2. 同一个页面连续进两次（开机后）====
 开机后，每个 LVGL 页面连续进两次：

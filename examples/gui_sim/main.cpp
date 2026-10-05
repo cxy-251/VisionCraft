@@ -15,6 +15,7 @@ extern uint32_t g_now;
 extern vc_result g_sim_result;
 extern volatile uint32_t g_lv_flushes, g_lv_flush_px, g_lv_clicks;
 extern volatile int32_t g_lv_slider;
+extern uint8_t g_sim_backlight;
 extern int g_sim_result_fresh, g_sim_image_fresh, g_sim_image_done;
 }
 
@@ -101,8 +102,8 @@ int main(int argc, char *argv[])
     ev(GUI_DOWN, 240, 286); run(100);
     for (int x = 260; x <= 420; x += 20) { ev(GUI_MOVE, x, 286); run(20); }
     ev(GUI_UP, 420, 286); run(200);
-    step("按住滑块的圆点，拖到右边");                         save("gui-lvgl-used");
-    std::printf("    滑块的值 %ld\n", (long)g_lv_slider);
+    step("按住滑块，拖到右边");                         save("gui-lvgl-used");
+    std::printf("    滑块的值 %ld，背光设成 %u %%\n", (long)g_lv_slider, (unsigned)g_sim_backlight);
     for (auto [x, y, what] : {std::tuple{240, 160, "按钮"}, {100, 286, "滑块左半"}, {400, 286, "滑块右半"}, {240, 700, "LVGL 背景"}})
         std::printf("    (%3d,%3d) %-12s 0x%04x\n", x, y, what, g_fb[y][x]);
     tap(40, 38);
@@ -112,13 +113,13 @@ int main(int argc, char *argv[])
     tap(240, 380);
     step("点 CLASSIC 图标（二级首页）");                         save("gui-classic-home");
     tap(88, 190);
-    step("点 STATION：手写版工位页");                            save("gui-classic");
+    step("点 OLD ST：手写版工位页");                            save("gui-classic");
     run(1000);
     step("什么都没变，又过了 1 秒");
     tap(40, 38); tap(240, 190);
-    step("返回，点 SENSORS：手写版传感器页");                    save("gui-classic-sensors");
+    step("返回，点 OLD SE：手写版传感器页");                    save("gui-classic-sensors");
     tap(40, 38); tap(392, 190);
-    step("返回，点 DEVICE：手写版设备页");                       save("gui-classic-device");
+    step("返回，点 OLD DV：手写版设备页");                       save("gui-classic-device");
     run(3000);
     step("停 3 秒（运行时间每秒刷新）");
     tap(40, 38); tap(40, 38);

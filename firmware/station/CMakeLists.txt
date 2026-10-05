@@ -31,6 +31,15 @@ message("Build type: " ${CMAKE_BUILD_TYPE})
 # Enable CMake support for ASM and C languages
 enable_language(C ASM)
 
+# USB 主机库 HID 类的 SET_PROTOCOL 取值是反的，CubeMX 每次生成都会恢复原样。没修正就停下来，
+# 否则鼠标能用但 X、Y 全错，很难想到是库的问题。见手册「指针事件：触摸和鼠标」
+file(READ ${CMAKE_CURRENT_SOURCE_DIR}/Middlewares/ST/STM32_USB_Host_Library/Class/HID/Src/usbh_hid.c _usbh_hid)
+if(NOT _usbh_hid MATCHES "VisionCraft 修改")
+    message(FATAL_ERROR "usbh_hid.c 还没修正：先运行 tools/patch_usbh_hid.sh")
+endif()
+set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS
+    ${CMAKE_CURRENT_SOURCE_DIR}/Middlewares/ST/STM32_USB_Host_Library/Class/HID/Src/usbh_hid.c)
+
 # Create an executable object type
 add_executable(${CMAKE_PROJECT_NAME})
 
@@ -68,6 +77,8 @@ target_sources(${CMAKE_PROJECT_NAME} PRIVATE
     App/page_sensors.c
     App/page_device.c
     App/touch.c
+    App/mouse.c
+    App/cursor.c
     # 与上位机共用的协议代码
     ${CMAKE_CURRENT_SOURCE_DIR}/../../protocol/vc_protocol.c
 )

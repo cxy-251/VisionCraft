@@ -27,4 +27,7 @@ uint16_t lcd_text(uint16_t x, uint16_t y, const char *s, uint16_t fg, uint16_t b
 uint16_t lcd_read_pixel(uint16_t x, uint16_t y);   /* 读回显存，用来自检 */
 void     lcd_draw_rgb565(uint16_t x, uint16_t y, uint16_t w, uint16_t h, const uint16_t *pixels);
 
+/* 每次往显存写一块矩形之前调用（可以为空）。软件光标用它在被覆盖前先收起来，见 cursor.c */
+extern void (*lcd_before_draw)(uint16_t x, uint16_t y, uint16_t w, uint16_t h);
+
 #endif

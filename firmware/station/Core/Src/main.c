@@ -22,6 +22,7 @@
 #include "adc.h"
 #include "i2c.h"
 #include "tim.h"
+#include "usb_host.h"
 #include "gpio.h"
 #include "fsmc.h"
 

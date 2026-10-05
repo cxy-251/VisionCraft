@@ -240,7 +240,7 @@ HandbookIndex {
             Entry { title: qsTr("首页与页面"); file: "handbook/f407/gui/Pages.qml" }
             Entry { title: qsTr("在电脑上运行界面代码"); file: "handbook/f407/gui/Simulator.qml" }
             Entry { title: qsTr("重画的代价：局部刷新与写屏时序"); file: "handbook/f407/gui/Redraw.qml" }
-            Entry { title: qsTr("指针事件：触摸和鼠标") }
+            Entry { title: qsTr("指针事件：触摸和鼠标"); file: "handbook/f407/gui/Pointer.qml" }
             Entry { title: qsTr("移植 LVGL") }
             Entry { title: qsTr("用 LVGL 重做工位界面") }
         }

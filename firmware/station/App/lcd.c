@@ -65,6 +65,8 @@ static void nt35510_init(void)
     HAL_Delay(50);
 }
 
+void (*lcd_before_draw)(uint16_t x, uint16_t y, uint16_t w, uint16_t h);
+
 // [region window]
 static void set_window(uint16_t x, uint16_t y, uint16_t w, uint16_t h)
 {
@@ -103,6 +105,7 @@ void lcd_fill(uint16_t x, uint16_t y, uint16_t w, uint16_t h, uint16_t color)
         return;
     if (x + w > LCD_W) w = (uint16_t)(LCD_W - x);
     if (y + h > LCD_H) h = (uint16_t)(LCD_H - y);
+    if (lcd_before_draw) lcd_before_draw(x, y, w, h);
     set_window(x, y, w, h);
     wr_reg(0x2C00);   /* 开始写显存，之后每写一个数据就是一个像素，自动在窗口内换行 */
     for (uint32_t n = (uint32_t)w * h; n; --n)
@@ -114,6 +117,7 @@ void lcd_draw_rgb565(uint16_t x, uint16_t y, uint16_t w, uint16_t h, const uint1
 {
     if (x + w > LCD_W || y + h > LCD_H)
         return;
+    if (lcd_before_draw) lcd_before_draw(x, y, w, h);
     set_window(x, y, w, h);
     wr_reg(0x2C00);
     for (uint32_t n = (uint32_t)w * h; n; --n)
@@ -124,6 +128,11 @@ uint16_t lcd_text(uint16_t x, uint16_t y, const char *s, uint16_t fg, uint16_t b
 {
     if (!scale) scale = 1;
     const uint16_t cw = (uint16_t)(8 * scale), ch = (uint16_t)(16 * scale);
+    if (lcd_before_draw) {
+        uint32_t n = 0;
+        while (s[n] && x + (n + 1) * cw <= LCD_W) ++n;   /* 实际会画出的字数 */
+        if (n) lcd_before_draw(x, y, (uint16_t)(n * cw), ch);
+    }
     for (; *s; ++s) {
         if (x + cw > LCD_W)
             break;

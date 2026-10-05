@@ -8,6 +8,8 @@
 #include "lcd.h"
 #include "pages.h"
 #include "touch.h"
+#include "mouse.h"
+#include "cursor.h"
 
 extern osMessageQueueId_t g_beepQueue;
 
@@ -100,6 +102,25 @@ static void poll_touch(void)
     }
 }
 
+/* 鼠标 → 指针事件：报告里只有相对移动量，光标位置要自己累加；左键按下 / 抬起就是「按下」/「抬起」，按着移动是「移动」 */
+static int16_t s_cx = LCD_W / 2, s_cy = LCD_H / 2;
+static void poll_mouse(void)
+{
+    static int left;
+    mouse_report r;
+    while (mouse_take(&r)) {
+        int x = s_cx + r.dx, y = s_cy + r.dy;
+        s_cx = (int16_t)(x < 0 ? 0 : x >= LCD_W ? LCD_W - 1 : x);   /* 光标不能出屏 */
+        s_cy = (int16_t)(y < 0 ? 0 : y >= LCD_H ? LCD_H - 1 : y);
+        const int down = r.buttons & 1;
+        if (down != left || (down && (r.dx || r.dy))) {
+            const gui_event e = {down && !left ? GUI_DOWN : down ? GUI_MOVE : GUI_UP, s_cx, s_cy};
+            gui_handle(&e);
+        }
+        left = down;
+    }
+}
+
 /* 调试用的事件注入口：一个能放 8 个事件的环形队列。调试器往 ev[head % 8] 写 type、x、y，再把 head 加 1；
  * 固件每轮循环把 tail 追到 head。只有一个槽的话，固件忙着重画时（换页要一两百毫秒）后写的事件会覆盖先写的 */
 #define INJECT_N 8
@@ -125,6 +146,8 @@ void StationTask(void *argument)
     cycle_counter_init();
     gui_init(&g_page_home);             /* 先把首页画出来，触摸芯片的复位要几百毫秒 */
     touch_init();
+    cursor_init();
+    mouse_init();                       /* USB 主机库开始工作：鼠标的枚举、收报告都在库自己的任务里 */
 
     for (;;) {
         uint16_t ms;
@@ -145,12 +168,14 @@ void StationTask(void *argument)
             lastTouch = now;
             poll_touch();
         }
+        poll_mouse();
         poll_inject();
         pages_background(now);          /* 取走上位机的结果 / 缩略图、记录传感器历史 */
         if (now - lastGui >= 20u) {     /* 页面刷新 + 重画变了的控件 */
             lastGui = now;
             gui_tick(now);
         }
+        cursor_set(mouse_connected(), s_cx, s_cy);   /* 最后画光标：这一轮如果画到了它，它已经被收起，在这里画回来 */
     }
 }
 // [endregion]

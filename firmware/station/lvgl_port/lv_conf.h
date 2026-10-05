@@ -14,7 +14,13 @@
 #define LV_USE_STDLIB_MALLOC LV_STDLIB_BUILTIN
 #define LV_USE_STDLIB_STRING LV_STDLIB_BUILTIN
 #define LV_USE_STDLIB_SPRINTF LV_STDLIB_BUILTIN
+#if defined(__arm__)
 #define LV_MEM_SIZE (44u * 1024u)
+#else
+/* 电脑上的模拟器是 64 位程序，指针是 8 字节，同样的控件要多占将近一倍；44 KB 会在建控件时用光，
+ * 停在 LV_ASSERT_MALLOC 的死循环里（实测）。所以模拟器给大一些，板子上的用量以板上测量为准 */
+#define LV_MEM_SIZE (128u * 1024u)
+#endif
 
 /* 片内 128 KB RAM 已经用了四分之三，大数组放进 64 KB 的 CCM（链接脚本里的 .ccmbss，不占 Flash、不清零）。
  * 电脑上的模拟器没有 CCM，什么都不加 */

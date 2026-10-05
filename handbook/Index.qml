@@ -243,6 +243,7 @@ HandbookIndex {
             Entry { title: qsTr("指针事件：触摸和鼠标"); file: "handbook/f407/gui/Pointer.qml" }
             Entry { title: qsTr("移植 LVGL"); file: "handbook/f407/gui/Lvgl.qml" }
             Entry { title: qsTr("用 LVGL 重做工位界面"); file: "handbook/f407/gui/StationLvgl.qml" }
+            Entry { title: qsTr("全部换成 LVGL：传感器页和设备页"); file: "handbook/f407/gui/Unify.qml" }
         }
         Chapter {
             title: qsTr("存储")

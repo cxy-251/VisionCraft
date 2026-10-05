@@ -77,6 +77,9 @@ target_sources(${CMAKE_PROJECT_NAME} PRIVATE
     App/page_classic.c
     App/page_sensors.c
     App/page_device.c
+    App/page_classic_sensors.c
+    App/page_classic_device.c
+    App/lv_ui.c
     App/touch.c
     App/mouse.c
     App/cursor.c

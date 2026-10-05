@@ -1,0 +1,74 @@
+==== 1. 每个页面进入时那一帧（tools/pages_probe.tcl，开机后第一次进入）====
+首页上的 LVGL 页面：
+  STATION  → 页面 STATION  进入时一帧 347520 像素、 95.8 ms，其中写屏 24.3 ms
+  SENSORS  → 页面 SENSORS  进入时一帧 347520 像素、100.1 ms，其中写屏 24.2 ms
+  DEVICE   → 页面 DEVICE   进入时一帧 347520 像素、 96.3 ms，其中写屏 24.3 ms
+  LVGL     → 页面 LVGL     进入时一帧 347520 像素、 69.4 ms，其中写屏 24.3 ms
+CLASSIC 里的手写版页面：
+  CLASSIC  → 页面 CLASSIC（二级首页）
+  STATION  → 页面 STATION  换页整屏重画  39.0 ms
+  SENSORS  → 页面 SENSORS  换页整屏重画  47.3 ms
+  DEVICE   → 页面 DEVICE   换页整屏重画  35.0 ms
+回到：VISIONCRAFT
+LVGL 内存池（45056 字节）：现在用 27300 字节，最多用过 29612 字节
+
+==== 2. 同一个页面连续进两次（开机后）====
+开机后，每个 LVGL 页面连续进两次：
+  STATION 第1次 → 页面 STATION  进入时一帧 347520 像素、 95.8 ms，其中写屏 24.3 ms
+  STATION 第2次 → 页面 STATION  进入时一帧 347520 像素、 76.7 ms，其中写屏 24.4 ms
+  SENSORS 第1次 → 页面 SENSORS  进入时一帧 347520 像素、101.9 ms，其中写屏 24.2 ms
+  SENSORS 第2次 → 页面 SENSORS  进入时一帧 347520 像素、 91.5 ms，其中写屏 24.2 ms
+  DEVICE 第1次 → 页面 DEVICE   进入时一帧 347520 像素、 96.4 ms，其中写屏 24.3 ms
+  DEVICE 第2次 → 页面 DEVICE   进入时一帧 347520 像素、 73.8 ms，其中写屏 24.2 ms
+
+==== 3. 原有的测试照旧通过 ====
+$ gui_probe.tcl（INJECT 0x20013c60 TITLE 0x20017e24 CLICKS 0x20017e2c SHOW 0x20017e20）
+开机后的页面：VISIONCRAFT，点击次数 0x0
+  点 STATION 图标 → 页面 STATION      点击次数 1，最近一次换页重画 24.1 ms
+  点返回键     → 页面 VISIONCRAFT  点击次数 2，最近一次换页重画 36.1 ms
+  点 SENSORS 图标 → 页面 SENSORS      点击次数 3，最近一次换页重画 23.5 ms
+  点返回键     → 页面 VISIONCRAFT  点击次数 4，最近一次换页重画 36.1 ms
+  点 DEVICE 图标 → 页面 DEVICE       点击次数 5，最近一次换页重画 23.6 ms
+  点返回键     → 页面 VISIONCRAFT  点击次数 6，最近一次换页重画 36.1 ms
+  → 页面 SENSORS      点击次数 9
+  → 页面 VISIONCRAFT  点击次数 10（没有增加）
+  ( 10, 10) 标题栏            0x1947
+  ( 88,150) STATION图标的蓝色方块 0x231d
+  (240,150) SENSORS图标的绿色方块 0x1509
+  (240,500) 背景               0x08a5
+$ lvgl_probe.tcl
+开始：页面 VISIONCRAFT，一共写了 281 块、2071036 像素；最近画的一帧 162668 像素、用了 44.5 ms，其中写屏 11.4 ms
+点 LVGL 图标 → 页面 LVGL，一共写了 327 块、2418556 像素；最近画的一帧 347520 像素、用了 69.6 ms，其中写屏 24.2 ms
+再停 3 秒：又写了 285120 像素；最近画的一帧 95040 像素、用了 21.6 ms，其中写屏 6.7 ms（曲线每秒加一个点）
+点两下 TAP ME → 按钮回调 2 次，一共写了 507 块、3642360 像素；最近画的一帧 95040 像素、用了 22.4 ms，其中写屏 6.7 ms
+拖滑块到右边 → 滑块的值 92
+LVGL 内存池（44 KB）：现在用 27288 字节，最多用过 29660 字节
+  (240,160) 按钮       0x24be
+  (100,286) 滑块左半 0x24be
+  (400,286) 滑块右半 0x24be
+  (240,700) LVGL背景   0x10a3
+点返回 → 页面 VISIONCRAFT
+
+==== 4. 栈和堆（上面的测试都跑完之后）====
+StationTask 栈 8192 字节，从未用到 3808 字节
+FreeRTOS 堆最少时还剩 18984 字节
+
+==== 5. 构建结果（arm-none-eabi-size -A station.elf）====
+.text       274420 字节
+.rodata     114940 字节
+.ccmbss      60416 字节
+.extsram     38400 字节
+.data          520 字节
+.bss         99924 字节
+
+Flash 按来源分（从 station.map 统计）：
+   227.8 KB  LVGL 其余代码和数据
+    53.2 KB  其他（HAL、FreeRTOS、USB、工位程序……）
+    36.4 KB  LVGL 自带 Montserrat：28 号
+    26.6 KB  vc_font_cjk_20（ASCII + 99 个汉字和符号）
+    21.3 KB  LVGL 自带 Montserrat：20 号
+    13.3 KB  LVGL 自带 Montserrat：14 号
+     4.6 KB  vc_font_big_72（O K N G -）
+   383.2 KB  合计（.text + .rodata）
+
+（看屏的人：SENSORS 的大数字和两条曲线、DEVICE 的三组信息、CLASSIC 二级首页和里面的三个手写版页面——「都正常」）

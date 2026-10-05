@@ -89,9 +89,10 @@ int main(int argc, char *argv[])
     std::printf("\n==== 5. LVGL 页 ====\n");
     tap(40, 38);
     step("返回首页");
+    const unsigned long f0 = g_lv_flushes, p0 = g_lv_flush_px;
     tap(88, 380);
-    step("点 LVGL 图标（第一次进入：初始化 LVGL、建控件、整块画）");   save("gui-lvgl");
-    std::printf("    LVGL 写了 %lu 块、%lu 个像素\n", (unsigned long)g_lv_flushes, (unsigned long)g_lv_flush_px);
+    step("点 LVGL 图标（整块画一遍）");                            save("gui-lvgl");
+    std::printf("    这一步 LVGL 写了 %lu 块、%lu 个像素\n", g_lv_flushes - f0, g_lv_flush_px - p0);
     run(2000);
     step("停 2 秒（曲线每秒加一个点）");
     tap(240, 180); tap(240, 180);
@@ -109,11 +110,19 @@ int main(int argc, char *argv[])
 
     std::printf("\n==== 6. CLASSIC 页（手写框架版的工位界面，和 LVGL 版显示同样的数据）====\n");
     tap(240, 380);
-    step("点 CLASSIC 图标");                                     save("gui-classic");
+    step("点 CLASSIC 图标（二级首页）");                         save("gui-classic-home");
+    tap(88, 190);
+    step("点 STATION：手写版工位页");                            save("gui-classic");
     run(1000);
     step("什么都没变，又过了 1 秒");
-    tap(40, 38);
-    step("返回首页");
+    tap(40, 38); tap(240, 190);
+    step("返回，点 SENSORS：手写版传感器页");                    save("gui-classic-sensors");
+    tap(40, 38); tap(392, 190);
+    step("返回，点 DEVICE：手写版设备页");                       save("gui-classic-device");
+    run(3000);
+    step("停 3 秒（运行时间每秒刷新）");
+    tap(40, 38); tap(40, 38);
+    step("返回两次，回到首页");
 
     std::printf("\n共重画控件 %lu 次\n", (unsigned long)g_gui_redraws);
     return 0;

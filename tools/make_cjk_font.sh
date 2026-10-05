@@ -9,7 +9,7 @@ ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 CONV="$HOME/Applications/lv_font_conv/node_modules/.bin/lv_font_conv"
 PY="$HOME/Applications/fonttools/bin/python"
 TTC=/usr/share/fonts/noto-cjk/NotoSansCJK-Regular.ttc
-SRC=("$ROOT/firmware/station/App/page_lvgl.c" "$ROOT/firmware/station/App/page_station.c")
+SRC=("$ROOT"/firmware/station/App/page_{lvgl,station,sensors,device}.c)
 OUT="$ROOT/firmware/station/lvgl_port/vc_font_cjk_20.c"
 TMP="$(mktemp -d)"; trap 'rm -rf "$TMP"' EXIT
 

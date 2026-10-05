@@ -8,7 +8,7 @@ Section {
     Why {
         text: qsTr("原来的工位页是一屏英文点阵字，缩略图只在收到的那一刻画一次：离开页面再回来就没了，因为图在通信任务的接收缓冲里，还回去就会被下一张覆盖。"
                  + "用 LVGL 重做，控件一直在内存里，页面不在前台时数据也照样更新到控件上，回来时整页重画就是最新的样子。但 LVGL 随时可能重画任何一块，缩略图的像素就得一直留着——37.5 KB，片内放不下。"
-                 + "原来的手写版没有删，改名 CLASSIC 留在首页，两个页面显示同样的数据，正好对比。")
+                 + "原来的手写版没有删，留在首页的 CLASSIC 里，两个页面显示同样的数据，正好对比。")
     }
 
     CodeRef { file: "firmware/station/station.ioc"; from: "^FSMC.AddressSetupTime2"; to: "^FSMC.WriteOperation2" }
@@ -37,11 +37,11 @@ Section {
         ]
     }
 
-    CodeRef { file: "firmware/station/App/page_station.c"; region: "settext" }
+    CodeRef { file: "firmware/station/App/lv_ui.c"; region: "settext" }
 
     Pitfall {
         text: qsTr("lv_label_set_text 每调用一次，LVGL 就把这个标签标记为要重画，哪怕文字和原来一模一样。工位页每 250 ms 刷新一遍所有动态文字，不加判断，每秒就是四次整套重画——和「重画的代价」里手写版的问题一样。"
-                 + "set_text 先和当前文字比较，一样就不调用。模拟器里，什么都没变的 1 秒，LVGL 版写了 8856 个像素，手写版 CLASSIC 写了 22528 个（两者都已经加了这个判断，LVGL 版的字小，所以更少）。")
+                 + "ui_set_text（lv_ui.c，三个 LVGL 页面共用）先和当前文字比较，一样就不调用。模拟器里，什么都没变的 1 秒，LVGL 版写了 8856 个像素，手写版 CLASSIC 写了 22528 个（两者都已经加了这个判断，LVGL 版的字小，所以更少）。")
     }
 
     Figure {
@@ -74,6 +74,6 @@ Section {
     }
 
     InSystem {
-        text: qsTr("工位固件开机首页有五个图标：STATION（LVGL 版工位页）、SENSORS、DEVICE、LVGL（演示页）、CLASSIC（手写版工位页）。上位机不需要任何改动，协议没有变。下一步可以把传感器页、设备页也换成 LVGL，或者用外部 SRAM 做更大的东西，比如整屏显示检测图像。")
+        text: qsTr("上位机不需要任何改动，协议没有变。传感器页、设备页随后也换成了 LVGL，手写版的三页都收进了 CLASSIC，见「全部换成 LVGL」。")
     }
 }

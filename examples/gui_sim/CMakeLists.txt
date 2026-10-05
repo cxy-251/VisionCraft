@@ -12,7 +12,7 @@ target_compile_definitions(gui_sim_lvgl PUBLIC LV_CONF_INCLUDE_SIMPLE)
 target_compile_options(gui_sim_lvgl PRIVATE -w)
 
 qt_add_executable(example_gui_sim main.cpp sim_lcd.c sim_app.c
-    ${FW}/gui.c ${FW}/page_home.c ${FW}/page_station.c ${FW}/page_sensors.c ${FW}/page_device.c ${FW}/page_lvgl.c ${FW}/page_classic.c
+    ${FW}/gui.c ${FW}/page_home.c ${FW}/page_station.c ${FW}/page_sensors.c ${FW}/page_device.c ${FW}/page_lvgl.c ${FW}/page_classic.c ${FW}/page_classic_sensors.c ${FW}/page_classic_device.c ${FW}/lv_ui.c
     ${FW}/station_ui.c ${FW}/lcd_font.c ${PORT}/lv_port.c ${PORT}/vc_font_cjk_20.c ${PORT}/vc_font_big_72.c)
 target_include_directories(example_gui_sim PRIVATE include ${FW} ${PROJECT_SOURCE_DIR}/protocol)
 target_link_libraries(example_gui_sim PRIVATE Qt6::Gui gui_sim_lvgl)

@@ -23,7 +23,7 @@ Section {
 
     Figure {
         files: ["handbook/f407/gui/figures/gui-classic.png"]
-        captions: [qsTr("手写框架版的工位页（现在是首页上的 CLASSIC）：进入时补画了最近一次结果 NG（划痕）；缩略图不补画，只剩空框")]
+        captions: [qsTr("手写框架版的工位页（现在在首页的 CLASSIC 里）：进入时补画了最近一次结果 NG（划痕）；缩略图不补画，只剩空框")]
     }
 
     CodeRef { file: "firmware/station/App/page_station.c"; region: "background"; caption: qsTr("不管哪一页在前台，都要把上位机的结果和图取走") }
@@ -37,10 +37,10 @@ Section {
         ]
     }
 
-    CodeRef { file: "firmware/station/App/page_sensors.c"; region: "chart" }
+    CodeRef { file: "firmware/station/App/page_classic_sensors.c"; region: "chart" }
 
     Figure {
-        files: ["handbook/f407/gui/figures/gui-sensors.png", "handbook/f407/gui/figures/gui-device.png"]
+        files: ["handbook/f407/gui/figures/gui-classic-sensors.png", "handbook/f407/gui/figures/gui-classic-device.png"]
         captions: [qsTr("传感器页：在首页停了 130 秒后进来，曲线已经有两分钟的历史（模拟器的假数据）"), qsTr("设备页：版本、编译时间、芯片 UID、运行时间、空闲堆、任务数")]
     }
 

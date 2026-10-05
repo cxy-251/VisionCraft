@@ -1,66 +1,83 @@
-/* 「设备」页：固件版本、编译时间、芯片 UID、运行时间、空闲堆、任务数 */
+/* 「设备」页（LVGL 版）：固件、芯片、运行状态和三处内存的用量。手写框架版在 page_classic_device.c。 */
 #include "pages.h"
 
 #include "app.h"
-#include "lcd.h"
-
-#define C_BG    RGB565(15, 23, 42)
-#define C_TEXT  RGB565(241, 245, 249)
-#define C_MUTED RGB565(148, 163, 184)
+#include "lv_port.h"
+#include "lv_ui.h"
+#include "main.h"                           /* HAL_GetTick */
 
 extern const char app_build_stamp[];
 
-static char *put_u(char *p, uint32_t v)
+static lv_obj_t *s_screen, *s_uptime, *s_heap, *s_tasks, *s_lvmem;
+
+/* 一行：左边名字，右边数值 */
+static lv_obj_t *row(lv_obj_t *card, const char *name, const char *value)
 {
-    char t[11]; int n = 0;
-    do { t[n++] = (char)('0' + v % 10); v /= 10; } while (v);
-    while (n) *p++ = t[--n];
-    return p;
+    lv_obj_t *r = ui_row(card);
+    ui_text(r, name, UI_MUTED);
+    return ui_text(r, value, UI_TEXT);
 }
 
-static void row(int i, const char *name, const char *value)
+static lv_obj_t *group(const char *title)
 {
-    const uint16_t y = (uint16_t)(GUI_BAR_H + 30 + i * 70);
-    lcd_text(24, y, name, C_MUTED, C_BG, 2);
-    lcd_fill(24, (uint16_t)(y + 28), LCD_W - 48, 32, C_BG);
-    lcd_text(24, (uint16_t)(y + 28), value, C_TEXT, C_BG, 2);
+    ui_text(s_screen, title, UI_MUTED);
+    lv_obj_t *c = ui_card(s_screen, LV_PCT(100), LV_SIZE_CONTENT);
+    lv_obj_set_flex_flow(c, LV_FLEX_FLOW_COLUMN);
+    lv_obj_set_style_pad_row(c, 10, 0);
+    return c;
 }
 
-static void draw_dynamic(uint32_t now)
+void device_build(void)
 {
-    char line[32], *p;
+    char line[40];
+    s_screen = ui_screen();
+
+    lv_obj_t *fw = group("固件");
+    lv_snprintf(line, sizeof line, "%d.%d.%d", APP_FW_MAJOR, APP_FW_MINOR, APP_FW_PATCH);
+    row(fw, "版本", line);
+    row(fw, "编译时间", app_build_stamp);
+
+    lv_obj_t *chip = group("芯片");
+    uint32_t uid[3];
+    app_chip_uid(uid);
+    lv_snprintf(line, sizeof line, "%08X%08X%08X", (unsigned)uid[2], (unsigned)uid[1], (unsigned)uid[0]);
+    row(chip, "型号", "STM32F407ZGT6");
+    lv_obj_t *u = row(chip, "唯一 ID", line);
+    lv_obj_set_style_text_font(u, &lv_font_montserrat_14, 0);   /* 24 个十六进制数字，用小一号的字才放得下 */
+
+    lv_obj_t *run = group("运行");
+    s_uptime = row(run, "运行时间", "0h 0m 0s");
+    s_tasks = row(run, "任务数", "--");
+    s_heap = row(run, "FreeRTOS 剩余堆", "--");
+    s_lvmem = row(run, "LVGL 内存池", "--");
+}
+
+static void update(uint32_t now)
+{
+    char line[40];
     const uint32_t s = now / 1000u;
-    p = put_u(line, s / 3600u); *p++ = 'h'; *p++ = ' ';
-    p = put_u(p, s / 60u % 60u); *p++ = 'm'; *p++ = ' ';
-    p = put_u(p, s % 60u); *p++ = 's'; *p = 0;
-    row(3, "UPTIME", line);
-    p = put_u(line, app_free_heap()); *p++ = ' '; *p++ = 'B'; *p++ = 'Y'; *p++ = 'T'; *p++ = 'E'; *p++ = 'S'; *p = 0;
-    row(4, "FREE HEAP (FREERTOS)", line);
-    p = put_u(line, app_task_count()); *p = 0;
-    row(5, "TASKS", line);
+    lv_snprintf(line, sizeof line, "%uh %um %us", (unsigned)(s / 3600u), (unsigned)(s / 60u % 60u), (unsigned)(s % 60u));
+    ui_set_text(s_uptime, line);
+    lv_snprintf(line, sizeof line, "%u", (unsigned)app_task_count());
+    ui_set_text(s_tasks, line);
+    lv_snprintf(line, sizeof line, "%u 字节", (unsigned)app_free_heap());
+    ui_set_text(s_heap, line);
+    lv_snprintf(line, sizeof line, "%u / %u 字节", (unsigned)g_lv_mem_used, (unsigned)LV_MEM_SIZE);
+    ui_set_text(s_lvmem, line);
 }
 
 static void device_enter(void)
 {
-    char line[40], *p = line;
-    p = put_u(p, APP_FW_MAJOR); *p++ = '.'; p = put_u(p, APP_FW_MINOR); *p++ = '.'; p = put_u(p, APP_FW_PATCH); *p = 0;
-    row(0, "FIRMWARE", line);
-    row(1, "BUILT", app_build_stamp);
-    uint32_t uid[3];
-    app_chip_uid(uid);
-    static const char hx[] = "0123456789ABCDEF";
-    p = line;
-    for (int w = 2; w >= 0; --w)
-        for (int b = 28; b >= 0; b -= 4) *p++ = hx[(uid[w] >> b) & 0xF];
-    *p = 0;
-    row(2, "CHIP UID", line);
-    draw_dynamic(0);
+    update(HAL_GetTick());
+    lv_screen_load(s_screen);
+    lv_obj_invalidate(s_screen);
 }
 
 static void device_tick(uint32_t now)
 {
     static uint32_t last;
-    if (now - last >= 1000u) { last = now; draw_dynamic(now); }
+    if (now - last >= 1000u) { last = now; update(now); }
+    lv_port_run();
 }
 
-const gui_page g_page_device = {"DEVICE", 0, 0, device_enter, device_tick};
+const gui_page g_page_device = {"DEVICE", 0, 0, device_enter, device_tick, lv_port_pointer};

@@ -1,98 +1,109 @@
-/* 「传感器」页：当前读数 + 最近 2 分钟的曲线。历史每秒记一次，不管这一页是否在显示 */
+/* 「传感器」页（LVGL 版）：当前读数 + 最近 2 分钟的曲线。历史每秒记一次，不管这一页是否在显示。
+ * 手写框架版在 page_classic_sensors.c。 */
 #include "pages.h"
 
 #include "app.h"
-#include "lcd.h"
+#include "lv_port.h"
+#include "lv_ui.h"
 
-#define C_BG      RGB565(15, 23, 42)
-#define C_SURFACE RGB565(30, 41, 59)
-#define C_TEXT    RGB565(241, 245, 249)
-#define C_MUTED   RGB565(148, 163, 184)
+#define HIST 120                           /* 2 分钟，每秒一个点 */
 
-#define HIST 120
-static int16_t s_temp[HIST];           /* 0.1 °C */
-static int16_t s_light[HIST];          /* 0.1 % */
-static int s_count, s_head;            /* 环形缓冲：s_head 是下一个写入位置 */
-static uint32_t s_lastRecord;
-static int s_fresh;                    /* 有新数据还没画 */
-
-void sensors_record(uint32_t now)
-{
-    if (now - s_lastRecord < 1000u)
-        return;
-    const app_sensors s = app_latest_sensors();
-    if (!s.valid)
-        return;
-    s_lastRecord = now;
-    s_temp[s_head] = (int16_t)(s.cpu_temp_c100 / 10);
-    s_light[s_head] = (int16_t)s.light_permille;
-    s_head = (s_head + 1) % HIST;
-    if (s_count < HIST) s_count++;
-    s_fresh = 1;
-}
-
-/* 定点数写成文字：value 放大了 10 倍，例如 432 → "43.2" */
-static void fmt1(char *out, int value, const char *unit)
-{
-    char tmp[12]; int n = 0;
-    if (value < 0) { *out++ = '-'; value = -value; }
-    int ip = value / 10;
-    do { tmp[n++] = (char)('0' + ip % 10); ip /= 10; } while (ip);
-    while (n) *out++ = tmp[--n];
-    *out++ = '.'; *out++ = (char)('0' + value % 10);
-    *out++ = ' ';
-    while (*unit) *out++ = *unit++;
-    *out = 0;
-}
+static lv_obj_t *s_screen, *s_tempNow, *s_lightNow, *s_tempRange, *s_lightRange;
+static lv_obj_t *s_tempChart, *s_lightChart;
+static lv_chart_series_t *s_tempSer, *s_lightSer;
+static int16_t s_temp[HIST], s_light[HIST];   /* 0.1 °C、0.1 %，环形缓冲 */
+static int s_count, s_head;
 
 // [region chart]
-/* 一条曲线：框、最大最小值标注、折线。纵轴按数据自动缩放 */
-static void draw_chart(int y0, int h, const int16_t *data, const char *name, const char *unit, uint16_t color)
+/* 纵轴按最近 2 分钟的数据自动缩放：上下各留一点空，数据几乎不变时至少留 ±0.5 */
+static void rescale(lv_obj_t *chart, lv_obj_t *rangeLabel, const int16_t *data, const char *unit)
 {
-    const int x0 = 24, w = LCD_W - 48;
-    lcd_fill((uint16_t)x0, (uint16_t)y0, (uint16_t)w, (uint16_t)h, C_SURFACE);
-    char line[24];
-    lcd_text((uint16_t)(x0 + 8), (uint16_t)(y0 + 6), name, C_MUTED, C_SURFACE, 2);
-    if (s_count < 2) return;
     int lo = 32767, hi = -32768;
     for (int i = 0; i < s_count; ++i) {
         const int v = data[(s_head - s_count + i + HIST) % HIST];
         if (v < lo) lo = v;
         if (v > hi) hi = v;
     }
-    if (hi - lo < 10) { hi += 5; lo -= 5; }           /* 数据几乎不变时，至少留 ±0.5 的范围 */
-    fmt1(line, hi, unit); lcd_text((uint16_t)(x0 + w - 8 - 8 * 2 * (int)__builtin_strlen(line)), (uint16_t)(y0 + 6), line, C_MUTED, C_SURFACE, 2);
-    fmt1(line, lo, unit); lcd_text((uint16_t)(x0 + w - 8 - 8 * 2 * (int)__builtin_strlen(line)), (uint16_t)(y0 + h - 38), line, C_MUTED, C_SURFACE, 2);
-    const int py0 = y0 + 40, ph = h - 84;              /* 曲线区留出上下文字的位置 */
-    int px = -1, py = 0;
-    for (int i = 0; i < s_count; ++i) {
-        const int v = data[(s_head - s_count + i + HIST) % HIST];
-        const int x = x0 + 8 + (w - 16) * (HIST - s_count + i) / (HIST - 1);   /* 最新的点总在最右边 */
-        const int y = py0 + ph - (v - lo) * ph / (hi - lo);
-        if (px >= 0) gui_line(px, py, x, y, color);
-        px = x; py = y;
-    }
+    char a[24], b[24], line[56];
+    ui_fixed(a, sizeof a, lo, 1, unit);
+    ui_fixed(b, sizeof b, hi, 1, unit);
+    lv_snprintf(line, sizeof line, "%s – %s", a, b);
+    ui_set_text(rangeLabel, line);
+    if (hi - lo < 10) { hi += 5; lo -= 5; }
+    lv_chart_set_axis_range(chart, LV_CHART_AXIS_PRIMARY_Y, lo - 2, hi + 2);
+}
+
+static lv_obj_t *chart(lv_obj_t *parent, const char *title, uint32_t rgb, lv_chart_series_t **ser, lv_obj_t **range)
+{
+    lv_obj_t *c = ui_card(parent, LV_PCT(100), 250);
+    lv_obj_set_flex_flow(c, LV_FLEX_FLOW_COLUMN);
+    lv_obj_t *head = ui_row(c);
+    ui_text(head, title, UI_MUTED);
+    *range = ui_text(head, "", UI_MUTED);
+    lv_obj_t *ch = lv_chart_create(c);
+    lv_obj_set_size(ch, LV_PCT(100), LV_PCT(100));
+    lv_obj_set_flex_grow(ch, 1);
+    lv_chart_set_type(ch, LV_CHART_TYPE_LINE);
+    lv_chart_set_point_count(ch, HIST);
+    lv_chart_set_update_mode(ch, LV_CHART_UPDATE_MODE_SHIFT);     /* 新点从右边进来，旧点往左移 */
+    lv_obj_set_style_size(ch, 0, 0, LV_PART_INDICATOR);           /* 120 个点太密，只画线不画圆点 */
+    *ser = lv_chart_add_series(ch, lv_color_hex(rgb), LV_CHART_AXIS_PRIMARY_Y);
+    return ch;
 }
 // [endregion]
 
-static void draw_all(void)
+static lv_obj_t *big_value(lv_obj_t *parent, const char *name)
 {
-    char line[24];
-    lcd_fill(0, GUI_BAR_H, LCD_W, 120, C_BG);
-    if (s_count) {
-        const int i = (s_head + HIST - 1) % HIST;
-        fmt1(line, s_temp[i], "C");
-        lcd_text(24, GUI_BAR_H + 20, "TEMP", C_MUTED, C_BG, 2);
-        lcd_text(24, GUI_BAR_H + 48, line, C_TEXT, C_BG, 3);
-        fmt1(line, s_light[i], "%");
-        lcd_text(260, GUI_BAR_H + 20, "LIGHT", C_MUTED, C_BG, 2);
-        lcd_text(260, GUI_BAR_H + 48, line, C_TEXT, C_BG, 3);
-    }
-    draw_chart(GUI_BAR_H + 130, 280, s_temp, "TEMP, LAST 2 MIN", "C", RGB565(248, 113, 113));
-    draw_chart(GUI_BAR_H + 430, 280, s_light, "LIGHT, LAST 2 MIN", "%", RGB565(251, 191, 36));
+    lv_obj_t *c = ui_card(parent, LV_PCT(48), LV_SIZE_CONTENT);
+    lv_obj_set_flex_flow(c, LV_FLEX_FLOW_COLUMN);
+    ui_text(c, name, UI_MUTED);
+    lv_obj_t *v = ui_text(c, "--", UI_TEXT);
+    lv_obj_set_style_text_font(v, &lv_font_montserrat_28, 0);   /* 数字用大一号的西文字体，单位另起一行写在名字里 */
+    return v;
 }
 
-static void sensors_enter(void) { draw_all(); s_fresh = 0; }
-static void sensors_tick(uint32_t now) { (void)now; if (s_fresh) { draw_all(); s_fresh = 0; } }
+void sensors_build(void)
+{
+    s_screen = ui_screen();
+    lv_obj_t *now = ui_row(s_screen);
+    s_tempNow = big_value(now, "芯片温度（°C）");
+    s_lightNow = big_value(now, "光照（%）");
+    s_tempChart = chart(s_screen, "芯片温度，最近 2 分钟", 0xF87171, &s_tempSer, &s_tempRange);
+    s_lightChart = chart(s_screen, "光照，最近 2 分钟", 0xFBBF24, &s_lightSer, &s_lightRange);
+}
 
-const gui_page g_page_sensors = {"SENSORS", 0, 0, sensors_enter, sensors_tick};
+/* pages_background 每轮调用：每秒记一个点，直接加到曲线上（这一页不在前台时也加，回来就是完整的曲线） */
+void sensors_record(uint32_t now)
+{
+    static uint32_t last;
+    if (now - last < 1000u)
+        return;
+    const app_sensors s = app_latest_sensors();
+    if (!s.valid)
+        return;
+    last = now;
+    s_temp[s_head] = (int16_t)(s.cpu_temp_c100 / 10);
+    s_light[s_head] = (int16_t)s.light_permille;
+    s_head = (s_head + 1) % HIST;
+    if (s_count < HIST) s_count++;
+
+    char line[24];
+    lv_snprintf(line, sizeof line, "%d.%d", s_temp[(s_head + HIST - 1) % HIST] / 10, s_temp[(s_head + HIST - 1) % HIST] % 10);
+    ui_set_text(s_tempNow, line);
+    lv_snprintf(line, sizeof line, "%d.%d", s_light[(s_head + HIST - 1) % HIST] / 10, s_light[(s_head + HIST - 1) % HIST] % 10);
+    ui_set_text(s_lightNow, line);
+    lv_chart_set_next_value(s_tempChart, s_tempSer, s_temp[(s_head + HIST - 1) % HIST]);
+    lv_chart_set_next_value(s_lightChart, s_lightSer, s_light[(s_head + HIST - 1) % HIST]);
+    rescale(s_tempChart, s_tempRange, s_temp, "°C");
+    rescale(s_lightChart, s_lightRange, s_light, "%");
+}
+
+static void sensors_enter(void)
+{
+    lv_screen_load(s_screen);
+    lv_obj_invalidate(s_screen);
+}
+
+static void sensors_tick(uint32_t now) { (void)now; lv_port_run(); }
+
+const gui_page g_page_sensors = {"SENSORS", 0, 0, sensors_enter, sensors_tick, lv_port_pointer};

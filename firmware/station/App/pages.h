@@ -11,7 +11,10 @@ extern const gui_page g_page_station;
 extern const gui_page g_page_sensors;
 extern const gui_page g_page_device;
 extern const gui_page g_page_lvgl;
-extern const gui_page g_page_classic;
+extern const gui_page g_page_classic;           /* 二级首页：下面是手写框架版的三个页面 */
+extern const gui_page g_page_classic_station;
+extern const gui_page g_page_classic_sensors;
+extern const gui_page g_page_classic_device;
 
 /* 开机时调用一次：初始化 LVGL，建好所有 LVGL 页面的控件（页面不显示时数据也照样更新到控件上） */
 void pages_init(void);
@@ -23,6 +26,10 @@ void station_result(const vc_result *r);
 void station_image(uint16_t w, uint16_t h, const uint16_t *pixels);
 void station_key(uint8_t key, uint8_t down);
 void lvgl_page_build(void);
+void sensors_build(void);
+void device_build(void);
+void sensors_record(uint32_t now_ms);
+void classic_sensors_record(uint32_t now_ms);
 void classic_result(const vc_result *r);
 void classic_thumbnail(uint16_t w, uint16_t h, const uint16_t *pixels);
 

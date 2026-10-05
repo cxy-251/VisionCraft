@@ -28,7 +28,7 @@ Section {
 
     Para { text: qsTr("板子上，缓冲区在 LinkTask（收）和 StationTask（画）之间交接，用一个四种状态的变量协调：") }
     CodeRef { file: "firmware/station/App/app.c"; from: "^enum \\{ IMG_IDLE"; to: "^void app_image_done" }
-    CodeRef { file: "firmware/station/App/page_station.c"; region: "background"; caption: qsTr("StationTask 每轮都调用 pages_background：不管当前在哪一页都把图取走，只有工位页在显示时才画") }
+    CodeRef { file: "firmware/station/App/page_station.c"; region: "background"; caption: qsTr("StationTask 每轮都调用 pages_background：不管当前在哪一页都把图取走，交给两个工位页（LVGL 版拷进外部 SRAM 留着，手写版在前台才画），然后马上还回缓冲区") }
     KeyPoints {
         points: [
             qsTr("IDLE → RECEIVING（收到 BEGIN）→ READY（收齐）→ DRAWING（StationTask 取走）→ IDLE（画完）。"),

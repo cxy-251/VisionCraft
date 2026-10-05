@@ -57,6 +57,7 @@ MEMORY
 {
 RAM (xrw)      : ORIGIN = 0x20000000, LENGTH = 128K
 CCMRAM (xrw)      : ORIGIN = 0x10000000, LENGTH = 64K
+EXTSRAM    (xrw)    : ORIGIN = 0x68000000,   LENGTH = 1024K   /* VisionCraft：FSMC NE3 上的 IS62WV51216，见「外部 SRAM」 */
 FLASH (rx)      : ORIGIN = 0x8000000, LENGTH = 1024K
 }
 
@@ -177,6 +178,16 @@ SECTIONS
     *(.ccmbss*)
     . = ALIGN(8);
   } >CCMRAM
+
+  /* VisionCraft：外部 SRAM 里的大数组（缩略图等）。NOLOAD：不占 Flash、不清零。
+   * 只能在 MX_FSMC_Init() 之后访问——那之前 NE3 还没打开，读写会进 HardFault */
+  .extsram (NOLOAD) :
+  {
+    . = ALIGN(4);
+    *(.extsram)
+    *(.extsram*)
+    . = ALIGN(4);
+  } >EXTSRAM
 
   /* used by the startup to initialize data */
   _sidata = LOADADDR(.data);

@@ -74,6 +74,7 @@ target_sources(${CMAKE_PROJECT_NAME} PRIVATE
     App/gui.c
     App/page_home.c
     App/page_station.c
+    App/page_classic.c
     App/page_sensors.c
     App/page_device.c
     App/touch.c
@@ -82,6 +83,7 @@ target_sources(${CMAKE_PROJECT_NAME} PRIVATE
     App/page_lvgl.c
     lvgl_port/lv_port.c
     lvgl_port/vc_font_cjk_20.c
+    lvgl_port/vc_font_big_72.c
     # 与上位机共用的协议代码
     ${CMAKE_CURRENT_SOURCE_DIR}/../../protocol/vc_protocol.c
 )

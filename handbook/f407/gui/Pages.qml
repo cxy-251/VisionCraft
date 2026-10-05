@@ -15,15 +15,15 @@ Section {
     KeyPoints {
         label: qsTr("首页")
         points: [
-            qsTr("首页就是一个控件数组：每个图标 144 × 184（现在有四个，第四个 LVGL 见「移植 LVGL」），每个的 on_click 都是同一个 open_page，要打开哪个页面放在控件的 user 指针里。加一个页面，就是在数组里加一行。"),
+            qsTr("首页就是一个控件数组：每个图标 144 × 184（现在有五个：后加的 LVGL、CLASSIC 见「移植 LVGL」「用 LVGL 重做工位界面」），每个的 on_click 都是同一个 open_page，要打开哪个页面放在控件的 user 指针里。加一个页面，就是在数组里加一行。"),
             qsTr("首页没有 tick：它上面没有会变的东西，停在首页时一个像素都不写（「在电脑上运行界面代码」里实测停 130 秒写了 0 个像素）。"),
             qsTr("工位、传感器、设备三个页面一个控件都没有（count 为 0），全靠 enter 画整页、tick 刷新数据。返回键由框架统一画、统一处理，页面不用管。")
         ]
     }
 
     Figure {
-        files: ["handbook/f407/gui/figures/gui-station.png", "handbook/f407/gui/figures/gui-station-ng.png"]
-        captions: [qsTr("工位页：等待检测结果"), qsTr("收到上位机发来的 NG（划痕），模拟器里没有缩略图，只有框")]
+        files: ["handbook/f407/gui/figures/gui-classic.png"]
+        captions: [qsTr("手写框架版的工位页（现在是首页上的 CLASSIC）：进入时补画了最近一次结果 NG（划痕）；缩略图不补画，只剩空框")]
     }
 
     CodeRef { file: "firmware/station/App/page_station.c"; region: "background"; caption: qsTr("不管哪一页在前台，都要把上位机的结果和图取走") }
@@ -31,9 +31,9 @@ Section {
     KeyPoints {
         label: qsTr("页面不在前台时")
         points: [
-            qsTr("pages_background 每轮循环都调，不管当前是哪一页：取走检测结果（记下来，回到工位页时补画），取走缩略图并调用 app_image_done，再让传感器页记一笔历史。"),
+            qsTr("pages_background 每轮循环都调，不管当前是哪一页：取走检测结果，取走缩略图并调用 app_image_done，再让传感器页记一笔历史。结果和图同时交给两个工位页：LVGL 版（「用 LVGL 重做工位界面」）和手写版 CLASSIC。"),
             qsTr("缩略图必须取走。通信任务收到一张图后会一直回「忙」，直到界面说「用完了」（app_image_done）；如果只在工位页显示时才取，用户停在首页，上位机就再也发不出下一张图。板子停在首页时用 vclink_probe 发图，图照样被接收。"),
-            qsTr("取走和画出来是两回事：只有工位页在前台才画（visible 判断）。回到工位页时 enter 会把最近一次结果补画出来，缩略图不补——它在通信任务的缓冲区里，用完就被下一张覆盖了。")
+            qsTr("取走和画出来是两回事：手写版只有在前台才画（visible 判断），回到这一页时 enter 会把最近一次结果补画出来，缩略图不补——它在通信任务的缓冲区里，还回去之后就会被下一张覆盖。LVGL 版把缩略图拷进了外部 SRAM，所以回来时还在。")
         ]
     }
 

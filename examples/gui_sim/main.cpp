@@ -15,7 +15,7 @@ extern uint32_t g_now;
 extern vc_result g_sim_result;
 extern volatile uint32_t g_lv_flushes, g_lv_flush_px, g_lv_clicks;
 extern volatile int32_t g_lv_slider;
-extern int g_sim_result_fresh;
+extern int g_sim_result_fresh, g_sim_image_fresh, g_sim_image_done;
 }
 
 static QString g_dir;
@@ -52,7 +52,7 @@ int main(int argc, char *argv[])
 
     std::printf("==== 1. 首页 ====\n");
     // [region script]
-    gui_init(&g_page_home); run(100);
+    gui_init(&g_page_home); pages_init(); run(100);
     step("开机，显示首页");                                   save("gui-home");
     for (auto [x, y, what] : {std::tuple{10, 10, "标题栏"}, {88, 150, "STATION 图标的蓝色方块"}, {240, 150, "SENSORS 图标的绿色方块"}, {240, 500, "背景"}})
         std::printf("    (%3d,%3d) %-24s 0x%04x\n", x, y, what, g_fb[y][x]);
@@ -64,8 +64,9 @@ int main(int argc, char *argv[])
 
     std::printf("\n==== 2. 工位页收到一条检测结果 ====\n");
     g_sim_result = vc_result{}; g_sim_result.ok = 0; g_sim_result.defect = 1; g_sim_result.total = 42; g_sim_result.ng = 3;
-    g_sim_result_fresh = 1; run(300);
-    step("上位机发来 NG（划痕）");                             save("gui-station-ng");
+    g_sim_result_fresh = 1; g_sim_image_fresh = 1; run(300);
+    step("上位机发来 NG（划痕）和缩略图");                     save("gui-station-ng");
+    std::printf("    缩略图的接收缓冲已归还 %d 次\n", g_sim_image_done);
     run(1000);
     step("什么都没变，又过了 1 秒");
 
@@ -105,6 +106,14 @@ int main(int argc, char *argv[])
         std::printf("    (%3d,%3d) %-12s 0x%04x\n", x, y, what, g_fb[y][x]);
     tap(40, 38);
     step("点左上角返回（框架的返回键，不经过 LVGL）");
+
+    std::printf("\n==== 6. CLASSIC 页（手写框架版的工位界面，和 LVGL 版显示同样的数据）====\n");
+    tap(240, 380);
+    step("点 CLASSIC 图标");                                     save("gui-classic");
+    run(1000);
+    step("什么都没变，又过了 1 秒");
+    tap(40, 38);
+    step("返回首页");
 
     std::printf("\n共重画控件 %lu 次\n", (unsigned long)g_gui_redraws);
     return 0;

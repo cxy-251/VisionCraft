@@ -15,4 +15,6 @@ extern volatile uint32_t g_lv_flush_px;     /* 一共写了多少像素 */
 extern volatile uint32_t g_lv_frame_cycles; /* 最近一次「有东西要画」的 lv_timer_handler 用了多少时钟周期 */
 extern volatile uint32_t g_lv_frame_px;     /* ……那一次写了多少像素 */
 extern volatile uint32_t g_lv_frame_flush_cycles; /* ……其中写屏（flush）用了多少周期 */
+extern volatile uint32_t g_lv_max_cycles, g_lv_max_px, g_lv_max_flush_cycles;   /* 最慢的一帧，同上三项 */
+extern volatile uint32_t g_lv_mem_used, g_lv_mem_peak; /* LVGL 内存池现在用了多少、最多用过多少（字节），每秒更新 */
 #endif

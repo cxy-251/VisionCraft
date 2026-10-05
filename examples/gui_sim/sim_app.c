@@ -25,5 +25,21 @@ app_sensors app_latest_sensors(void)
 
 vc_result g_sim_result; int g_sim_result_fresh;
 int app_take_result(vc_result *out) { if (!g_sim_result_fresh) return 0; *out = g_sim_result; g_sim_result_fresh = 0; return 1; }
-int app_take_image(uint16_t *w, uint16_t *h, const uint16_t **pixels) { (void)w; (void)h; (void)pixels; return 0; }
-void app_image_done(void) {}
+/* 假缩略图：160×120，一个灰色渐变背景上的深色圆环（像上位机发来的工件图） */
+static uint16_t s_img[160 * 120];
+int g_sim_image_fresh, g_sim_image_done;
+int app_take_image(uint16_t *w, uint16_t *h, const uint16_t **pixels)
+{
+    if (!g_sim_image_fresh) return 0;
+    g_sim_image_fresh = 0;
+    for (int y = 0; y < 120; ++y)
+        for (int x = 0; x < 160; ++x) {
+            const int dx = x - 80, dy = y - 60, r2 = dx * dx + dy * dy;
+            int g = 90 + x / 2;                               /* 0..255 的灰度 */
+            if (r2 < 50 * 50 && r2 > 20 * 20) g = 40;         /* 圆环 */
+            s_img[y * 160 + x] = (uint16_t)(((g >> 3) << 11) | ((g >> 2) << 5) | (g >> 3));
+        }
+    *w = 160; *h = 120; *pixels = s_img;
+    return 1;
+}
+void app_image_done(void) { g_sim_image_done++; }

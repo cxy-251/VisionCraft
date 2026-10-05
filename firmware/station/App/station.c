@@ -48,7 +48,7 @@ static void scan_keys(void)
         k->count = 0;
         const uint8_t ev[2] = {i, now ? VC_KEY_DOWN : VC_KEY_UP};
         app_send(VC_EVT_KEY, seq++, ev, sizeof(ev));
-        ui_key(i, now);
+        pages_key(i, now);
         if (now)
             app_beep(15);   /* 按键音 */
     }
@@ -145,6 +145,7 @@ void StationTask(void *argument)
     uint32_t lastTouch = 0, lastGui = 0;
     cycle_counter_init();
     gui_init(&g_page_home);             /* 先把首页画出来，触摸芯片的复位要几百毫秒 */
+    pages_init();                       /* LVGL 和它的页面：控件建好放在内存里，进入页面时才画 */
     touch_init();
     cursor_init();
     mouse_init();                       /* USB 主机库开始工作：鼠标的枚举、收报告都在库自己的任务里 */

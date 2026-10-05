@@ -77,7 +77,7 @@ Section {
         captions: [qsTr("模拟器里点了两下按钮、把滑块拖到右边之后")]
     }
 
-    CodeRef { file: "examples/gui_sim/output.txt"; from: "==== 5"; to: "共重画"; caption: qsTr("模拟器的输出") }
+    CodeRef { file: "examples/gui_sim/output.txt"; from: "==== 5"; to: "点左上角返回（框架"; caption: qsTr("模拟器的输出") }
     CodeRef { file: "handbook/f407/gui/lvgl-test.txt"; from: "==== 2"; to: "点返回"; caption: qsTr("板子上：调试器注入同样的操作") }
 
     KeyPoints {

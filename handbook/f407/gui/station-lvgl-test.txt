@@ -1,0 +1,52 @@
+==== 1. station.ioc 打开 FSMC NE3（外部 SRAM）之后，用调试器检查 ====
+BCR3=0x00001091 BTR3=0x0ff008f2
+半字写 0x1234、再往高字节写 0xAB → 读回 0xab34
+写 256 个随机字再读回：错 0 个
+（「外部 SRAM」一节没配字节选择线 NBL0/NBL1 时，同样的操作读回 0xAB00）
+
+==== 2. 构建结果（arm-none-eabi-size -A station.elf）====
+.isr_vector      392 字节  地址 0x08000000
+.text         272640 字节  地址 0x08000190
+.rodata        59076 字节  地址 0x08042a90
+.ccmbss        60416 字节  地址 0x10000000
+.extsram       38400 字节  地址 0x68000000
+.data            436 字节  地址 0x20000000
+.bss           99372 字节  地址 0x200001b4
+68000000 00009600 b s_thumb        （arm-none-eabi-nm -S：缩略图缓冲在外部 SRAM）
+
+==== 3. 板上测试：电脑发结果和缩略图，调试器读外部 SRAM 和屏幕 ====
+$ openocd ... -c "reset run" -c "after 3000" -c "set PHASE open" -c "<地址>" -f tools/station_probe.tcl -c exit
+进入工位页：页面 STATION
+$ build/tools/vclink_probe rtt station
+[image ] 成功：38400 字节，505 ms
+$ openocd ... -c "set PHASE check" -c "<地址>" -f tools/station_probe.tcl -c exit
+外部 SRAM 里的缩略图（左上 右上 左下 右下）：0xf800 0x07e0 0x001f 0xffff
+屏上缩略图位置的像素（同样四个角）：      0xf800 0x07e0 0x001f 0xffff
+返回：页面 VISIONCRAFT
+再进工位页：页面 STATION，屏上缩略图位置：0xf800 0x07e0 0x001f 0xffff
+进入时整页一帧 347520 像素、80.7 ms，其中写屏 24.3 ms
+返回：页面 VISIONCRAFT
+$ openocd ... -c "<地址>" -f tools/lvgl_probe.tcl -c exit      （LVGL 演示页）
+开始：页面 VISIONCRAFT，一共写了 141 块、940140 像素；最近画的一帧 5112 像素、用了 2.9 ms，其中写屏 0.4 ms
+点 LVGL 图标 → 页面 LVGL，一共写了 187 块、1287660 像素；最近画的一帧 347520 像素、用了 69.3 ms，其中写屏 24.3 ms
+再停 3 秒：又写了 285120 像素；最近画的一帧 95040 像素、用了 21.7 ms，其中写屏 6.7 ms（曲线每秒加一个点）
+点两下 TAP ME → 按钮回调 2 次，一共写了 367 块、2512484 像素；最近画的一帧 95040 像素、用了 22.5 ms，其中写屏 6.6 ms
+拖滑块到右边 → 滑块的值 92
+LVGL 内存池（44 KB）：现在用 14768 字节，最多用过 17580 字节
+  (240,160) 按钮       0x24be
+  (100,286) 滑块左半 0x24be
+  (400,286) 滑块右半 0x24be
+  (240,700) LVGL背景   0x10a3
+点返回 → 页面 VISIONCRAFT
+
+==== 4. 手写版 CLASSIC 页进入时整屏重画（gui_probe 同样的注入方法，连续 3 次）====
+进 CLASSIC 页：页面 CLASSIC，换页整屏重画 51.0 ms
+进 CLASSIC 页：页面 CLASSIC，换页整屏重画 51.0 ms
+进 CLASSIC 页：页面 CLASSIC，换页整屏重画 51.0 ms
+
+==== 5. 栈和堆（上面的测试跑完之后）====
+StationTask 栈 6144 字节时：从未用到 1572 字节
+StationTask 栈 8192 字节，从未用到 3656 字节
+FreeRTOS 堆最少时还剩 18992 字节
+
+（看屏的人：LVGL 版工位页显示红色 NG、「缺口」、四色缩略图、「累计 128 不合格 9」和不良率条；按键栏随按键变化；CLASSIC 页也正常——「都正常」）

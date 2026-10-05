@@ -242,7 +242,7 @@ HandbookIndex {
             Entry { title: qsTr("重画的代价：局部刷新与写屏时序"); file: "handbook/f407/gui/Redraw.qml" }
             Entry { title: qsTr("指针事件：触摸和鼠标"); file: "handbook/f407/gui/Pointer.qml" }
             Entry { title: qsTr("移植 LVGL"); file: "handbook/f407/gui/Lvgl.qml" }
-            Entry { title: qsTr("用 LVGL 重做工位界面") }
+            Entry { title: qsTr("用 LVGL 重做工位界面"); file: "handbook/f407/gui/StationLvgl.qml" }
         }
         Chapter {
             title: qsTr("存储")

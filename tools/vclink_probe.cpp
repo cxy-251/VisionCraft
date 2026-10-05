@@ -68,7 +68,11 @@ int main(int argc, char *argv[])
         };
     }
     // 第二个参数 image：发一张四色方块缩略图（左上红、右上绿、左下蓝、右下白），然后退出
-    if (argc > 2 && QByteArray(argv[2]) == "image") {
+    // 第二个参数 station：像上位机检测完一件那样，先发结果（NG、缺口、累计 128 件其中 9 件不合格），再发同一张缩略图
+    const bool station = argc > 2 && QByteArray(argv[2]) == "station";
+    if (station)
+        steps << [&] { link.sendResult(false, 2, 37, 128, 9); QTimer::singleShot(300, next); };
+    if (argc > 2 && (QByteArray(argv[2]) == "image" || station)) {
         steps << [&] {
             QImage img(160, 120, QImage::Format_RGB32);
             for (int y = 0; y < 120; ++y)

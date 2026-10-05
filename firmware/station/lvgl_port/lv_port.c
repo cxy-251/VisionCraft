@@ -5,6 +5,8 @@
 #include "main.h"                           /* HAL_GetTick */
 
 volatile uint32_t g_lv_flushes, g_lv_flush_px, g_lv_frame_cycles, g_lv_frame_px, g_lv_frame_flush_cycles;
+volatile uint32_t g_lv_max_cycles, g_lv_max_px, g_lv_max_flush_cycles;
+volatile uint32_t g_lv_mem_used, g_lv_mem_peak;
 static uint32_t s_flushCycles;              /* 写屏一共用了多少周期（累计） */
 uint32_t gui_cycles(void);                  /* gui.c：板子上是 DWT 周期计数器，模拟器里是 0 */
 
@@ -65,11 +67,24 @@ void lv_port_init(void)
 
 void lv_port_run(void)
 {
+    static uint32_t lastMem;
+    if (HAL_GetTick() - lastMem >= 1000u) {          /* 每秒看一次 LVGL 内存池用了多少 */
+        lastMem = HAL_GetTick();
+        lv_mem_monitor_t m;
+        lv_mem_monitor(&m);
+        g_lv_mem_used = m.total_size - m.free_size;
+        g_lv_mem_peak = m.max_used;
+    }
     const uint32_t before = g_lv_flushes, px = g_lv_flush_px, fc = s_flushCycles, t0 = gui_cycles();
     lv_timer_handler();
     if (g_lv_flushes != before) {          /* 这一次真的画了东西：记下用时和像素数 */
         g_lv_frame_cycles = gui_cycles() - t0;
         g_lv_frame_px = g_lv_flush_px - px;
         g_lv_frame_flush_cycles = s_flushCycles - fc;   /* 其中花在写屏上的；剩下的是 LVGL 在内存里画 */
+        if (g_lv_frame_cycles > g_lv_max_cycles) {       /* 最慢的一帧（调试器写 0 可以重新开始记） */
+            g_lv_max_cycles = g_lv_frame_cycles;
+            g_lv_max_px = g_lv_frame_px;
+            g_lv_max_flush_cycles = g_lv_frame_flush_cycles;
+        }
     }
 }

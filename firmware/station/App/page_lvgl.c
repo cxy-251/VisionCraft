@@ -7,7 +7,6 @@
 
 volatile uint32_t g_lv_clicks;             /* 按钮被点了几次（给测试读） */
 volatile int32_t g_lv_slider;              /* 滑块当前值 */
-volatile uint32_t g_lv_mem_used, g_lv_mem_peak;   /* LVGL 内存池现在用了多少、最多用过多少（字节），每秒更新 */
 
 LV_FONT_DECLARE(vc_font_cjk_20)        /* tools/make_cjk_font.sh 生成：ASCII + 本页用到的汉字 */
 
@@ -28,9 +27,9 @@ static void slid(lv_event_t *e)
     lv_label_set_text_fmt(s_value, "亮度 %d %%", (int)g_lv_slider);
 }
 
-static void build(void)
+void lvgl_page_build(void)
 {
-    s_screen = lv_screen_active();
+    s_screen = lv_obj_create(NULL);                                 /* 每个 LVGL 页面一个自己的「屏幕」对象 */
     lv_obj_set_flex_flow(s_screen, LV_FLEX_FLOW_COLUMN);            /* 竖着排，像网页一样自动布局，不用算坐标 */
     lv_obj_set_style_pad_all(s_screen, 24, 0);
     lv_obj_set_style_pad_row(s_screen, 20, 0);
@@ -75,12 +74,7 @@ static void build(void)
 
 static void lvgl_enter(void)
 {
-    static int ready;
-    if (!ready) {                          /* 第一次进来才初始化 LVGL、建控件；之后控件一直留在内存里 */
-        lv_port_init();
-        build();
-        ready = 1;
-    }
+    lv_screen_load(s_screen);              /* 控件开机时已经建好（pages_init），这里只是切到这个屏幕 */
     lv_obj_invalidate(s_screen);           /* 框架刚把这块填成了背景色，让 LVGL 整块重画 */
 }
 
@@ -91,10 +85,6 @@ static void lvgl_tick(uint32_t now)
         last = now;
         const app_sensors s = app_latest_sensors();
         if (s.valid) lv_chart_set_next_value(s_chart, s_temp, s.cpu_temp_c100 / 10);
-        lv_mem_monitor_t m;
-        lv_mem_monitor(&m);
-        g_lv_mem_used = m.total_size - m.free_size;
-        g_lv_mem_peak = m.max_used;
     }
     lv_port_run();
 }

@@ -24,7 +24,7 @@ Section {
     KeyPoints {
         label: qsTr("一次要写多少像素")
         points: [
-            qsTr("模拟器给每一步数了像素（「在电脑上运行界面代码」）。换页是整屏级别：首页 56 万，工位页 62 万，传感器页 82 万（两张曲线图各先填一遍底色）。"),
+            qsTr("模拟器给每一步数了像素（「在电脑上运行界面代码」）。换页是整屏级别：首页约 59 万（五个图标），传感器页 82 万（两张曲线图各先填一遍底色）。"),
             qsTr("按下一个图标只写了 38784 个，是整屏的 7%：框架只重画了被按的那个控件（dirty 标记）。拖出去取消 77568 个，正好两次——按下变亮一次，取消恢复一次。"),
             qsTr("停在首页 130 秒写了 0 个像素：首页没有会变的内容，也就一个像素都不写，CPU 和总线都空着。")
         ]
@@ -38,7 +38,7 @@ Section {
     }
 
     CodeRef { file: "firmware/station/App/station_ui.c"; region: "cache" }
-    CodeRef { file: "examples/gui_sim/output.txt"; from: "==== 2"; to: "1 秒"; caption: qsTr("改之后") }
+    CodeRef { file: "examples/gui_sim/output.txt"; from: "==== 6"; to: "1 秒"; caption: qsTr("改之后（手写版工位页现在叫 CLASSIC）") }
 
     KeyPoints {
         label: qsTr("字段缓存")

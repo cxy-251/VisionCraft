@@ -1,6 +1,6 @@
 #!/bin/bash
 # 生成 LVGL 用的中文字体：只收界面里真正用到的字，而不是几千个常用字。
-#   tools/make_cjk_font.sh          → firmware/station/lvgl_port/vc_font_cjk_20.c
+#   tools/make_cjk_font.sh          → firmware/station/lvgl_port/vc_font_cjk_20.c、vc_font_big_72.c
 # 用到的字从 LVGL 页面源码的字符串常量里收集（注释里的字不算）。改了界面文字，重新运行一次。
 # 需要：lv_font_conv（npm，装在 ~/Applications/lv_font_conv）、fonttools（~/Applications/fonttools，
 # 用来从系统的 Noto Sans CJK 合集 .ttc 里取出简体中文那一个，lv_font_conv 不认 .ttc）。
@@ -9,7 +9,7 @@ ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 CONV="$HOME/Applications/lv_font_conv/node_modules/.bin/lv_font_conv"
 PY="$HOME/Applications/fonttools/bin/python"
 TTC=/usr/share/fonts/noto-cjk/NotoSansCJK-Regular.ttc
-SRC=("$ROOT/firmware/station/App/page_lvgl.c")
+SRC=("$ROOT/firmware/station/App/page_lvgl.c" "$ROOT/firmware/station/App/page_station.c")
 OUT="$ROOT/firmware/station/lvgl_port/vc_font_cjk_20.c"
 TMP="$(mktemp -d)"; trap 'rm -rf "$TMP"' EXIT
 
@@ -40,3 +40,8 @@ echo "收进字体的非 ASCII 字符（${#SYMBOLS} 个）：$SYMBOLS"
         --lv-font-name vc_font_cjk_20 --lv-include lvgl.h --no-compress -o "$OUT"
 # [endregion]
 echo "→ $OUT（$(stat -c %s "$OUT") 字节的 C 源码）"
+# 工位页的结果大字：72 号只收 O、K、N、G 和横线，一个字一个字地收，比整套 ASCII 小得多
+BIG="$ROOT/firmware/station/lvgl_port/vc_font_big_72.c"
+"$CONV" --font "$TMP/sc.otf" --symbols "OKNG-" --size 72 --bpp 4 --format lvgl \
+        --lv-font-name vc_font_big_72 --lv-include lvgl.h --no-compress -o "$BIG"
+echo "→ $BIG（$(stat -c %s "$BIG") 字节的 C 源码）"

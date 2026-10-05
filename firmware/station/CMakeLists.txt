@@ -79,6 +79,9 @@ target_sources(${CMAKE_PROJECT_NAME} PRIVATE
     App/touch.c
     App/mouse.c
     App/cursor.c
+    App/page_lvgl.c
+    lvgl_port/lv_port.c
+    lvgl_port/vc_font_cjk_20.c
     # 与上位机共用的协议代码
     ${CMAKE_CURRENT_SOURCE_DIR}/../../protocol/vc_protocol.c
 )
@@ -87,6 +90,7 @@ target_sources(${CMAKE_PROJECT_NAME} PRIVATE
 target_include_directories(${CMAKE_PROJECT_NAME} PRIVATE
     # Add user defined include paths
     App
+    lvgl_port
     ${CMAKE_CURRENT_SOURCE_DIR}/../../protocol
 )
 
@@ -104,9 +108,19 @@ target_compile_definitions(${CMAKE_PROJECT_NAME} PRIVATE
 # Remove wrong libob.a library dependency when using cpp files
 list(REMOVE_ITEM CMAKE_C_IMPLICIT_LINK_LIBRARIES ob)
 
+# LVGL：firmware/third_party/lvgl 原样的源码，配置在 lvgl_port/lv_conf.h。第三方代码，不看它的警告。
+# 没用到的模块由 lv_conf.h 关掉，编译出来是空的；链接时 --gc-sections 再丢掉用不到的函数
+set(LVGL ${CMAKE_CURRENT_SOURCE_DIR}/../third_party/lvgl)
+file(GLOB_RECURSE LVGL_SOURCES CONFIGURE_DEPENDS ${LVGL}/src/*.c)
+add_library(lvgl STATIC ${LVGL_SOURCES})
+target_include_directories(lvgl SYSTEM PUBLIC ${LVGL} ${CMAKE_CURRENT_SOURCE_DIR}/lvgl_port)
+target_compile_definitions(lvgl PUBLIC LV_CONF_INCLUDE_SIMPLE)
+target_compile_options(lvgl PRIVATE -w)
+
 # Add linked libraries
 target_link_libraries(${CMAKE_PROJECT_NAME}
     stm32cubemx
+    lvgl
 
     # Add user defined libraries
 )

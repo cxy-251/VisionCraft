@@ -1,0 +1,39 @@
+==== 1. 构建 ====
+$ cmake --build firmware/station/build/Release
+             RAM:      102128 B       128 KB     77.92%
+          CCMRAM:         59 KB        64 KB     92.19%
+           FLASH:      314256 B         1 MB     29.97%
+（加 LVGL 之前：RAM 101432 B，CCMRAM 0，FLASH 46092 B）
+
+CCM 里的两个大数组（arm-none-eabi-nm -S）：
+  10000000 00003c00 b s_buf            绘图缓冲 480 × 16 行 × 2 字节 = 15360
+  10003c00 0000b000 b work_mem_int.0   LVGL 内存池 44 KB
+
+Flash 按来源分（从 station.map 统计 .text 和 .rodata）：
+   226.3 KB  LVGL 其余代码和数据
+    43.1 KB  其他（HAL、FreeRTOS、工位程序……）
+    21.3 KB  LVGL 自带的 Montserrat 20 号（14、28 号也打开了，但没用到，链接时被丢掉）
+    13.1 KB  vc_font_cjk_20（自己生成：ASCII 95 个 + 汉字和标点 25 个）
+     4.9 KB  USB 主机库
+   308.7 KB  合计（.text + .rodata）
+
+==== 2. 板上测试（tools/lvgl_probe.tcl，调试器注入点击和拖动）====
+$ openocd ... -c "reset run" -c "after 3000" -c "set g_gui_inject 0x20013b9c; set g_gui_title 0x20017d60; ……" -f tools/lvgl_probe.tcl -c exit
+开始：页面 VISIONCRAFT，一共写了 0 块、0 像素；最近画的一帧 0 像素、用了 0.0 ms，其中写屏 0.0 ms
+点 LVGL 图标 → 页面 LVGL，一共写了 46 块、347520 像素；最近画的一帧 347520 像素、用了 69.2 ms，其中写屏 24.2 ms
+再停 3 秒：又写了 285120 像素；最近画的一帧 95040 像素、用了 21.7 ms，其中写屏 6.7 ms（曲线每秒加一个点）
+点两下 TAP ME → 按钮回调 2 次，一共写了 226 块、1571324 像素；最近画的一帧 95040 像素、用了 22.4 ms，其中写屏 6.7 ms
+拖滑块到右边 → 滑块的值 92
+LVGL 内存池（44 KB）：现在用 8884 字节，最多用过 10448 字节
+  (240,160) 按钮       0x24be
+  (100,286) 滑块左半 0x24be
+  (400,286) 滑块右半 0x24be
+  (240,700) LVGL背景   0x10a3
+点返回 → 页面 VISIONCRAFT
+
+==== 3. 栈和堆（StationTask 现在要跑 LVGL 的绘制）====
+StationTask 栈 4096 字节时：从未用到 520 字节（用了 3576；原来的 2048 字节必然不够）
+StationTask 栈 6144 字节时：从未用到 2552 字节
+FreeRTOS 堆最少时还剩 21040 字节
+
+（之后由人用手指和鼠标各试一遍：进入 LVGL 页、点按钮、拖滑块、看中文和曲线、返回——「都正常」）

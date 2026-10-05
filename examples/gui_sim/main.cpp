@@ -13,6 +13,8 @@ extern uint16_t g_fb[800][480];
 extern unsigned long g_pixels_written;
 extern uint32_t g_now;
 extern vc_result g_sim_result;
+extern volatile uint32_t g_lv_flushes, g_lv_flush_px, g_lv_clicks;
+extern volatile int32_t g_lv_slider;
 extern int g_sim_result_fresh;
 }
 
@@ -82,6 +84,27 @@ int main(int argc, char *argv[])
     step("返回，点 DEVICE");                                   save("gui-device");
     run(3000);
     step("停 3 秒（运行时间每秒刷新）");
+
+    std::printf("\n==== 5. LVGL 页 ====\n");
+    tap(40, 38);
+    step("返回首页");
+    tap(88, 380);
+    step("点 LVGL 图标（第一次进入：初始化 LVGL、建控件、整块画）");   save("gui-lvgl");
+    std::printf("    LVGL 写了 %lu 块、%lu 个像素\n", (unsigned long)g_lv_flushes, (unsigned long)g_lv_flush_px);
+    run(2000);
+    step("停 2 秒（曲线每秒加一个点）");
+    tap(240, 180); tap(240, 180);
+    step("点两下 TAP ME 按钮");
+    std::printf("    按钮回调记到 %lu 次\n", (unsigned long)g_lv_clicks);
+    ev(GUI_DOWN, 240, 286); run(100);
+    for (int x = 260; x <= 420; x += 20) { ev(GUI_MOVE, x, 286); run(20); }
+    ev(GUI_UP, 420, 286); run(200);
+    step("按住滑块的圆点，拖到右边");                         save("gui-lvgl-used");
+    std::printf("    滑块的值 %ld\n", (long)g_lv_slider);
+    for (auto [x, y, what] : {std::tuple{240, 160, "按钮"}, {100, 286, "滑块左半"}, {400, 286, "滑块右半"}, {240, 700, "LVGL 背景"}})
+        std::printf("    (%3d,%3d) %-12s 0x%04x\n", x, y, what, g_fb[y][x]);
+    tap(40, 38);
+    step("点左上角返回（框架的返回键，不经过 LVGL）");
 
     std::printf("\n共重画控件 %lu 次\n", (unsigned long)g_gui_redraws);
     return 0;

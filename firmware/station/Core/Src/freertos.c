@@ -59,7 +59,7 @@ const osThreadAttr_t linkTask_attributes = {
 osThreadId_t stationTaskHandle;
 const osThreadAttr_t stationTask_attributes = {
   .name = "stationTask",
-  .stack_size = 512 * 4,
+  .stack_size = 1536 * 4,
   .priority = (osPriority_t) osPriorityNormal,
 };
 /* Definitions for envTask */

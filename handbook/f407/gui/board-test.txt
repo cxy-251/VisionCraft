@@ -51,3 +51,18 @@ $ 进工位页，暂停 CPU 采样两行像素（每隔 2 个像素读一个，�
   运行时间行（2 秒后）非背景 14 个，摘要 99d3dc
 返回：VISIONCRAFT
 （运行时间行变了：有缓存之后，真正变了的字段照样会重画）
+
+==== 首页加了第四个图标（LVGL）之后（gui_probe.tcl，INJECT 0x20013b9c TITLE 0x20017d60 CLICKS 0x20017d68 SHOW 0x20017d5c）====
+开机后的页面：VISIONCRAFT，点击次数 0x0
+  点 STATION 图标 → 页面 STATION      点击次数 1，最近一次换页重画 39.0 ms
+  点返回键     → 页面 VISIONCRAFT  点击次数 2，最近一次换页重画 33.6 ms
+  点 SENSORS 图标 → 页面 SENSORS      点击次数 3，最近一次换页重画 46.1 ms
+  点返回键     → 页面 VISIONCRAFT  点击次数 4，最近一次换页重画 33.6 ms
+  点 DEVICE 图标 → 页面 DEVICE       点击次数 5，最近一次换页重画 35.0 ms
+  点返回键     → 页面 VISIONCRAFT  点击次数 6，最近一次换页重画 33.6 ms
+  → 页面 SENSORS      点击次数 9
+  → 页面 VISIONCRAFT  点击次数 10（没有增加）
+  ( 10, 10) 标题栏            0x1947
+  ( 88,150) STATION图标的蓝色方块 0x231d
+  (240,150) SENSORS图标的绿色方块 0x1509
+  (240,500) 背景               0x08a5

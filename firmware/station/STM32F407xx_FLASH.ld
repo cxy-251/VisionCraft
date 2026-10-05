@@ -168,6 +168,16 @@ SECTIONS
     _eccmram = .;       /* create a global symbol at ccmram end */
   } >CCMRAM AT> FLASH
 
+  /* VisionCraft：CCM 里不需要初值的大数组（LVGL 的内存池、绘图缓冲）。NOLOAD：不占 Flash，启动时也不清零。
+   * CCM 只有 CPU 能访问，DMA 访问不到——这里的数据都只由 CPU 读写。见手册「移植 LVGL」 */
+  .ccmbss (NOLOAD) :
+  {
+    . = ALIGN(8);
+    *(.ccmbss)
+    *(.ccmbss*)
+    . = ALIGN(8);
+  } >CCMRAM
+
   /* used by the startup to initialize data */
   _sidata = LOADADDR(.data);
 

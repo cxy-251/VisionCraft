@@ -194,6 +194,7 @@ file(GLOB_RECURSE VC_HANDBOOK_FILES CONFIGURE_DEPENDS
     src/*.cpp src/*.h
     protocol/*.c protocol/*.h
     firmware/station/App/*.c firmware/station/App/*.h
+    firmware/station/lvgl_port/lv_conf.h firmware/station/lvgl_port/lv_port.c firmware/station/lvgl_port/lv_port.h
     firmware/station/Core/Src/*.c firmware/station/Core/Inc/*.h
     firmware/station/station.ioc firmware/station/*.ld
     firmware/station/startup_stm32f407xx.s

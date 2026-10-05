@@ -13,13 +13,14 @@ static void open_page(gui_widget *w) { gui_open((const gui_page *)w->user); }
 
 /* 图标上的两个字母放在 user 里不方便（user 指向要打开的页面），所以用 text 存名字、color 存颜色，
  * 两个字母由下面这张表给出，绘制函数按控件序号取 */
-static const char *const kGlyph[] = {"ST", "SE", "DV"};
+static const char *const kGlyph[] = {"ST", "SE", "DV", "LV"};
 
 static void draw_tile(const gui_widget *w);
 static gui_widget s_tiles[] = {
     {COL(0), ROW(0), TILE_W, TILE_H, "STATION", RGB565(37, 99, 235), 0, 0, draw_tile, open_page, (void *)&g_page_station},
     {COL(1), ROW(0), TILE_W, TILE_H, "SENSORS", RGB565(22, 163, 74), 0, 0, draw_tile, open_page, (void *)&g_page_sensors},
     {COL(2), ROW(0), TILE_W, TILE_H, "DEVICE", RGB565(100, 116, 139), 0, 0, draw_tile, open_page, (void *)&g_page_device},
+    {COL(0), ROW(1), TILE_W, TILE_H, "LVGL", RGB565(147, 51, 234), 0, 0, draw_tile, open_page, (void *)&g_page_lvgl},
 };
 // [endregion]
 

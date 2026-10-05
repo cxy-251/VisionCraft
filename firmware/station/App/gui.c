@@ -21,6 +21,7 @@ uint32_t gui_cycles(void) { return 0; }
 static const gui_page *s_stack[STACK_MAX];
 static int s_depth;                        /* 栈里有几个页面；s_stack[s_depth-1] 是当前页面 */
 static gui_widget *s_pressed;              /* 正被按着的控件 */
+static int s_toPage;                       /* 这一次按下没落在控件上，整个手势交给页面的 pointer */
 
 static void back_clicked(gui_widget *w) { (void)w; gui_back(); }
 static gui_widget s_backButton = {0, 0, 96, GUI_BAR_H, "<", C_SURFACE, 0, 0, gui_draw_button, back_clicked, 0};
@@ -87,6 +88,7 @@ static void show_current(void)
     const gui_page *p = gui_current();
     g_gui_title = p->title;
     s_pressed = 0;
+    s_toPage = 0;
     lcd_fill(0, GUI_BAR_H, LCD_W, LCD_H - GUI_BAR_H, C_BG);  /* 换页：整屏重画 */
     draw_bar(p);
     if (p->enter) p->enter();
@@ -137,6 +139,14 @@ static gui_widget *hit(int16_t x, int16_t y)
 
 void gui_handle(const gui_event *e)
 {
+    const gui_page *p = gui_current();
+    if (e->type == GUI_DOWN)
+        s_toPage = p->pointer && !hit(e->x, e->y);
+    if (s_toPage) {                        /* 从按下到抬起，整个手势都交给页面 */
+        p->pointer(e);
+        if (e->type == GUI_UP) s_toPage = 0;
+        return;
+    }
     switch (e->type) {
     case GUI_DOWN:                         /* 按下：记住按在哪个控件上，让它显示「按下」的样子 */
         s_pressed = hit(e->x, e->y);

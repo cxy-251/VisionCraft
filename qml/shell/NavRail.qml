@@ -26,12 +26,19 @@ Rectangle {
 
         Text {
             Layout.alignment: Qt.AlignHCenter
-            Layout.bottomMargin: 18
             text: "VC"
             font.pixelSize: 22
             font.weight: Font.Black
             font.letterSpacing: 1
             color: Theme.accent
+        }
+
+        Text {
+            Layout.alignment: Qt.AlignHCenter
+            Layout.bottomMargin: 14
+            text: Qt.application.version
+            font.pixelSize: 10
+            color: Theme.textMuted
         }
 
         Repeater {

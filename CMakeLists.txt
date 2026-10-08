@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.21)
-project(VisionCraft LANGUAGES C CXX)
+project(VisionCraft VERSION 0.1.0 LANGUAGES C CXX)
 
 # 第三方源码不在仓库里，第一次配置时从 GitHub 拉：模拟器（examples/gui_sim）要 LVGL，手册要引用几个 ST 的文件
 include(${CMAKE_CURRENT_SOURCE_DIR}/firmware/third_party/fetch.cmake)
@@ -222,7 +222,8 @@ list(FILTER VC_DISPLAY_ONLY INCLUDE REGEX "^(examples|handbook)/")
 set_source_files_properties(${VC_DISPLAY_ONLY} PROPERTIES SKIP_AUTOGEN ON)
 qt_add_resources(VisionCraft "vc_handbook_content" PREFIX "/" FILES ${VC_HANDBOOK_FILES})
 
-target_compile_definitions(VisionCraft PRIVATE VC_SOURCE_DIR="${CMAKE_CURRENT_SOURCE_DIR}")
+target_compile_definitions(VisionCraft PRIVATE VC_SOURCE_DIR="${CMAKE_CURRENT_SOURCE_DIR}"
+    VC_VERSION="${PROJECT_VERSION}")   # 版本号只在 project() 里写一处
 # [region registration-includes]
 # qmltyperegistrar 生成的注册代码按文件名 #include 头文件，这些目录必须在搜索路径里
 target_include_directories(VisionCraft PRIVATE src/handbook src/legacy src/demos/qt src/demos/system src/demos/opencv src/device src/app src/vision protocol)

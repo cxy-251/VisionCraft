@@ -67,6 +67,7 @@ int main(int argc, char *argv[])
     QApplication app(argc, argv);
     app.setApplicationName("VisionCraft");
     app.setOrganizationName("VisionCraftStudio");
+    app.setApplicationVersion(QStringLiteral(VC_VERSION));   // QML 里用 Qt.application.version 读
 
     // 控件外观全部自绘，Basic 风格最容易定制，且各平台一致
     QQuickStyle::setStyle(QStringLiteral("Basic"));

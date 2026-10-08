@@ -32,6 +32,15 @@ Section {
     Para { text: qsTr("用 tools/vclink_probe 把同一串命令和吞吐测试分别跑在模拟器和真板子上：") }
     CodeRef { file: "handbook/system/communication/sim-vs-board.txt"; caption: qsTr("本机实测") }
 
+    Pitfall {
+        text: qsTr("模拟器最早每发一帧就开一个 QTimer::singleShot(2 ms)。按键事件是连着发的两帧（按下、松开），两个定时器到期时间相同，谁先触发 Qt 并不保证。"
+                 + "在 Linux 和 macOS 上一直按顺序，测试从没失败过；到了 GitHub 的 Windows 构建机上，「松开」先到了，tst_devicelink 的 keyEventsArrive 失败。"
+                 + "真串口不会打乱字节的顺序，所以错在模拟器：现在每个方向一个先进先出的队列、一个定时器，按发出的顺序送达。"
+                 + "另外，这个失败在 ctest 里看不到任何输出（--output-on-failure、-V 都一样），是直接运行测试程序、让 QtTest 把结果写进文件才看到的。")
+    }
+    CodeRef { file: "src/device/SimTransport.cpp"; region: "wire" }
+    CodeRef { file: "handbook/system/communication/sim-order-windows.txt"; caption: qsTr("GitHub Actions 上的 Windows：修正前后") }
+
     KeyPoints {
         label: qsTr("读结果")
         points: [

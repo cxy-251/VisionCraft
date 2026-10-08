@@ -1,0 +1,35 @@
+GitHub Actions 运行 37790462256，windows-latest（MSVC 14.51，Qt 6.8.3），直接运行 tst_devicelink.exe -o devicelink.txt,txt：
+********* Start testing of TstDeviceLink *********
+Config: Using QtTest library 6.8.3, Qt 6.8.3 (x86_64-little_endian-llp64 shared (dynamic) release build; by MSVC 2022), windows server2025
+PASS   : TstDeviceLink::initTestCase()
+PASS   : TstDeviceLink::connectsAndReadsInfo()
+PASS   : TstDeviceLink::commandsSucceed()
+PASS   : TstDeviceLink::setTimeAnswersLikeFirmware()
+PASS   : TstDeviceLink::unknownCommandReportsStatus()
+PASS   : TstDeviceLink::telemetryArrives()
+FAIL!  : TstDeviceLink::keyEventsArrive() Compared values are not the same
+   Actual   (keys()[0].value("down").toBool()): 0
+   Expected (true)                            : 1
+D:\a\VisionCraft\VisionCraft\tests\tst_devicelink.cpp(100) : failure location
+PASS   : TstDeviceLink::survivesNoiseOnTheLine()
+PASS   : TstDeviceLink::throughputTestCompletes()
+QINFO  : TstDeviceLink::statsRefreshDuringSustainedTraffic() ???? 3129 ms,?? statsChanged 14 ?
+PASS   : TstDeviceLink::statsRefreshDuringSustainedTraffic()
+PASS   : TstDeviceLink::imageTransferCompletes()
+PASS   : TstDeviceLink::recipeRoundTrip()
+PASS   : TstDeviceLink::disconnectFailsPendingRequests()
+PASS   : TstDeviceLink::cleanupTestCase()
+Totals: 13 passed, 1 failed, 0 skipped, 0 blacklisted, 5739ms
+********* Finished testing of TstDeviceLink *********
+tst_devicelink exit code: 1 (0x00000001)
+
+同一提交在 Linux（ubuntu-22.04）、macOS（macos-14）上这个测试全部通过；本机（Linux）连跑多次也全部通过。
+原因：SimTransport::pressKey 连发「按下」「松开」两帧，每帧各用一个 QTimer::singleShot(2 ms)；
+两个到期时间相同的定时器在 Windows 上先后顺序没有保证，「松开」先到了。
+
+修正（提交 ec8aacd）：每个方向一个先进先出的队列、一个定时器，按发出的顺序送达。
+GitHub Actions 运行 37792068871，windows-latest：
+PASS   : TstDeviceLink::keyEventsArrive()
+Totals: 14 passed, 0 failed, 0 skipped, 0 blacklisted, 5771ms
+tst_devicelink exit code: 0 (0x00000000)
+（Linux、macOS 同一次运行也全部通过）

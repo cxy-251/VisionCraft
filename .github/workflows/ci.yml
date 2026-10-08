@@ -127,7 +127,11 @@ jobs:
             -DCMAKE_PREFIX_PATH="$env:QT_ROOT_DIR" `
             -DCMAKE_TOOLCHAIN_FILE="$env:VCPKG_INSTALLATION_ROOT/scripts/buildsystems/vcpkg.cmake" `
             -DOpenCV_DIR="C:/opencv/build/x64/vc16/lib"
+          # Windows 构建机上链接偶尔失败：「另一个程序正在使用此文件」/ LNK1104（刚生成的文件被别的进程占着）。
+          # 失败了再编一次，第二次只做剩下没完成的
           cmake --build build --parallel
+          if ($LASTEXITCODE -ne 0) { Write-Host "第一次构建失败，重试"; cmake --build build --parallel }
+          if ($LASTEXITCODE -ne 0) { exit 1 }
 
       - name: Tests
         shell: pwsh

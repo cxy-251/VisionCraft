@@ -1,6 +1,11 @@
 cmake_minimum_required(VERSION 3.21)
 project(VisionCraft LANGUAGES C CXX)
 
+# 第三方源码不在仓库里，第一次配置时从 GitHub 拉：模拟器（examples/gui_sim）要 LVGL，手册要引用几个 ST 的文件
+include(${CMAKE_CURRENT_SOURCE_DIR}/firmware/third_party/fetch.cmake)
+vc_fetch_stm32cube()
+vc_fetch_lvgl()
+
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
@@ -194,6 +199,7 @@ file(GLOB_RECURSE VC_HANDBOOK_FILES CONFIGURE_DEPENDS
     src/*.cpp src/*.h
     protocol/*.c protocol/*.h
     firmware/station/App/*.c firmware/station/App/*.h
+    firmware/third_party/*.cmake firmware/third_party/*.txt
     firmware/station/lvgl_port/lv_conf.h firmware/station/lvgl_port/lv_port.c firmware/station/lvgl_port/lv_port.h
     firmware/station/Core/Src/*.c firmware/station/Core/Inc/*.h
     firmware/station/station.ioc firmware/station/*.ld

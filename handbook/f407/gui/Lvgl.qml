@@ -12,14 +12,15 @@ Section {
     }
 
     KeyPoints {
-        label: qsTr("把源码放进来")
+        label: qsTr("把源码拉进来")
         points: [
-            qsTr("LVGL v9.6.0 的 src/、include/ 和 lvgl.h 原样复制到 firmware/third_party/lvgl（VERSION.txt 记着版本和 commit），一个字都不改。v9.6 把公开头文件挪到了 include/，只复制 src/ 会编译失败：src/display/lv_display.h 里只剩两行，一个「已弃用」警告和一个指向 include/ 的 #include。"),
+            qsTr("LVGL 的源码不放进仓库：第一次运行 cmake 时，firmware/third_party/fetch.cmake 从 GitHub 拉 v9.6.0 标签的 src/、include/ 和 lvgl.h 到 firmware/third_party/lvgl（这个目录在 .gitignore 里），一个字都不改。ST 的 HAL、FreeRTOS 等也是这样拉的。v9.6 把公开头文件挪到了 include/，只拉 src/ 会编译失败：src/display/lv_display.h 里只剩两行，一个「已弃用」警告和一个指向 include/ 的 #include。"),
             qsTr("固件和模拟器都用 file(GLOB_RECURSE) 把 src 下的 483 个 .c 编成一个库。用不到的功能在 lv_conf.h 里关掉，对应文件编译出来是空的；链接时 --gc-sections 再丢掉没被调用的函数。"),
             qsTr("配置文件 lv_conf.h 只写和默认值不同的项，其余由 LVGL 的 lv_conf_internal.h 补上。v9.6 起颜色格式用 LV_COLOR_FORMAT_DEFAULT，旧的 LV_COLOR_DEPTH 还能用但编译时会警告。")
         ]
     }
 
+    CodeRef { file: "firmware/third_party/fetch.cmake"; region: "lvgl" }
     CodeRef { file: "firmware/station/lvgl_port/lv_conf.h"; from: "---- 内存"; to: "---- 运行" }
     CodeRef { file: "firmware/station/STM32F407xx_FLASH.ld"; from: "VisionCraft：CCM"; to: "} >CCMRAM$" }
 

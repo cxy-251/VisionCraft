@@ -20,3 +20,9 @@ CMakeFiles/
 # 旧固件工程里直接 clone 的第三方库，版本与本地改动见 firmware/f407zg/third_party/
 firmware/f407zg/Drivers/
 firmware/f407zg/Middlewares/
+
+# 工位固件用到的第三方源码：配置时由 firmware/third_party/fetch.cmake 按固定版本从 GitHub 拉取，不进仓库
+firmware/station/Drivers/
+firmware/station/Middlewares/
+firmware/third_party/lvgl/
+firmware/third_party/.fetch/

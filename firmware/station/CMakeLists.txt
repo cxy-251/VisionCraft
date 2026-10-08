@@ -31,6 +31,11 @@ message("Build type: " ${CMAKE_BUILD_TYPE})
 # Enable CMake support for ASM and C languages
 enable_language(C ASM)
 
+# ST 的 HAL / CMSIS / FreeRTOS / USB 主机库和 LVGL 不在仓库里：第一次配置时按固定版本从 GitHub 拉下来
+include(${CMAKE_CURRENT_SOURCE_DIR}/../third_party/fetch.cmake)
+vc_fetch_stm32cube()
+vc_fetch_lvgl()
+
 # USB 主机库 HID 类的 SET_PROTOCOL 取值是反的，CubeMX 每次生成都会恢复原样。没修正就停下来，
 # 否则鼠标能用但 X、Y 全错，很难想到是库的问题。见手册「指针事件：触摸和鼠标」
 file(READ ${CMAKE_CURRENT_SOURCE_DIR}/Middlewares/ST/STM32_USB_Host_Library/Class/HID/Src/usbh_hid.c _usbh_hid)

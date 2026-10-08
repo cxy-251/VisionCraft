@@ -52,10 +52,10 @@ Section {
         ]
     }
 
-    CodeRef { file: "tools/patch_usbh_hid.sh"; region: "patch" }
+    CodeRef { file: "firmware/third_party/patch_usbh_hid.cmake"; region: "patch" }
 
     Pitfall {
-        text: qsTr("库文件是 CubeMX 生成时从固件包复制过来的。把修正直接改在 Middlewares 里，再生成一次，实测被恢复成了原样。所以修正做成脚本 tools/patch_usbh_hid.sh，tools/cubemx_generate.sh 生成完自动调用；"
+        text: qsTr("库文件是 CubeMX 生成时从固件包复制过来的。把修正直接改在 Middlewares 里，再生成一次，实测被恢复成了原样。所以修正做成一个 CMake 脚本 firmware/third_party/patch_usbh_hid.cmake：tools/cubemx_generate.sh 生成完会调用它（经 tools/patch_usbh_hid.sh），第一次配置时从 GitHub 拉取 ST 库后也会调用它（库的源码不放进仓库，见 firmware/third_party/fetch.cmake）；"
                  + "工位固件的 CMakeLists.txt 在配置时检查这个文件，没修正就报错停下（把补丁去掉试过，构建会停在「usbh_hid.c 还没修正」）。不这样做，下次有人在 CubeMX 里改个引脚、重新生成，鼠标又会变回只能上下动，而且很难想到是库的问题。")
     }
 

@@ -8,6 +8,17 @@ class TstDeviceLink : public QObject {
 
     static SimTransport *sim(DeviceLink &link) { return qobject_cast<SimTransport *>(link.transport()); }
 
+    // 连上模拟器，并等连接时自动发出的「订阅遥测」也完成。它也会发 commandFinished：
+    // 不等它，机器慢时（CI 上实测）它会排在用例自己的命令前面，被误当成用例命令的结果
+    static void connectAndSettle(DeviceLink &link)
+    {
+        QSignalSpy boot(&link, &DeviceLink::commandFinished);
+        link.connectSimulator();
+        QTRY_COMPARE(link.state(), DeviceLink::Connected);
+        QTRY_COMPARE(boot.size(), 1);
+        QCOMPARE(boot.at(0).at(0).toString(), QStringLiteral("SUB_TEL"));
+    }
+
 private slots:
     void connectsAndReadsInfo()
     {
@@ -24,8 +35,7 @@ private slots:
     void commandsSucceed()
     {
         DeviceLink link;
-        link.connectSimulator();
-        QTRY_COMPARE(link.state(), DeviceLink::Connected);
+        connectAndSettle(link);
 
         QSignalSpy finished(&link, &DeviceLink::commandFinished);
         QVERIFY(link.ping() > 0);
@@ -40,8 +50,7 @@ private slots:
     void setTimeAnswersLikeFirmware()
     {
         DeviceLink link;
-        link.connectSimulator();
-        QTRY_COMPARE(link.state(), DeviceLink::Connected);
+        connectAndSettle(link);
         QSignalSpy finished(&link, &DeviceLink::commandFinished);
         QVERIFY(link.setTimeNow() > 0);
         QTRY_COMPARE(finished.size(), 1);
@@ -53,8 +62,7 @@ private slots:
     void unknownCommandReportsStatus()
     {
         DeviceLink link;
-        link.connectSimulator();
-        QTRY_COMPARE(link.state(), DeviceLink::Connected);
+        connectAndSettle(link);
         int status = 999;
         link.request(0x3E, {}, [&](bool ok, int s, const QByteArray &) { QVERIFY(!ok); status = s; });
         QTRY_COMPARE(status, int(VC_ERR_UNKNOWN));
@@ -63,8 +71,7 @@ private slots:
     void telemetryArrives()
     {
         DeviceLink link;
-        link.connectSimulator();
-        QTRY_COMPARE(link.state(), DeviceLink::Connected);
+        connectAndSettle(link);
         QSignalSpy tel(&link, &DeviceLink::telemetryChanged);
         link.subscribeTelemetry(100);
         QTRY_VERIFY_WITH_TIMEOUT(tel.size() >= 3, 2000);
@@ -75,8 +82,7 @@ private slots:
     void keyEventsArrive()
     {
         DeviceLink link;
-        link.connectSimulator();
-        QTRY_COMPARE(link.state(), DeviceLink::Connected);
+        connectAndSettle(link);
         QSignalSpy events(&link, &DeviceLink::eventReceived);
         sim(link)->pressKey(VC_KEY1);
         // 只看按键事件（连上时板子还会发一个 hello 事件）
@@ -98,8 +104,7 @@ private slots:
     void survivesNoiseOnTheLine()
     {
         DeviceLink link;
-        link.connectSimulator();
-        QTRY_COMPARE(link.state(), DeviceLink::Connected);
+        connectAndSettle(link);
         sim(link)->injectNoise(QByteArray("\xA5\x5A\x01\xFF\x00\x13garbage\xA5", 16));
         bool ok = false;
         link.request(VC_CMD_PING, "after-noise", [&](bool o, int, const QByteArray &echo) {
@@ -112,8 +117,7 @@ private slots:
     void throughputTestCompletes()
     {
         DeviceLink link;
-        link.connectSimulator();
-        QTRY_COMPARE(link.state(), DeviceLink::Connected);
+        connectAndSettle(link);
         QSignalSpy done(&link, &DeviceLink::throughputFinished);
         link.runThroughputTest(256, 40, 4);
         QTRY_COMPARE_WITH_TIMEOUT(done.size(), 1, 5000);
@@ -126,8 +130,7 @@ private slots:
     void statsRefreshDuringSustainedTraffic()
     {
         DeviceLink link;
-        link.connectSimulator();
-        QTRY_COMPARE(link.state(), DeviceLink::Connected);
+        connectAndSettle(link);
         QSignalSpy done(&link, &DeviceLink::throughputFinished);
         QSignalSpy stats(&link, &DeviceLink::statsChanged);
         QElapsedTimer t;
@@ -145,8 +148,7 @@ private slots:
     void imageTransferCompletes()
     {
         DeviceLink link;
-        link.connectSimulator();
-        QTRY_COMPARE(link.state(), DeviceLink::Connected);
+        connectAndSettle(link);
         QSignalSpy sent(&link, &DeviceLink::imageSent);
         QImage img(480, 360, QImage::Format_RGB32);
         img.fill(Qt::red);
@@ -161,8 +163,7 @@ private slots:
     void recipeRoundTrip()
     {
         DeviceLink link;
-        link.connectSimulator();
-        QTRY_COMPARE(link.state(), DeviceLink::Connected);
+        connectAndSettle(link);
         QSignalSpy got(&link, &DeviceLink::recipeReceived);
         QSignalSpy saved(&link, &DeviceLink::recipeSaved);
         link.getRecipe();
@@ -182,8 +183,7 @@ private slots:
     void disconnectFailsPendingRequests()
     {
         DeviceLink link;
-        link.connectSimulator();
-        QTRY_COMPARE(link.state(), DeviceLink::Connected);
+        connectAndSettle(link);
         int status = 999;
         link.request(VC_CMD_PING, "x", [&](bool, int s, const QByteArray &) { status = s; });
         link.disconnectDevice();

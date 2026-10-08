@@ -136,13 +136,8 @@ jobs:
         run: |
           $env:PATH = "C:/opencv/build/x64/vc16/bin;$env:QT_ROOT_DIR/bin;$env:VCPKG_INSTALLATION_ROOT/installed/x64-windows/bin;$env:PATH"
           ctest --test-dir build --output-on-failure -E tst_devicelink
-          # tst_devicelink 在这里失败时 ctest 没有任何输出（推测进程崩溃、管道里的缓冲丢了）。
-          # 单独跑，让 QtTest 把结果写进文件，失败时打印出来
-          & build/tests/tst_devicelink.exe -o devicelink.txt,txt
-          $rc = $LASTEXITCODE
-          if (Test-Path devicelink.txt) { Get-Content devicelink.txt }
-          Write-Host "tst_devicelink exit code: $rc"
-          if ($rc -ne 0) { exit 1 }
+          # tst_devicelink 在 Windows 上失败时 --output-on-failure 没有显示输出，单独用 -V 跑，输出全部打印
+          ctest --test-dir build -R tst_devicelink -V
 
       - name: Package
         shell: pwsh

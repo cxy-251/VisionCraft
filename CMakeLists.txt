@@ -1,10 +1,9 @@
 cmake_minimum_required(VERSION 3.21)
 project(VisionCraft VERSION 0.1.0 LANGUAGES C CXX)
 
-# 第三方源码不在仓库里，第一次配置时从 GitHub 拉：模拟器（examples/gui_sim）要 LVGL，手册要引用几个 ST 的文件
+# 第三方源码不在仓库里，第一次配置时从 GitHub 拉：手册要引用几个 ST 的文件；模拟器（examples/gui_sim）要的 LVGL 在下面编示例时再拉
 include(${CMAKE_CURRENT_SOURCE_DIR}/firmware/third_party/fetch.cmake)
 vc_fetch_stm32cube()
-vc_fetch_lvgl()
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -89,6 +88,12 @@ set(SOURCES
 
 if(WIN32)
     qt_add_executable(VisionCraft WIN32 ${SOURCES})
+elseif(APPLE)
+    qt_add_executable(VisionCraft MACOSX_BUNDLE ${SOURCES})   # macOS 上是 VisionCraft.app 程序包
+    set_target_properties(VisionCraft PROPERTIES
+        MACOSX_BUNDLE_GUI_IDENTIFIER io.github.cxy251.visioncraft
+        MACOSX_BUNDLE_BUNDLE_VERSION ${PROJECT_VERSION}
+        MACOSX_BUNDLE_SHORT_VERSION_STRING ${PROJECT_VERSION})
 else()
     qt_add_executable(VisionCraft ${SOURCES})
 endif()
@@ -257,6 +262,7 @@ endif()
 # 手册引用的独立示例程序
 option(VC_BUILD_EXAMPLES "Build handbook examples" ON)
 if(VC_BUILD_EXAMPLES)
+    vc_fetch_lvgl()
     add_subdirectory(examples)
 endif()
 
@@ -268,4 +274,8 @@ if(VC_BUILD_TESTS)
 endif()
 
 # 开发工具（vclink_probe：命令行验证与板子的通信）
-add_subdirectory(tools)
+# 开发板调试用的辅助程序（vclink_probe、scope_plot）。发布的安装包里不需要
+option(VC_BUILD_TOOLS "Build board debugging tools" ON)
+if(VC_BUILD_TOOLS)
+    add_subdirectory(tools)
+endif()

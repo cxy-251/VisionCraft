@@ -8,7 +8,51 @@ SimTransport::SimTransport(QObject *parent)
 {
     vc_decoder_init(&m_decoder);
     m_uptime.start();
+    m_clock.start();
     connect(&m_telTimer, &QTimer::timeout, this, &SimTransport::sendTelemetry);
+    for (Wire *w : {&m_toBoard, &m_toHost}) {
+        w->timer.setSingleShot(true);
+        w->timer.setTimerType(Qt::PreciseTimer);
+        connect(&w->timer, &QTimer::timeout, this, [this, w] { drain(*w); });
+    }
+}
+
+// [region wire]
+void SimTransport::enqueue(Wire &w, const QByteArray &bytes)
+{
+    w.queue.append({m_clock.elapsed() + m_latencyMs, bytes});
+    if (!w.timer.isActive())
+        w.timer.start(m_latencyMs);
+}
+
+void SimTransport::drain(Wire &w)
+{
+    // 按顺序送出所有已经到时间的数据；还没到的，等最早的那段到时间再来
+    while (!w.queue.isEmpty() && w.queue.first().first <= m_clock.elapsed()) {
+        const QByteArray bytes = w.queue.takeFirst().second;
+        if (&w == &m_toBoard)
+            deliverToBoard(bytes);
+        else
+            deliverToHost(bytes);
+    }
+    if (!w.queue.isEmpty())
+        w.timer.start(int(qMax<qint64>(0, w.queue.first().first - m_clock.elapsed())));
+}
+// [endregion]
+
+void SimTransport::deliverToBoard(const QByteArray &bytes)
+{
+    vc_frame f;
+    for (char c : bytes) {
+        if (vc_decoder_feed(&m_decoder, uint8_t(c), &f))
+            handle(f);
+    }
+}
+
+void SimTransport::deliverToHost(const QByteArray &bytes)
+{
+    if (m_open)
+        emit bytesReceived(bytes);
 }
 
 void SimTransport::open()
@@ -35,13 +79,7 @@ void SimTransport::write(const QByteArray &bytes)
 {
     if (!m_open)
         return;
-    QTimer::singleShot(m_latencyMs, this, [this, bytes] {
-        vc_frame f;
-        for (char c : bytes) {
-            if (vc_decoder_feed(&m_decoder, uint8_t(c), &f))
-                handle(f);
-        }
-    });
+    enqueue(m_toBoard, bytes);
 }
 
 void SimTransport::send(uint8_t type, uint8_t seq, const QByteArray &payload)
@@ -50,10 +88,7 @@ void SimTransport::send(uint8_t type, uint8_t seq, const QByteArray &payload)
     const size_t n = vc_encode(reinterpret_cast<uint8_t *>(frame.data()), size_t(frame.size()), type, seq,
                                reinterpret_cast<const uint8_t *>(payload.constData()), uint16_t(payload.size()));
     frame.resize(qsizetype(n));
-    QTimer::singleShot(m_latencyMs, this, [this, frame] {
-        if (m_open)
-            emit bytesReceived(frame);
-    });
+    enqueue(m_toHost, frame);
 }
 
 QByteArray SimTransport::infoPayload() const
@@ -167,8 +202,5 @@ void SimTransport::pressKey(int key)
 
 void SimTransport::injectNoise(const QByteArray &bytes)
 {
-    QTimer::singleShot(m_latencyMs, this, [this, bytes] {
-        if (m_open)
-            emit bytesReceived(bytes);
-    });
+    enqueue(m_toHost, bytes);
 }

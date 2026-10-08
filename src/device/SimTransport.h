@@ -4,6 +4,7 @@
 #include "vc_protocol.h"
 
 #include <QElapsedTimer>
+#include <QList>
 #include <QTimer>
 
 // 软件模拟的 F407：实现和真固件相同的协议，没接板子也能开发、演示和测试整条链路。
@@ -28,6 +29,20 @@ private:
     void send(uint8_t type, uint8_t seq, const QByteArray &payload);
     void sendTelemetry();
     QByteArray infoPayload() const;
+
+    // 一个方向的「线」：数据按发出的顺序、晚 m_latencyMs 毫秒送到另一头。
+    // 以前每段数据各开一个 singleShot，两个到期时间相同的定时器谁先触发没有保证——
+    // Windows 上实测「按下」「松开」两帧颠倒了。真串口不会乱序，所以一个方向只用一个队列、一个定时器
+    struct Wire {
+        QList<QPair<qint64, QByteArray>> queue;   // （到达时刻，数据）
+        QTimer timer;
+    };
+    void enqueue(Wire &w, const QByteArray &bytes);
+    void drain(Wire &w);
+    void deliverToBoard(const QByteArray &bytes);
+    void deliverToHost(const QByteArray &bytes);
+    Wire m_toBoard, m_toHost;
+    QElapsedTimer m_clock;
 
     bool m_open = false;
     vc_decoder m_decoder;

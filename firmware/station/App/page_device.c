@@ -67,7 +67,7 @@ static void reset_group(void)
 }
 // [endregion]
 
-void device_build(void)
+static void device_build(void)
 {
     char line[40];
     s_screen = ui_screen();
@@ -110,10 +110,11 @@ static void update(uint32_t now)
 
 static void device_enter(void)
 {
+    ui_page_show(&s_screen, device_build);
     update(HAL_GetTick());
-    lv_screen_load(s_screen);
-    lv_obj_invalidate(s_screen);
 }
+
+static void device_leave(void) { ui_page_hide(&s_screen); }
 
 static void device_tick(uint32_t now)
 {
@@ -122,4 +123,4 @@ static void device_tick(uint32_t now)
     lv_port_run();
 }
 
-const gui_page g_page_device = {"DEVICE", 0, 0, device_enter, device_tick, lv_port_pointer};
+const gui_page g_page_device = {"DEVICE", 0, 0, device_enter, device_tick, lv_port_pointer, device_leave};

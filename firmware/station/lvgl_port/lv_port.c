@@ -15,7 +15,11 @@ uint32_t gui_cycles(void);                  /* gui.c：板子上是 DWT 周期�
 // [region display]
 /* 绘图缓冲：LVGL 先在这里画好一块（最多 16 行），再整块写进显存。整屏要 750 KB，放不下，所以分块画 */
 #define BUF_LINES 16
-static uint16_t s_buf[LCD_W * BUF_LINES] LV_ATTRIBUTE_LARGE_RAM_ARRAY;
+#if defined(__arm__)
+static uint16_t s_buf[LCD_W * BUF_LINES] __attribute__((section(".ccmbss")));   /* 片内 CCM：最快 */
+#else
+static uint16_t s_buf[LCD_W * BUF_LINES];
+#endif
 
 static void flush(lv_display_t *disp, const lv_area_t *a, uint8_t *px)
 {

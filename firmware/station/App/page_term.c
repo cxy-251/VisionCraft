@@ -38,6 +38,14 @@ static void append(const char *line, void *ctx)
     g_term_log[s_len] = 0;
 }
 
+static void show_log(void)
+{
+    if (!s_out) return;
+    lv_label_set_text_static(s_out, g_term_log);   /* 文字就在 g_term_log 里，LVGL 不另外拷一份 */
+    lv_obj_update_layout(s_outBox);
+    lv_obj_scroll_to_y(s_outBox, LV_COORD_MAX, LV_ANIM_OFF);   /* 滚到最后一行 */
+}
+
 static void run(const char *cmd)
 {
     char echo[72];
@@ -45,9 +53,7 @@ static void run(const char *cmd)
     append(echo, 0);
     shell_exec(cmd, append, 0);
     g_term_runs++;
-    lv_label_set_text_static(s_out, g_term_log);   /* 文字就在 g_term_log 里，LVGL 不另外拷一份 */
-    lv_obj_update_layout(s_outBox);
-    lv_obj_scroll_to_y(s_outBox, LV_COORD_MAX, LV_ANIM_OFF);   /* 滚到最后一行 */
+    show_log();
 }
 // [endregion]
 
@@ -69,7 +75,7 @@ static void on_quick(lv_event_t *e)            /* 常用命令按钮：按钮上
 }
 // [endregion]
 
-void term_build(void)
+static void term_build(void)
 {
     s_screen = ui_screen();
     lv_obj_set_style_pad_row(s_screen, 8, 0);
@@ -83,8 +89,8 @@ void term_build(void)
     lv_obj_set_width(s_out, LV_PCT(100));
     lv_obj_set_style_text_font(s_out, &vc_font_mono_16, 0);
     lv_obj_set_style_text_color(s_out, lv_color_hex(UI_TEXT), 0);
-    append("type a command, or tap one below", 0);
-    lv_label_set_text_static(s_out, g_term_log);
+    if (s_len == 0)
+        append("type a command, or tap one below", 0);
 
     lv_obj_t *quick = ui_row(s_screen);
     static const char *const kQuick[] = {"help", "ps", "free", "sensors", "last"};
@@ -110,8 +116,14 @@ void term_build(void)
 
 static void term_enter(void)
 {
-    lv_screen_load(s_screen);
-    lv_obj_invalidate(s_screen);
+    ui_page_show(&s_screen, term_build);
+    show_log();                                /* 输出在 g_term_log 里，离开再回来也还在 */
+}
+
+static void term_leave(void)
+{
+    ui_page_hide(&s_screen);
+    s_out = s_outBox = s_input = s_kb = NULL;  /* 这些控件随页面一起删掉了 */
 }
 
 static void term_tick(uint32_t now)
@@ -126,4 +138,4 @@ static void term_tick(uint32_t now)
     lv_port_run();
 }
 
-const gui_page g_page_term = {"TERMINAL", 0, 0, term_enter, term_tick, lv_port_pointer};
+const gui_page g_page_term = {"TERMINAL", 0, 0, term_enter, term_tick, lv_port_pointer, term_leave};

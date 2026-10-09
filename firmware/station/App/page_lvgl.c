@@ -4,10 +4,11 @@
 #include "app.h"
 #include "lcd.h"
 #include "lv_port.h"
+#include "lv_ui.h"
 #include "lvgl.h"
 
 volatile uint32_t g_lv_clicks;             /* 按钮被点了几次（给测试读） */
-volatile int32_t g_lv_slider;              /* 滑块当前值 */
+volatile int32_t g_lv_slider = 80;         /* 滑块当前值（开机背光 80 %） */
 
 LV_FONT_DECLARE(vc_font_cjk_20)        /* tools/make_cjk_font.sh 生成：ASCII + 本页用到的汉字 */
 
@@ -29,7 +30,7 @@ static void slid(lv_event_t *e)
     lv_label_set_text_fmt(s_value, "亮度 %d %%", (int)g_lv_slider);
 }
 
-void lvgl_page_build(void)
+static void lvgl_page_build(void)
 {
     s_screen = lv_obj_create(NULL);                                 /* 每个 LVGL 页面一个自己的「屏幕」对象 */
     lv_obj_set_flex_flow(s_screen, LV_FLEX_FLOW_COLUMN);            /* 竖着排，像网页一样自动布局，不用算坐标 */
@@ -49,18 +50,17 @@ void lvgl_page_build(void)
 
     s_count = lv_label_create(s_screen);
     lv_obj_set_style_text_font(s_count, &vc_font_cjk_20, 0);
-    lv_label_set_text(s_count, "已点击 0 次");
+    lv_label_set_text_fmt(s_count, "已点击 %u 次", (unsigned)g_lv_clicks);   /* 数据在变量里，离开再回来不丢 */
 
     lv_obj_t *slider = lv_slider_create(s_screen);
     lv_obj_set_width(slider, LV_PCT(100));
     lv_slider_set_range(slider, 10, 100);   /* 最低 10 %：滑到 0 背光全灭，就看不见屏幕、也找不到滑块了 */
-    lv_slider_set_value(slider, 80, LV_ANIM_OFF);   /* 和开机时 lcd_init 设的背光一致 */
-    g_lv_slider = 80;
+    lv_slider_set_value(slider, g_lv_slider, LV_ANIM_OFF);
     lv_obj_add_event_cb(slider, slid, LV_EVENT_VALUE_CHANGED, NULL);
 
     s_value = lv_label_create(s_screen);
     lv_obj_set_style_text_font(s_value, &vc_font_cjk_20, 0);
-    lv_label_set_text(s_value, "亮度 80 %");
+    lv_label_set_text_fmt(s_value, "亮度 %d %%", (int)g_lv_slider);
 
     lv_obj_t *cap = lv_label_create(s_screen);
     lv_obj_set_style_text_font(cap, &vc_font_cjk_20, 0);
@@ -75,11 +75,8 @@ void lvgl_page_build(void)
 }
 // [endregion]
 
-static void lvgl_enter(void)
-{
-    lv_screen_load(s_screen);              /* 控件开机时已经建好（pages_init），这里只是切到这个屏幕 */
-    lv_obj_invalidate(s_screen);           /* 框架刚把这块填成了背景色，让 LVGL 整块重画 */
-}
+static void lvgl_enter(void) { ui_page_show(&s_screen, lvgl_page_build); }
+static void lvgl_leave(void) { ui_page_hide(&s_screen); }   /* 曲线只在这一页显示时记点，回来重新开始 */
 
 static void lvgl_tick(uint32_t now)
 {
@@ -92,4 +89,4 @@ static void lvgl_tick(uint32_t now)
     lv_port_run();
 }
 
-const gui_page g_page_lvgl = {"LVGL", 0, 0, lvgl_enter, lvgl_tick, lv_port_pointer};
+const gui_page g_page_lvgl = {"LVGL", 0, 0, lvgl_enter, lvgl_tick, lv_port_pointer, lvgl_leave};

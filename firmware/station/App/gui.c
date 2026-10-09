@@ -103,8 +103,15 @@ static void show_current(void)
 
 void gui_init(const gui_page *home) { s_depth = 0; gui_open(home); }
 
+static void leave_current(void)
+{
+    const gui_page *p = gui_current();
+    if (p && p->leave) p->leave();
+}
+
 void gui_open(const gui_page *page)
 {
+    leave_current();
     if (s_depth < STACK_MAX)
         s_stack[s_depth++] = page;
     show_current();
@@ -113,6 +120,7 @@ void gui_open(const gui_page *page)
 void gui_back(void)
 {
     if (s_depth > 1) {
+        leave_current();
         --s_depth;
         show_current();
     }

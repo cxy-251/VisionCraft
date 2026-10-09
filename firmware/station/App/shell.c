@@ -89,11 +89,11 @@ static void cmd_bl(shell_io *io, int argc, char **argv)
     say(io, "backlight %d %%", p);
 }
 
-/* 外部 SRAM 自检：避开开头放缩略图的 37.5 KB，测后面 64 KB。写一串伪随机数、读回比较，顺便量速度 */
+/* 外部 SRAM 自检：测最后 64 KB（前面放着缩略图和 LVGL 内存池，见链接脚本的 .extsram）。写一串伪随机数、读回比较，顺便量速度 */
 static void cmd_sram(shell_io *io, int argc, char **argv)
 {
     (void)argc; (void)argv;
-    volatile uint32_t *p = (volatile uint32_t *)0x68010000u;
+    volatile uint32_t *p = (volatile uint32_t *)0x680F0000u;
     const uint32_t words = 16384u;
     uint32_t x = 0x1234567u, bad = 0;
     const uint32_t t0 = DWT->CYCCNT;
@@ -103,7 +103,7 @@ static void cmd_sram(shell_io *io, int argc, char **argv)
     for (uint32_t i = 0; i < words; ++i) { x = x * 1103515245u + 12345u; if (p[i] != x) bad++; }
     const uint32_t t2 = DWT->CYCCNT;
     /* 速度：64 KB ÷ 用时；168 MHz，周期数换算成 KB/s */
-    say(io, "sram 0x68010000 +64KB: %lu bad words", (unsigned long)bad);
+    say(io, "sram 0x680F0000 +64KB: %lu bad words", (unsigned long)bad);
     say(io, "write %lu KB/s  read %lu KB/s", (unsigned long)(64ull * 168000000u / (t1 - t0)),
         (unsigned long)(64ull * 168000000u / (t2 - t1)));
 }

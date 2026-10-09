@@ -5,6 +5,7 @@
 #include "app.h"
 #include "lv_port.h"
 #include "lvgl.h"
+#include "main.h"
 
 #include <string.h>
 
@@ -25,6 +26,10 @@
 static uint16_t s_thumb[VC_THUMB_MAX_W * VC_THUMB_MAX_H] EXTSRAM;
 static lv_image_dsc_t s_thumbDsc;
 // [endregion]
+
+/* 页面的数据：控件只在这一页显示时存在，数据一直在 */
+static vc_result s_res;
+static int s_hasRes, s_hasImg;
 
 static lv_obj_t *s_screen, *s_host, *s_rx, *s_big, *s_defect, *s_counts, *s_rate, *s_img, *s_imgFrame;
 static lv_obj_t *s_temp, *s_light, *s_vdda, *s_key, *s_uptime;
@@ -96,8 +101,10 @@ static void build(void)
 // [endregion]
 
 // [region update]
-void station_result(const vc_result *r)
+static void apply_result(void)
 {
+    if (!s_screen || !s_hasRes) return;        /* 页面没在显示：只记数据，进来时再填 */
+    const vc_result *r = &s_res;
     char line[48];
     ui_set_text(s_big, r->ok ? "OK" : "NG");
     ui_set_color(s_big, r->ok ? UI_OK : UI_NG);
@@ -106,6 +113,20 @@ void station_result(const vc_result *r)
     ui_set_text(s_counts, line);
     lv_bar_set_value(s_rate, r->total ? (int32_t)((uint64_t)r->ng * 1000u / r->total) : 0, LV_ANIM_OFF);
     lv_obj_set_style_border_color(lv_obj_get_parent(s_big), lv_color_hex(r->ok ? UI_OK : UI_NG), 0);
+}
+
+static void apply_image(void)
+{
+    if (!s_screen || !s_hasImg) return;
+    lv_image_set_src(s_img, &s_thumbDsc);
+    lv_obj_invalidate(s_img);                      /* 指针没变、内容变了：告诉 LVGL 这块要重画 */
+}
+
+void station_result(const vc_result *r)
+{
+    s_res = *r;
+    s_hasRes = 1;
+    apply_result();
 }
 
 void station_image(uint16_t w, uint16_t h, const uint16_t *pixels)
@@ -118,8 +139,8 @@ void station_image(uint16_t w, uint16_t h, const uint16_t *pixels)
     s_thumbDsc.header.stride = (uint32_t)w * 2u;
     s_thumbDsc.data_size = (uint32_t)w * h * 2u;
     s_thumbDsc.data = (const uint8_t *)s_thumb;
-    lv_image_set_src(s_img, &s_thumbDsc);
-    lv_obj_invalidate(s_img);                      /* 指针没变、内容变了：告诉 LVGL 这块要重画 */
+    s_hasImg = 1;
+    apply_image();
 }
 
 static uint8_t s_lastKey = 0xFF, s_lastKeyDown;
@@ -151,11 +172,17 @@ static void update(uint32_t now)
 }
 // [endregion]
 
+// [region enter]
 static void station_enter(void)
 {
-    lv_screen_load(s_screen);
-    lv_obj_invalidate(s_screen);
+    ui_page_show(&s_screen, build);            /* 建控件，再把数据填进去 */
+    apply_result();
+    apply_image();
+    update(HAL_GetTick());
 }
+
+static void station_leave(void) { ui_page_hide(&s_screen); }
+// [endregion]
 
 static void station_tick(uint32_t now)
 {
@@ -167,16 +194,11 @@ static void station_tick(uint32_t now)
     lv_port_run();
 }
 
-const gui_page g_page_station = {"STATION", 0, 0, station_enter, station_tick, lv_port_pointer};
+const gui_page g_page_station = {"STATION", 0, 0, station_enter, station_tick, lv_port_pointer, station_leave};
 
 void pages_init(void)
 {
-    lv_port_init();
-    build();
-    sensors_build();
-    device_build();
-    term_build();
-    lvgl_page_build();
+    lv_port_init();                    /* 页面的控件不在这里建：进入哪一页才建哪一页（见 ui_page_show） */
 }
 
 void pages_key(uint8_t key, uint8_t down)
@@ -190,7 +212,7 @@ void pages_key(uint8_t key, uint8_t down)
 void pages_background(uint32_t now)
 {
     /* 上位机发来的结果和缩略图必须及时取走：缩略图不取，LinkTask 就一直回「忙」，上位机发不了下一张。
-     * 不管哪一页在前台都要做；LVGL 版只是更新控件（不在前台时不画），CLASSIC 版在前台才画 */
+     * 不管哪一页在前台都要做；LVGL 版记下数据（页面在显示才填进控件），CLASSIC 版在前台才画 */
     vc_result r;
     if (app_take_result(&r)) {
         station_result(&r);

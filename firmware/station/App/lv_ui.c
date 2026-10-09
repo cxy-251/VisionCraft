@@ -13,6 +13,29 @@ lv_obj_t *ui_screen(void)
     return s;
 }
 
+// [region pages]
+static lv_obj_t *s_blank;                      /* 删页面前先切到这个空屏幕：不能删掉正在显示的屏幕 */
+
+void ui_page_show(lv_obj_t **scr, void (*build)(void))
+{
+    if (!*scr)
+        build();
+    lv_screen_load(*scr);
+    lv_obj_invalidate(*scr);                   /* 手写框架刚把这块填成了背景色，让 LVGL 整块重画 */
+}
+
+void ui_page_hide(lv_obj_t **scr)
+{
+    if (!*scr)
+        return;
+    if (!s_blank)
+        s_blank = lv_obj_create(NULL);
+    lv_screen_load(s_blank);
+    lv_obj_delete(*scr);                       /* 连同所有子控件一起删掉，内存还给 LVGL 的内存池 */
+    *scr = NULL;
+}
+// [endregion]
+
 // [region layout]
 lv_obj_t *ui_card(lv_obj_t *parent, int32_t w, int32_t h)
 {

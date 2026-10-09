@@ -16,6 +16,10 @@ LV_FONT_DECLARE(vc_font_big_72)            /* 同一个脚本生成：只有大�
 #define UI_WARN  0xFBBF24
 
 lv_obj_t *ui_screen(void);                                     /* 一个页面的屏幕：竖着排、四周留边 */
+/* 只保留当前页：进入时 build 建控件（*scr 由 build 设好），离开时删掉整页、*scr 置空。
+ * 页面的数据要放在控件以外的变量里，build 完再填回控件 */
+void ui_page_show(lv_obj_t **scr, void (*build)(void));
+void ui_page_hide(lv_obj_t **scr);
 lv_obj_t *ui_card(lv_obj_t *parent, int32_t w, int32_t h);     /* 圆角卡片 */
 lv_obj_t *ui_row(lv_obj_t *parent);                            /* 透明的一行，子控件左右撑开 */
 lv_obj_t *ui_text(lv_obj_t *parent, const char *s, uint32_t rgb);

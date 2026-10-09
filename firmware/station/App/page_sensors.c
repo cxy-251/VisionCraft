@@ -62,7 +62,9 @@ static lv_obj_t *big_value(lv_obj_t *parent, const char *name)
     return v;
 }
 
-void sensors_build(void)
+static void show_latest(void);
+
+static void sensors_build(void)
 {
     s_screen = ui_screen();
     lv_obj_t *now = ui_row(s_screen);
@@ -70,9 +72,29 @@ void sensors_build(void)
     s_lightNow = big_value(now, "光照（%）");
     s_tempChart = chart(s_screen, "芯片温度，最近 2 分钟", 0xF87171, &s_tempSer, &s_tempRange);
     s_lightChart = chart(s_screen, "光照，最近 2 分钟", 0xFBBF24, &s_lightSer, &s_lightRange);
+    for (int i = 0; i < s_count; ++i) {        /* 把已经记下的历史一次填进曲线 */
+        const int k = (s_head - s_count + i + HIST) % HIST;
+        lv_chart_set_next_value(s_tempChart, s_tempSer, s_temp[k]);
+        lv_chart_set_next_value(s_lightChart, s_lightSer, s_light[k]);
+    }
+    show_latest();
 }
 
-/* pages_background 每轮调用：每秒记一个点，直接加到曲线上（这一页不在前台时也加，回来就是完整的曲线） */
+/* 最新的读数和纵轴范围写进控件；页面没在显示（控件不存在）就什么都不做 */
+static void show_latest(void)
+{
+    if (!s_screen || s_count == 0) return;
+    const int k = (s_head + HIST - 1) % HIST;
+    char line[24];
+    lv_snprintf(line, sizeof line, "%d.%d", s_temp[k] / 10, s_temp[k] % 10);
+    ui_set_text(s_tempNow, line);
+    lv_snprintf(line, sizeof line, "%d.%d", s_light[k] / 10, s_light[k] % 10);
+    ui_set_text(s_lightNow, line);
+    rescale(s_tempChart, s_tempRange, s_temp, "°C");
+    rescale(s_lightChart, s_lightRange, s_light, "%");
+}
+
+/* pages_background 每轮调用：每秒记一个点。页面在显示就顺手加到曲线上；不在显示只记数据，进来时整段填进去 */
 void sensors_record(uint32_t now)
 {
     static uint32_t last;
@@ -87,23 +109,16 @@ void sensors_record(uint32_t now)
     s_head = (s_head + 1) % HIST;
     if (s_count < HIST) s_count++;
 
-    char line[24];
-    lv_snprintf(line, sizeof line, "%d.%d", s_temp[(s_head + HIST - 1) % HIST] / 10, s_temp[(s_head + HIST - 1) % HIST] % 10);
-    ui_set_text(s_tempNow, line);
-    lv_snprintf(line, sizeof line, "%d.%d", s_light[(s_head + HIST - 1) % HIST] / 10, s_light[(s_head + HIST - 1) % HIST] % 10);
-    ui_set_text(s_lightNow, line);
-    lv_chart_set_next_value(s_tempChart, s_tempSer, s_temp[(s_head + HIST - 1) % HIST]);
-    lv_chart_set_next_value(s_lightChart, s_lightSer, s_light[(s_head + HIST - 1) % HIST]);
-    rescale(s_tempChart, s_tempRange, s_temp, "°C");
-    rescale(s_lightChart, s_lightRange, s_light, "%");
+    if (s_screen) {
+        lv_chart_set_next_value(s_tempChart, s_tempSer, s_temp[(s_head + HIST - 1) % HIST]);
+        lv_chart_set_next_value(s_lightChart, s_lightSer, s_light[(s_head + HIST - 1) % HIST]);
+    }
+    show_latest();
 }
 
-static void sensors_enter(void)
-{
-    lv_screen_load(s_screen);
-    lv_obj_invalidate(s_screen);
-}
+static void sensors_enter(void) { ui_page_show(&s_screen, sensors_build); }
+static void sensors_leave(void) { ui_page_hide(&s_screen); }
 
 static void sensors_tick(uint32_t now) { (void)now; lv_port_run(); }
 
-const gui_page g_page_sensors = {"SENSORS", 0, 0, sensors_enter, sensors_tick, lv_port_pointer};
+const gui_page g_page_sensors = {"SENSORS", 0, 0, sensors_enter, sensors_tick, lv_port_pointer, sensors_leave};

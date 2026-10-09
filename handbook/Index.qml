@@ -245,6 +245,7 @@ HandbookIndex {
             Entry { title: qsTr("用 LVGL 重做工位界面"); file: "handbook/f407/gui/StationLvgl.qml" }
             Entry { title: qsTr("全部换成 LVGL：传感器页和设备页"); file: "handbook/f407/gui/Unify.qml" }
             Entry { title: qsTr("终端页：命令解析与 LVGL 键盘"); file: "handbook/f407/gui/Terminal.qml" }
+            Entry { title: qsTr("只保留当前页：LVGL 页面的建与删"); file: "handbook/f407/gui/LazyPages.qml" }
         }
         Chapter {
             title: qsTr("存储")

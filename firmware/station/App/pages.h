@@ -13,6 +13,10 @@ extern const gui_page g_page_device;
 extern const gui_page g_page_lvgl;
 extern const gui_page g_page_term;
 extern const gui_page g_page_settings;
+extern const gui_page g_page_games;           /* 二级首页：下面是各个小游戏 */
+extern const gui_page g_page_mines;
+extern const gui_page g_page_snake;
+extern const gui_page g_page_tetris;
 extern const gui_page g_page_classic;           /* 二级首页：下面是手写框架版的三个页面 */
 extern const gui_page g_page_classic_station;
 extern const gui_page g_page_classic_sensors;
@@ -20,8 +24,8 @@ extern const gui_page g_page_classic_device;
 
 /* 开机时调用一次：初始化 LVGL，建好所有 LVGL 页面的控件（页面不显示时数据也照样更新到控件上） */
 void pages_init(void);
-/* 按键（KEY0…WKUP）按下 / 松开：工位页显示最近一次按键 */
-void pages_key(uint8_t key, uint8_t down);
+/* 按键（KEY0…WKUP）按下 / 松开：当前页面要用（比如游戏）就交给它、返回 1；否则工位页显示最近一次按键、返回 0 */
+int pages_key(uint8_t key, uint8_t down);
 
 /* page_station.c 和 page_classic.c 之间：新数据到了 */
 void station_result(const vc_result *r);

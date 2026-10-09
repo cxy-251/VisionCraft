@@ -49,8 +49,8 @@ static void scan_keys(void)
         k->stable = now;
         k->count = 0;
         const uint8_t ev[2] = {i, now ? VC_KEY_DOWN : VC_KEY_UP};
-        app_send(VC_EVT_KEY, seq++, ev, sizeof(ev));
-        pages_key(i, now);
+        if (!pages_key(i, now))         /* 页面（比如游戏）用掉的按键不发给上位机：免得上位机把 KEY0 当成「检测一次」 */
+            app_send(VC_EVT_KEY, seq++, ev, sizeof(ev));
         settings_activity(HAL_GetTick());   /* 按键也算有人在操作：屏幕调暗了就亮回来 */
         if (now && g_settings.key_beep)
             app_beep(15);   /* 按键音（设置页可以关掉） */

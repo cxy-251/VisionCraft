@@ -201,10 +201,14 @@ void pages_init(void)
     lv_port_init();                    /* 页面的控件不在这里建：进入哪一页才建哪一页（见 ui_page_show） */
 }
 
-void pages_key(uint8_t key, uint8_t down)
+int pages_key(uint8_t key, uint8_t down)
 {
+    const gui_page *p = gui_current();
+    if (p && p->key && p->key(key, down))
+        return 1;                      /* 页面用掉了（比如游戏的方向键） */
     ui_key(key, down);                 /* CLASSIC 页 */
     station_key(key, down);
+    return 0;
 }
 
 // [region background]

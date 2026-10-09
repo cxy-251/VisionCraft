@@ -11,6 +11,7 @@ extern "C" {
 #include "pages.h"
 #include "app.h"
 #include "settings.h"
+#include "game.h"
 extern uint16_t g_fb[800][480];
 extern unsigned long g_pixels_written;
 extern uint32_t g_now;
@@ -19,6 +20,7 @@ extern volatile uint32_t g_lv_flushes, g_lv_flush_px, g_lv_clicks;
 extern volatile int32_t g_lv_slider;
 extern uint8_t g_sim_backlight;
 extern char g_term_inject[64];
+
 extern volatile uint32_t g_term_inject_seq;
 extern int g_sim_result_fresh, g_sim_image_fresh, g_sim_image_done;
 }
@@ -146,6 +148,75 @@ int main(int argc, char *argv[])
     step("再点一下收起");
     tap(40, 38);
     step("返回首页");
+
+    std::printf("\n==== 9. 扫雷 ====\n");
+    g_game_seed = 12345;                       // 固定种子：每次运行布雷都一样，截图能复现
+    tap(240, 580);
+    step("点 GAMES 图标");                                       save("gui-games");
+    tap(88, 190);
+    step("点 MINES：新开一局");                                  save("gui-mines-new");
+    auto cell = [](int r, int c) { tap(24 + c * 48 + 24, 76 + 64 + r * 48 + 24); };
+    cell(4, 4);
+    std::printf("    第一下点正中间：翻开 %d 格，状态 %d（0 进行中）\n", g_mines.revealed, g_mines.status);
+    step("第一下：必定不是雷，连片翻开");                       save("gui-mines-first");
+    for (int r = 0; r < 9; ++r)               // 按雷图把剩下不是雷的格子都点开（测试用：直接看答案）
+        for (int c = 0; c < 9; ++c)
+            if (!g_mines.mine[r][c] && g_mines.cell[r][c] == 0) cell(r, c);
+    std::printf("    点完所有安全格：翻开 %d 格，状态 %d（1 赢），走了 %u 步\n", g_mines.revealed, g_mines.status, (unsigned)g_mines.moves);
+    step("把所有不是雷的格子点开");                             save("gui-mines-win");
+    tap(124, 140 + 9 * 48 + 24 + 36);
+    cell(4, 4);
+    for (int r = 0, done = 0; r < 9 && !done; ++r)
+        for (int c = 0; c < 9 && !done; ++c)
+            if (g_mines.mine[r][c]) { cell(r, c); done = 1; }
+    std::printf("    新开一局，故意点一颗雷：状态 %d（2 输）\n", g_mines.status);
+    step("踩雷");                                                 save("gui-mines-lose");
+    tap(40, 38); tap(40, 38);
+    step("返回两次，回到首页");
+
+    std::printf("\n==== 10. 贪吃蛇 ====\n");
+    tap(240, 580); tap(240, 190);
+    step("点 GAMES、SNAKE");                                     save("gui-snake-new");
+    auto swipe = [](int dx, int dy) { ev(GUI_DOWN, 240, 360); ev(GUI_UP, 240 + dx * 80, 360 + dy * 80); };
+    swipe(0, -1);                                                    // 往上滑一下：开始
+    unsigned long px0 = g_pixels_written; uint32_t s0 = g_snake.steps;
+    for (int t = 0; t < 1500 && g_snake.status != 2; ++t) {          // 30 秒：每 20 ms 看一眼，朝食物拐（测试用的简单策略）
+        const int hx = g_snake.x[g_snake.head], hy = g_snake.y[g_snake.head];
+        const int d = g_snake.dir;
+        if (g_snake.foodX > hx && d != 3) swipe(1, 0);
+        else if (g_snake.foodX < hx && d != 1) swipe(-1, 0);
+        else if (g_snake.foodY > hy && d != 0) swipe(0, 1);
+        else if (g_snake.foodY < hy && d != 2) swipe(0, -1);
+        run(20);
+    }
+    std::printf("    30 秒：走了 %u 步，吃了 %u 个，长度 %u，状态 %d；平均每步写 %lu 个像素\n", (unsigned)(g_snake.steps - s0),
+                (unsigned)g_snake.score, (unsigned)g_snake.len, g_snake.status,
+                (g_pixels_written - px0) / ((g_snake.steps - s0) ? (g_snake.steps - s0) : 1));
+    step("自动玩 30 秒");                                         save("gui-snake-play");
+    tap(40, 38);
+
+    std::printf("\n==== 11. 俄罗斯方块 ====\n");
+    tap(392, 190);
+    step("点 TETRIS");                                            save("gui-tetris-new");
+    px0 = g_pixels_written; const uint32_t c0 = g_tetris_cells_drawn, pc0 = g_tetris.pieces;
+    for (int t = 0; t < 1000 && g_tetris.status == 0; ++t) {          // 20 秒：每块随机左右挪几下，然后让它自己落
+        if (t % 25 == 0) { const int m = int(game_rand() % 9) - 4; for (int k = 0; k < (m < 0 ? -m : m); ++k) tap(m < 0 ? 70 : 405, 140 + 520 + 16 + 38); }
+        run(20);
+    }
+    std::printf("    20 秒：落了 %u 块，消了 %u 行，%u 分；重画了 %u 格，共写 %lu 个像素\n", (unsigned)(g_tetris.pieces - pc0),
+                (unsigned)g_tetris.lines, (unsigned)g_tetris.score, (unsigned)(g_tetris_cells_drawn - c0), g_pixels_written - px0);
+    step("自动玩 20 秒");                                         save("gui-tetris-play");
+    tap(380, 140 + 456);                                             // NEW：重新开一局
+    for (int x = 0; x < 10; ++x) g_tetris.board[19][x] = (x >= 3 && x <= 6) ? 0 : 6;   // 摆残局：最底下一行只空中间 4 格
+    g_tetris.type = 0;                                               // 当前这一块换成横着的长条（I），在第 3–6 列
+    { const int8_t i_piece[4][2] = {{0, 1}, {1, 1}, {2, 1}, {3, 1}}; std::memcpy(g_tetris.cells, i_piece, sizeof i_piece); }
+    g_tetris.x = 3; g_tetris.y = 0;
+    for (int k = 0; k < 20; ++k) tap(290, 140 + 520 + 16 + 38);      // 一直按「v」让它落到底
+    std::printf("    摆好残局再落一根长条：消了 %u 行，%u 分，最底下一行现在%s\n", (unsigned)g_tetris.lines, (unsigned)g_tetris.score,
+                g_tetris.board[19][0] == 0 ? "是空的" : "还有东西");
+    step("消行");                                                  save("gui-tetris-clear");
+    tap(40, 38); tap(40, 38);
+    step("返回两次，回到首页");
 
     std::printf("\n共重画控件 %lu 次\n", (unsigned long)g_gui_redraws);
     return 0;

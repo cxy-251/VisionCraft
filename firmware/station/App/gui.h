@@ -44,6 +44,7 @@ struct gui_page {
     void (*tick)(uint32_t now_ms);         /* 页面显示期间周期调用：刷新数据，可以为空 */
     void (*pointer)(const gui_event *e);   /* 没按在控件上的指针事件交给页面自己处理（比如交给 LVGL），可以为空 */
     void (*leave)(void);                   /* 离开页面时（进入别的页面或返回）：比如删掉 LVGL 控件，可以为空 */
+    int (*key)(uint8_t key, uint8_t down); /* 板上按键（KEY0、KEY1、KEY2、WK_UP）：返回 1 表示页面用掉了，可以为空 */
 };
 // [endregion]
 

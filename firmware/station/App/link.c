@@ -1,5 +1,6 @@
 /* LinkTask：从 RTT 下行缓冲区收字节 → 拆帧 → 执行命令 → 回应答 */
 #include "app.h"
+#include "fault.h"
 
 #include "main.h"
 #include "cmsis_os2.h"
@@ -132,6 +133,7 @@ void LinkTask(void *argument)
 
     uint8_t chunk[64];
     for (;;) {
+        health_checkin(HEALTH_LINK);   /* 看门狗监工：我还活着 */
         const size_t n = vc_rtt_read(chunk, sizeof(chunk));
         vc_frame f;
         for (size_t i = 0; i < n; ++i) {

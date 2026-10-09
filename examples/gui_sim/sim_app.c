@@ -1,5 +1,6 @@
 /* 模拟器里的「板子其余部分」：固件页面用到的 app_* 函数和 HAL_GetTick，返回可控的假数据 */
 #include "app.h"
+#include "fault.h"
 #include "main.h"
 #include <string.h>
 
@@ -43,3 +44,7 @@ int app_take_image(uint16_t *w, uint16_t *h, const uint16_t **pixels)
     return 1;
 }
 void app_image_done(void) { g_sim_image_done++; }
+
+/* 设备页「上次复位」：模拟器里假装上次是上电复位、没有故障记录 */
+volatile fault_record g_last_fault;
+volatile uint32_t g_reset_flags = RCC_CSR_PORRSTF | RCC_CSR_PINRSTF;

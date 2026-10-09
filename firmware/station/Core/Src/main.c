@@ -21,6 +21,7 @@
 #include "cmsis_os.h"
 #include "adc.h"
 #include "i2c.h"
+#include "iwdg.h"
 #include "tim.h"
 #include "usb_host.h"
 #include "gpio.h"
@@ -29,6 +30,7 @@
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 #include "lcd.h"
+#include "fault.h"
 
 /* USER CODE END Includes */
 
@@ -82,7 +84,7 @@ int main(void)
   HAL_Init();
 
   /* USER CODE BEGIN Init */
-
+  fault_boot();   /* 读复位原因、取出上次的故障记录（要在别的初始化之前，免得被覆盖） */
   /* USER CODE END Init */
 
   /* Configure the system clock */
@@ -100,6 +102,7 @@ int main(void)
   MX_FSMC_Init();
   MX_TIM12_Init();
   MX_I2C1_Init();
+  MX_IWDG_Init();
   /* USER CODE BEGIN 2 */
   lcd_init();   /* 屏初始化要用 HAL_Delay，必须在调度器启动之前做（此时 TIM7 时基已在运行） */
 
@@ -142,8 +145,9 @@ void SystemClock_Config(void)
   /** Initializes the RCC Oscillators according to the specified parameters
   * in the RCC_OscInitTypeDef structure.
   */
-  RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSE;
+  RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_LSI|RCC_OSCILLATORTYPE_HSE;
   RCC_OscInitStruct.HSEState = RCC_HSE_ON;
+  RCC_OscInitStruct.LSIState = RCC_LSI_ON;
   RCC_OscInitStruct.PLL.PLLState = RCC_PLL_ON;
   RCC_OscInitStruct.PLL.PLLSource = RCC_PLLSOURCE_HSE;
   RCC_OscInitStruct.PLL.PLLM = 8;

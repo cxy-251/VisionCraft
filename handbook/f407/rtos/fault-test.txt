@@ -1,0 +1,62 @@
+==== 1. 第一版：tools/fault_probe.tcl（注入故障、等复位、读复位原因和记录）====
+$ openocd ... -c "set g_fault_inject 0x…; set g_reset_flags 0x…; set g_last_fault 0x…; set uwTick 0x…" -f tools/fault_probe.tcl -c exit
+开机：RCC_CSR=0x1e000000（软件复位、上电、复位脚、欠压）；没有故障记录
+看门狗：IWDG_PR=4 IWDG_RLR=2000；调试时冻结看门狗 DBGMCU_APB1_FZ=0x00001800
+不做任何事等 10 秒：毫秒计数从 4141 走到 14137（没有被看门狗复位）
+1. 空指针调用：写入后约 0.1 秒复位
+  RCC_CSR=0x14000000（软件复位、复位脚）
+  HardFault：PC=0x00000000 LR=0x08007e09 xPSR=0x60000000 CFSR=0x00020000 HFSR=0x40000000 SP=0x20003838 任务=stationTask
+2. 递归把 StationTask 的栈用爆：写入后约 0.1 秒复位
+  RCC_CSR=0x14000000（软件复位、复位脚）
+  栈溢出：任务=stationTask SP=0x200018b8
+3. StationTask 卡死（自己就是喂狗的）：写入后约 4.0 秒复位
+  RCC_CSR=0x24000000（看门狗、复位脚）
+  没有故障记录
+4. EnvTask 卡死（StationTask 照常运行）：写入后约 6.0 秒复位
+  RCC_CSR=0x24000000（看门狗、复位脚）
+  任务没有报到，停止喂狗：任务=linkTask
+
+==== 2. 第 4 项记成了 linkTask：注入 4 后每 300 ms 读一次三个任务最近报到的时刻（link / station / env，HAL 毫秒计数）====
+注入前：tick=3992 link/station/env 报到=0xf99 0xf95 0xf95
+tick=4295 报到=0x10c7 0x10bf 0xf9f
+tick=4597 报到=0x11f5 0x11f5 0xf9f
+tick=4898 报到=0x1323 0x131f 0xf9f
+……（link、station 一直在更新，env 停在 0xf9f）
+tick=7614 报到=0x1dbe 0x1dbe 0xf9f
+（卡住的确实是 envTask。记成 linkTask 是监工的 bug：用循环开头取的 now 减报到时刻，
+ LinkTask 的报到可能比 now 晚 1 ms，无符号相减得到一个巨大的数，被当成超时）
+
+==== 3. 修正后（health_feed 现取时间、用有符号差）重新烧录再跑一遍，并空跑 60 秒 ====
+开机：RCC_CSR=0x14000000（软件复位、复位脚）；任务没有报到，停止喂狗：任务=linkTask
+看门狗：IWDG_PR=4 IWDG_RLR=2000；调试时冻结看门狗 DBGMCU_APB1_FZ=0x00001800
+不做任何事等 60 秒：毫秒计数从 4138 走到 64053（中间没有复位的话应该多出约 60000）
+1. 空指针调用：写入后约 0.1 秒复位
+  RCC_CSR=0x14000000（软件复位、复位脚）
+  HardFault：PC=0x00000000 LR=0x08007e09 xPSR=0x60000000 CFSR=0x00020000 HFSR=0x40000000 SP=0x20003838 任务=stationTask
+2. 递归把 StationTask 的栈用爆：写入后约 0.1 秒复位
+  RCC_CSR=0x14000000（软件复位、复位脚）
+  栈溢出：任务=stationTask SP=0x200018b8
+3. StationTask 卡死（自己就是喂狗的）：写入后约 3.9 秒复位
+  RCC_CSR=0x24000000（看门狗、复位脚）
+  没有故障记录
+4. EnvTask 卡死（StationTask 照常运行）：写入后约 5.9 秒复位
+  RCC_CSR=0x24000000（看门狗、复位脚）
+  任务没有报到，停止喂狗：任务=envTask
+（开头那条 linkTask 记录是修正前最后一次实验留下的：重新烧录只改 Flash，.noinit 里的内容还在）
+
+==== 4. 板子屏幕：设备页「上次复位」显示 原因=看门狗、记录=任务没有响应，停止喂狗、任务=envTask（看屏的人确认「是这样」）====
+
+==== 5. 原有的触摸注入测试照旧通过（gui_probe.tcl）====
+开机后的页面：VISIONCRAFT，点击次数 0x0
+  点 STATION 图标 → 页面 STATION      点击次数 1，最近一次换页重画 24.2 ms
+  点返回键     → 页面 VISIONCRAFT  点击次数 2，最近一次换页重画 36.1 ms
+  点 SENSORS 图标 → 页面 SENSORS      点击次数 3，最近一次换页重画 23.6 ms
+  点返回键     → 页面 VISIONCRAFT  点击次数 4，最近一次换页重画 36.2 ms
+  点 DEVICE 图标 → 页面 DEVICE       点击次数 5，最近一次换页重画 23.6 ms
+  点返回键     → 页面 VISIONCRAFT  点击次数 6，最近一次换页重画 36.1 ms
+  → 页面 SENSORS      点击次数 9
+  → 页面 VISIONCRAFT  点击次数 10（没有增加）
+  ( 10, 10) 标题栏            0x1947
+  ( 88,150) STATION图标的蓝色方块 0x231d
+  (240,150) SENSORS图标的绿色方块 0x1509
+  (240,500) 背景               0x08a5

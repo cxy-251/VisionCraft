@@ -10,6 +10,7 @@
 #include "touch.h"
 #include "mouse.h"
 #include "cursor.h"
+#include "fault.h"
 
 extern osMessageQueueId_t g_beepQueue;
 
@@ -171,6 +172,8 @@ void StationTask(void *argument)
         }
         poll_mouse();
         poll_inject();
+        fault_poll_inject();            /* 实验用：调试器要求制造故障时照做 */
+        health_feed(now);               /* 三个任务都报到了才喂狗 */
         pages_background(now);          /* 取走上位机的结果 / 缩略图、记录传感器历史 */
         if (now - lastGui >= 20u) {     /* 页面刷新 + 重画变了的控件 */
             lastGui = now;

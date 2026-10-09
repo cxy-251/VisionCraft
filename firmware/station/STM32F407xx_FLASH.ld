@@ -267,6 +267,15 @@ SECTIONS
   PROVIDE( __bss_start = __tbss_start );
   PROVIDE( __bss_size = __bss_end - __bss_start );
 
+  /* VisionCraft：复位后不清零的变量（故障记录）。启动代码只清 .bss，这一段在软件复位、看门狗复位后保持原样。
+   * 上电时是随机内容，使用的代码要自己用魔数和校验判断有没有效。见手册「看门狗、栈溢出与 HardFault 现场」 */
+  .noinit (NOLOAD) : ALIGN(4)
+  {
+    *(.noinit)
+    *(.noinit*)
+    . = ALIGN(4);
+  } >RAM
+
   /* User_heap_stack section, used to check that there is enough RAM left */
   ._user_heap_stack (NOLOAD) :
   {

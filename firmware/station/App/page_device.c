@@ -3,6 +3,7 @@
 
 #include "app.h"
 #include "lv_port.h"
+#include "fault.h"
 #include "lv_ui.h"
 #include "main.h"                           /* HAL_GetTick */
 
@@ -27,6 +28,45 @@ static lv_obj_t *group(const char *title)
     return c;
 }
 
+// [region reset]
+/* 上次为什么复位：RCC_CSR 的复位标志 + 复位前记下的故障记录（App/fault.c）。
+ * 复位键会让 NRST 脚动一下，其他复位也会顺带把 PINRSTF 置位，所以按「最具体的」先判断 */
+static const char *reset_cause(uint32_t f)
+{
+    if (f & RCC_CSR_IWDGRSTF) return "看门狗";
+    if (f & RCC_CSR_WWDGRSTF) return "窗口看门狗";
+    if (f & RCC_CSR_SFTRSTF) return "软件复位";
+    if (f & RCC_CSR_BORRSTF) return "上电 / 电压过低";
+    if (f & RCC_CSR_PORRSTF) return "上电";
+    if (f & RCC_CSR_PINRSTF) return "复位键或调试器";
+    return "未知";
+}
+
+static void reset_group(void)
+{
+    char line[48];
+    lv_obj_t *g = group("上次复位");
+    row(g, "原因", reset_cause(g_reset_flags));
+    const fault_record r = *(const fault_record *)&g_last_fault;
+    if (r.kind == FAULT_HARD) {
+        row(g, "记录", "HardFault");
+        lv_snprintf(line, sizeof line, "PC %08X  LR %08X", (unsigned)r.pc, (unsigned)r.lr);
+        row(g, "地址", line);
+        lv_snprintf(line, sizeof line, "CFSR %08X  HFSR %08X", (unsigned)r.cfsr, (unsigned)r.hfsr);
+        row(g, "故障寄存器", line);
+        row(g, "任务", r.task);
+    } else if (r.kind == FAULT_STACK) {
+        row(g, "记录", "任务栈溢出");
+        row(g, "任务", r.task);
+    } else if (r.kind == FAULT_HANG) {
+        row(g, "记录", "任务没有响应，停止喂狗");
+        row(g, "任务", r.task);
+    } else {
+        row(g, "记录", "没有故障记录");
+    }
+}
+// [endregion]
+
 void device_build(void)
 {
     char line[40];
@@ -50,6 +90,8 @@ void device_build(void)
     s_tasks = row(run, "任务数", "--");
     s_heap = row(run, "FreeRTOS 剩余堆", "--");
     s_lvmem = row(run, "LVGL 内存池", "--");
+
+    reset_group();
 }
 
 static void update(uint32_t now)

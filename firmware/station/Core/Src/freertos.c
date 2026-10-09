@@ -25,6 +25,7 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
+#include "fault.h"
 #include "app.h"
 
 /* USER CODE END Includes */
@@ -81,6 +82,17 @@ extern void EnvTask(void *argument);
 
 extern void MX_USB_HOST_Init(void);
 void MX_FREERTOS_Init(void); /* (MISRA C 2004 rule 8.1) */
+
+/* Hook prototypes */
+void vApplicationStackOverflowHook(xTaskHandle xTask, signed char *pcTaskName);
+
+/* USER CODE BEGIN 4 */
+void vApplicationStackOverflowHook(xTaskHandle xTask, signed char *pcTaskName)
+{
+  (void)xTask;
+  fault_stack_overflow((const char *)pcTaskName);   /* App/fault.c：记下任务名，复位 */
+}
+/* USER CODE END 4 */
 
 /**
   * @brief  FreeRTOS initialization

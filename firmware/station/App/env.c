@@ -1,5 +1,6 @@
 /* EnvTask：按订阅的周期采集片内温度、VDDA、光照，发 TEL_ENV 遥测 */
 #include "app.h"
+#include "fault.h"
 
 #include "main.h"
 #include "adc.h"
@@ -78,6 +79,9 @@ void EnvTask(void *argument)
     uint32_t lastSample = 0, lastTel = 0;
 
     for (;;) {
+        health_checkin(HEALTH_ENV);    /* 看门狗监工：我还活着 */
+        if (g_fault_inject == 4)       /* 实验：EnvTask 卡死（阻塞着不再回来），看监工能不能发现 */
+            for (;;) osDelay(1000);
         const uint32_t now = osKernelGetTickCount();
         const uint16_t period = s_periodMs;
         const int sampleDue = (now - lastSample) >= SAMPLE_MS || !s_latest.valid;

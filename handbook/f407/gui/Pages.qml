@@ -15,7 +15,7 @@ Section {
     KeyPoints {
         label: qsTr("首页")
         points: [
-            qsTr("首页就是一个控件数组：每个图标 144 × 184（现在有六个：后加的 LVGL、CLASSIC、TERMINAL 见「移植 LVGL」「用 LVGL 重做工位界面」「终端页：命令解析与 LVGL 键盘」），每个的 on_click 都是同一个 open_page，要打开哪个页面放在控件的 user 指针里。加一个页面，就是在数组里加一行。"),
+            qsTr("首页就是一个控件数组：每个图标 144 × 184（后来陆续加了 LVGL、CLASSIC、TERMINAL、SETTINGS 等，排成三行，每行三个），每个的 on_click 都是同一个 open_page，要打开哪个页面放在控件的 user 指针里。加一个页面，就是在数组里加一行。"),
             qsTr("首页没有 tick：它上面没有会变的东西，停在首页时一个像素都不写（「在电脑上运行界面代码」里实测停 130 秒写了 0 个像素）。"),
             qsTr("工位、传感器、设备三个页面一个控件都没有（count 为 0），全靠 enter 画整页、tick 刷新数据。返回键由框架统一画、统一处理，页面不用管。")
         ]

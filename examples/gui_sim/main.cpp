@@ -10,6 +10,7 @@ extern "C" {
 #include "gui.h"
 #include "pages.h"
 #include "app.h"
+#include "settings.h"
 extern uint16_t g_fb[800][480];
 extern unsigned long g_pixels_written;
 extern uint32_t g_now;
@@ -56,7 +57,7 @@ int main(int argc, char *argv[])
 
     std::printf("==== 1. 首页 ====\n");
     // [region script]
-    gui_init(&g_page_home); pages_init(); run(100);
+    gui_init(&g_page_home); settings_load(); pages_init(); run(100);
     step("开机，显示首页");                                   save("gui-home");
     for (auto [x, y, what] : {std::tuple{10, 10, "标题栏"}, {88, 150, "STATION 图标的蓝色方块"}, {240, 150, "SENSORS 图标的绿色方块"}, {240, 500, "背景"}})
         std::printf("    (%3d,%3d) %-24s 0x%04x\n", x, y, what, g_fb[y][x]);
@@ -133,6 +134,16 @@ int main(int argc, char *argv[])
     step("点 TERMINAL 图标");
     std::strcpy(g_term_inject, "help"); g_term_inject_seq++; run(200);
     step("执行一条命令（模拟器里不真正执行）");                 save("gui-term");
+    tap(40, 38);
+    step("返回首页");
+
+    std::printf("\n==== 8. 设置页 ====\n");
+    tap(88, 580);
+    step("点 SETTINGS 图标");                                    save("gui-settings");
+    tap(385, 241);
+    step("点开「闲置后调暗」下拉框");                            save("gui-settings-dropdown");
+    tap(385, 241);
+    step("再点一下收起");
     tap(40, 38);
     step("返回首页");
 

@@ -71,6 +71,6 @@ Section {
     }
 
     InSystem {
-        text: qsTr("首页现在是：STATION、SENSORS、DEVICE（LVGL 版）、LVGL（演示页）、TERMINAL（命令行，见「终端页：命令解析与 LVGL 键盘」）、CLASSIC（手写版的三页：OLD STATION、OLD SENSORS、OLD DEVICE。和首页上的 LVGL 版界面不同，所以名字前加了 OLD，不用同名）。首页本身和标题栏、返回键仍是手写框架画的——它够简单，没有必要换。")
+        text: qsTr("首页现在是：STATION、SENSORS、DEVICE（LVGL 版）、LVGL（演示页）、TERMINAL（命令行，见「终端页：命令解析与 LVGL 键盘」）、SETTINGS（见「设置页」）、CLASSIC（手写版的三页：OLD STATION、OLD SENSORS、OLD DEVICE。和首页上的 LVGL 版界面不同，所以名字前加了 OLD，不用同名）。首页本身和标题栏、返回键仍是手写框架画的——它够简单，没有必要换。")
     }
 }

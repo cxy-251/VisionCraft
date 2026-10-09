@@ -88,6 +88,8 @@ target_sources(${CMAKE_PROJECT_NAME} PRIVATE
     App/fault.c
     App/shell.c
     App/page_term.c
+    App/settings.c
+    App/page_settings.c
     App/touch.c
     App/mouse.c
     App/cursor.c

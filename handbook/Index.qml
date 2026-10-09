@@ -246,6 +246,7 @@ HandbookIndex {
             Entry { title: qsTr("全部换成 LVGL：传感器页和设备页"); file: "handbook/f407/gui/Unify.qml" }
             Entry { title: qsTr("终端页：命令解析与 LVGL 键盘"); file: "handbook/f407/gui/Terminal.qml" }
             Entry { title: qsTr("只保留当前页：LVGL 页面的建与删"); file: "handbook/f407/gui/LazyPages.qml" }
+            Entry { title: qsTr("设置页：EEPROM 里的设置与闲置调暗"); file: "handbook/f407/gui/Settings.qml" }
         }
         Chapter {
             title: qsTr("存储")

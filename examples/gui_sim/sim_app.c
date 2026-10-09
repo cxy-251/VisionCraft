@@ -53,3 +53,12 @@ volatile uint32_t g_reset_flags = RCC_CSR_PORRSTF | RCC_CSR_PINRSTF;
 #include "shell.h"
 void shell_exec(const char *line, shell_out out, void *ctx) { (void)line; out("(simulator: commands run on the board)", ctx); }
 const char *shell_complete(const char *prefix) { (void)prefix; return 0; }
+
+/* 设置页存在 EEPROM：模拟器里用一块内存假装，新芯片全是 0xFF */
+#include "eeprom.h"
+static uint8_t s_ee[256];
+static int s_eeInit;
+static void ee_init(void) { if (!s_eeInit) { memset(s_ee, 0xFF, sizeof s_ee); s_eeInit = 1; } }
+void eeprom_init(void) { ee_init(); }
+int eeprom_read(uint8_t addr, uint8_t *dst, size_t len) { ee_init(); if (addr + len > 256) return -1; memcpy(dst, s_ee + addr, len); return 0; }
+int eeprom_write(uint8_t addr, const uint8_t *src, size_t len) { ee_init(); if (addr + len > 256) return -1; memcpy(s_ee + addr, src, len); return 0; }

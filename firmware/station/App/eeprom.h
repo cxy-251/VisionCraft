@@ -5,6 +5,7 @@
 #include <stddef.h>
 #include <stdint.h>
 
+void eeprom_init(void);                                          /* 建互斥锁：调度器启动前调用一次 */
 int eeprom_read(uint8_t addr, uint8_t *dst, size_t len);          /* 成功返回 0 */
 int eeprom_write(uint8_t addr, const uint8_t *src, size_t len);   /* 成功返回 0，会阻塞到写完（每页约 5 ms） */
 

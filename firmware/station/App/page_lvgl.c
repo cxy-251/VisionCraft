@@ -3,6 +3,7 @@
 
 #include "app.h"
 #include "lcd.h"
+#include "settings.h"
 #include "lv_port.h"
 #include "lv_ui.h"
 #include "lvgl.h"
@@ -26,7 +27,7 @@ static void clicked(lv_event_t *e)
 static void slid(lv_event_t *e)
 {
     g_lv_slider = lv_slider_get_value(lv_event_get_target_obj(e));
-    lcd_backlight((uint8_t)g_lv_slider);   /* 真的去改背光 PWM 的占空比（TIM12 通道 2） */
+    settings_set_brightness((uint8_t)g_lv_slider);   /* 真的去改背光 PWM 的占空比（TIM12 通道 2），和设置页是同一个亮度 */
     lv_label_set_text_fmt(s_value, "亮度 %d %%", (int)g_lv_slider);
 }
 
@@ -75,8 +76,16 @@ static void lvgl_page_build(void)
 }
 // [endregion]
 
-static void lvgl_enter(void) { ui_page_show(&s_screen, lvgl_page_build); }
-static void lvgl_leave(void) { ui_page_hide(&s_screen); }   /* 曲线只在这一页显示时记点，回来重新开始 */
+static void lvgl_enter(void)
+{
+    g_lv_slider = g_settings.brightness;       /* 亮度可能在设置页改过 */
+    ui_page_show(&s_screen, lvgl_page_build);
+}
+static void lvgl_leave(void)
+{
+    settings_save_if_changed();                /* 这里拖滑块改的也是设置里的亮度 */
+    ui_page_hide(&s_screen);
+}   /* 曲线只在这一页显示时记点，回来重新开始 */
 
 static void lvgl_tick(uint32_t now)
 {

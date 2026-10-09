@@ -5,6 +5,7 @@
 #include "app.h"
 #include "eeprom.h"
 #include "fault.h"
+#include "settings.h"
 #include "lcd.h"
 #include "lv_port.h"
 #include "lvgl.h"                      /* lv_snprintf：newlib-nano 的 printf 不带浮点，这个也不带，但小 */
@@ -85,8 +86,8 @@ static void cmd_bl(shell_io *io, int argc, char **argv)
 {
     const int p = argc > 1 ? atoi(argv[1]) : -1;
     if (p < 10 || p > 100) { say(io, "usage: bl <10-100>"); return; }   /* 最低 10 %：0 就看不见屏幕了 */
-    lcd_backlight((uint8_t)p);
-    say(io, "backlight %d %%", p);
+    settings_set_brightness((uint8_t)p);   /* 改的是设置里的亮度，但不存；设置页或演示页离开时才存 */
+    say(io, "backlight %d %% (not saved)", p);
 }
 
 /* 外部 SRAM 自检：测最后 64 KB（前面放着缩略图和 LVGL 内存池，见链接脚本的 .extsram）。写一串伪随机数、读回比较，顺便量速度 */
@@ -132,6 +133,30 @@ static void cmd_last(shell_io *io, int argc, char **argv)
     else say(io, "no fault record");
 }
 
+static void cmd_settings(shell_io *io, int argc, char **argv)
+{
+    (void)argc; (void)argv;
+    say(io, "brightness %u  key_beep %u  dim %u min", g_settings.brightness, g_settings.key_beep, g_settings.dim_minutes);
+    say(io, "loaded rc %ld  saved %lu times  dimmed %u", (long)g_settings_load_rc,
+        (unsigned long)g_settings_saves, g_screen_dimmed);
+}
+
+/* 读 EEPROM 原始字节：ee <地址> [长度]，十六进制显示 */
+static void cmd_ee(shell_io *io, int argc, char **argv)
+{
+    const int addr = argc > 1 ? (int)strtol(argv[1], NULL, 0) : 0;
+    int len = argc > 2 ? (int)strtol(argv[2], NULL, 0) : 16;
+    if (addr < 0 || addr > 255 || len < 1 || len > 32 || addr + len > 256) { say(io, "usage: ee <addr 0-255> [len 1-32]"); return; }
+    uint8_t b[32];
+    if (eeprom_read((uint8_t)addr, b, (size_t)len) != 0) { say(io, "eeprom read failed"); return; }
+    for (int i = 0; i < len; i += 8) {
+        char line[64], *p = line;
+        p += lv_snprintf(p, 8, "%02x:", addr + i);
+        for (int j = i; j < len && j < i + 8; ++j) p += lv_snprintf(p, 5, " %02x", b[j]);
+        say(io, "%s", line);
+    }
+}
+
 static void cmd_reboot(shell_io *io, int argc, char **argv)
 {
     (void)argc; (void)argv;
@@ -154,6 +179,8 @@ static const struct {
     {"sram", cmd_sram, "external sram self-test"},
     {"recipe", cmd_recipe, "recipe stored in eeprom"},
     {"last", cmd_last, "last reset cause and fault record"},
+    {"settings", cmd_settings, "current settings"},
+    {"ee", cmd_ee, "ee <addr> [len]: dump eeprom bytes"},
     {"reboot", cmd_reboot, "software reset"},
 };
 #define N_COMMANDS (sizeof kCommands / sizeof kCommands[0])

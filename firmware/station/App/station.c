@@ -11,6 +11,7 @@
 #include "mouse.h"
 #include "cursor.h"
 #include "fault.h"
+#include "settings.h"
 
 extern osMessageQueueId_t g_beepQueue;
 
@@ -50,8 +51,9 @@ static void scan_keys(void)
         const uint8_t ev[2] = {i, now ? VC_KEY_DOWN : VC_KEY_UP};
         app_send(VC_EVT_KEY, seq++, ev, sizeof(ev));
         pages_key(i, now);
-        if (now)
-            app_beep(15);   /* 按键音 */
+        settings_activity(HAL_GetTick());   /* 按键也算有人在操作：屏幕调暗了就亮回来 */
+        if (now && g_settings.key_beep)
+            app_beep(15);   /* 按键音（设置页可以关掉） */
     }
 }
 // [endregion]
@@ -85,6 +87,20 @@ static void cycle_counter_init(void)
 uint32_t gui_cycles(void) { return DWT->CYCCNT; }
 
 // [region pointer]
+/* 所有指针事件都从这里交给界面框架。屏幕调暗时，按下只负责把它唤醒：
+ * 这一整下（按下到抬起）都不交给界面，免得人只是想看看屏幕，却顺手点到了按钮 */
+static void deliver(const gui_event *e)
+{
+    static int swallow;
+    const int woke = settings_activity(HAL_GetTick());
+    if (e->type == GUI_DOWN)
+        swallow = woke;
+    if (!swallow)
+        gui_handle(e);
+    if (e->type == GUI_UP)
+        swallow = 0;
+}
+
 /* 触摸 → 指针事件：手指刚接触是「按下」，之后每次读到坐标是「移动」，离开时在最后的位置「抬起」 */
 static void poll_touch(void)
 {
@@ -95,11 +111,11 @@ static void poll_touch(void)
     if (n > 0 && x < LCD_W && y < LCD_H) {               /* 坐标越界的读数丢掉（实测出现过 65535） */
         const gui_event e = {touching ? GUI_MOVE : GUI_DOWN, (int16_t)x, (int16_t)y};
         touching = 1; lx = (int16_t)x; ly = (int16_t)y;
-        gui_handle(&e);
+        deliver(&e);
     } else if (n == 0 && touching) {
         const gui_event e = {GUI_UP, lx, ly};
         touching = 0;
-        gui_handle(&e);
+        deliver(&e);
     }
 }
 
@@ -110,13 +126,14 @@ static void poll_mouse(void)
     static int left;
     mouse_report r;
     while (mouse_take(&r)) {
+        if (r.dx || r.dy) settings_activity(HAL_GetTick());   /* 动一下鼠标也能唤醒屏幕 */
         int x = s_cx + r.dx, y = s_cy + r.dy;
         s_cx = (int16_t)(x < 0 ? 0 : x >= LCD_W ? LCD_W - 1 : x);   /* 光标不能出屏 */
         s_cy = (int16_t)(y < 0 ? 0 : y >= LCD_H ? LCD_H - 1 : y);
         const int down = r.buttons & 1;
         if (down != left || (down && (r.dx || r.dy))) {
             const gui_event e = {down && !left ? GUI_DOWN : down ? GUI_MOVE : GUI_UP, s_cx, s_cy};
-            gui_handle(&e);
+            deliver(&e);
         }
         left = down;
     }
@@ -132,7 +149,7 @@ static void poll_inject(void)
         const uint32_t i = g_gui_inject.tail % INJECT_N;
         const gui_event e = {(gui_event_type)g_gui_inject.ev[i].type, g_gui_inject.ev[i].x, g_gui_inject.ev[i].y};
         g_gui_inject.tail++;
-        gui_handle(&e);
+        deliver(&e);
     }
 }
 // [endregion]
@@ -146,7 +163,8 @@ void StationTask(void *argument)
     uint32_t lastTouch = 0, lastGui = 0;
     cycle_counter_init();
     gui_init(&g_page_home);             /* 先把首页画出来，触摸芯片的复位要几百毫秒 */
-    pages_init();                       /* LVGL 和它的页面：控件建好放在内存里，进入页面时才画 */
+    settings_load();                    /* 亮度等设置：EEPROM 里有就用，没有用默认值 */
+    pages_init();                       /* LVGL 初始化；页面的控件进入时才建 */
     touch_init();
     cursor_init();
     mouse_init();                       /* USB 主机库开始工作：鼠标的枚举、收报告都在库自己的任务里 */
@@ -174,6 +192,7 @@ void StationTask(void *argument)
         poll_inject();
         fault_poll_inject();            /* 实验用：调试器要求制造故障时照做 */
         health_feed(now);               /* 三个任务都报到了才喂狗 */
+        settings_idle_tick(now);        /* 闲置够久就调暗屏幕 */
         pages_background(now);          /* 取走上位机的结果 / 缩略图、记录传感器历史 */
         if (now - lastGui >= 20u) {     /* 页面刷新 + 重画变了的控件 */
             lastGui = now;

@@ -11,6 +11,7 @@ extern const gui_page g_page_station;
 extern const gui_page g_page_sensors;
 extern const gui_page g_page_device;
 extern const gui_page g_page_lvgl;
+extern const gui_page g_page_term;
 extern const gui_page g_page_classic;           /* 二级首页：下面是手写框架版的三个页面 */
 extern const gui_page g_page_classic_station;
 extern const gui_page g_page_classic_sensors;
@@ -28,6 +29,7 @@ void station_key(uint8_t key, uint8_t down);
 void lvgl_page_build(void);
 void sensors_build(void);
 void device_build(void);
+void term_build(void);
 void sensors_record(uint32_t now_ms);
 void classic_sensors_record(uint32_t now_ms);
 void classic_result(const vc_result *r);

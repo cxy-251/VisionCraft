@@ -3,6 +3,7 @@
 #include <QGuiApplication>
 #include <QImage>
 #include <cstdio>
+#include <cstring>
 #include <tuple>
 
 extern "C" {
@@ -16,6 +17,8 @@ extern vc_result g_sim_result;
 extern volatile uint32_t g_lv_flushes, g_lv_flush_px, g_lv_clicks;
 extern volatile int32_t g_lv_slider;
 extern uint8_t g_sim_backlight;
+extern char g_term_inject[64];
+extern volatile uint32_t g_term_inject_seq;
 extern int g_sim_result_fresh, g_sim_image_fresh, g_sim_image_done;
 }
 
@@ -124,6 +127,14 @@ int main(int argc, char *argv[])
     step("停 3 秒（运行时间每秒刷新）");
     tap(40, 38); tap(40, 38);
     step("返回两次，回到首页");
+
+    std::printf("\n==== 7. 终端页 ====\n");
+    tap(392, 380);
+    step("点 TERMINAL 图标");
+    std::strcpy(g_term_inject, "help"); g_term_inject_seq++; run(200);
+    step("执行一条命令（模拟器里不真正执行）");                 save("gui-term");
+    tap(40, 38);
+    step("返回首页");
 
     std::printf("\n共重画控件 %lu 次\n", (unsigned long)g_gui_redraws);
     return 0;

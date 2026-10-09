@@ -48,3 +48,8 @@ void app_image_done(void) { g_sim_image_done++; }
 /* 设备页「上次复位」：模拟器里假装上次是上电复位、没有故障记录 */
 volatile fault_record g_last_fault;
 volatile uint32_t g_reset_flags = RCC_CSR_PORRSTF | RCC_CSR_PINRSTF;
+
+/* 终端页的命令在模拟器里不执行（要用到 FreeRTOS、DWT、外部 SRAM），只回一行说明，用来看界面 */
+#include "shell.h"
+void shell_exec(const char *line, shell_out out, void *ctx) { (void)line; out("(simulator: commands run on the board)", ctx); }
+const char *shell_complete(const char *prefix) { (void)prefix; return 0; }

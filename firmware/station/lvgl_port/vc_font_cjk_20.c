@@ -1,7 +1,7 @@
 /*******************************************************************************
  * Size: 20 px
  * Bpp: 4
- * Opts: --font /tmp/tmp.37SIo1GWfQ/sc.otf -r 0x20-0x7E --symbols °–一上下不亮件任位低余作偏停光内出击分划到剩务压原参口号合和响唯喂器因固地址型堆复孔字存寄工已帧应度开录待心或手找指按接操收故数时最有未本机松果标栈格检次止池污没测温溢演点照片版狗电痕看知示秒窗等累结编缺考能节芯行计记译试误调软过运近连都钟错键门间障鼠（），： --size 20 --bpp 4 --format lvgl --lv-font-name vc_font_cjk_20 --lv-include lvgl.h --no-compress -o /home/deck/Games/claude/VisionCraft/firmware/station/lvgl_port/vc_font_cjk_20.c
+ * Opts: --font /tmp/tmp.580iNtmTOZ/sc.otf -r 0x20-0x7E --symbols °–一上下不亮件任位低余作偏停光内出击分划到剩务压原参口号合和响唯喂器因固地址型堆复孔字存寄工已帧应度开录待心或手找指按接操收故数时最有未本机松果标栈格检次止池污没测温溢演点照片版狗电痕看知示秒窗等累结编缺考能节芯行计记译试误调软过运近连都钟错键门间障鼠（），： --size 20 --bpp 4 --format lvgl --lv-font-name vc_font_cjk_20 --lv-include lvgl.h --no-compress -o /home/deck/Games/claude/VisionCraft/firmware/station/lvgl_port/vc_font_cjk_20.c
  ******************************************************************************/
 
 #ifdef LV_LVGL_H_INCLUDE_SIMPLE

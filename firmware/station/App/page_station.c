@@ -175,6 +175,7 @@ void pages_init(void)
     build();
     sensors_build();
     device_build();
+    term_build();
     lvgl_page_build();
 }
 

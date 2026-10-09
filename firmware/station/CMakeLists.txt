@@ -86,6 +86,8 @@ target_sources(${CMAKE_PROJECT_NAME} PRIVATE
     App/page_classic_device.c
     App/lv_ui.c
     App/fault.c
+    App/shell.c
+    App/page_term.c
     App/touch.c
     App/mouse.c
     App/cursor.c
@@ -93,6 +95,7 @@ target_sources(${CMAKE_PROJECT_NAME} PRIVATE
     lvgl_port/lv_port.c
     lvgl_port/vc_font_cjk_20.c
     lvgl_port/vc_font_big_72.c
+    lvgl_port/vc_font_mono_16.c
     # 与上位机共用的协议代码
     ${CMAKE_CURRENT_SOURCE_DIR}/../../protocol/vc_protocol.c
 )

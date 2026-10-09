@@ -58,6 +58,6 @@ Section {
     }
 
     InSystem {
-        text: qsTr("工位固件还没有触摸功能，这一节是实验固件。要正式加入，需要在 station.ioc 里配好 PB0、PF11、PB1、PC13，把 touchterm.c 的驱动部分搬进 App/，在 StationTask 的循环里加上读触摸、处理按键，并决定输入的内容做什么用（比如作为操作员编号，随检测结果一起经 RTT 发给上位机）。")
+        text: qsTr("这一节是实验固件。后来触摸驱动搬进了工位固件（App/touch.c，见「事件与控件」），终端也正式做成了一页：LVGL 的键盘加一个命令解析器，见「终端页：命令解析与 LVGL 键盘」。")
     }
 }

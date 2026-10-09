@@ -1,0 +1,68 @@
+==== 1. 板上测试：tools/term_probe.tcl（调试器点开终端页，往 g_term_inject 写命令，读回 g_term_log 新增的输出）====
+$ openocd ... -c "reset run" -c "after 4000" -c "set g_gui_inject 0x…; …" -f tools/term_probe.tcl -c exit
+点 TERMINAL 图标 → 页面 TERMINAL
+  | type a command, or tap one below
+  | > help
+  | help     list commands
+  | uptime   time since boot
+  | ps       tasks: state, priority, free stack
+  | free     freertos heap, lvgl pool
+  | sensors  temperature, light, vdda
+  | beep     beep <ms>
+  | bl       backlight <10-100>
+  | sram     external sram self-test
+  | recipe   recipe stored in eeprom
+  | last     last reset cause and fault record
+  | reboot   software reset
+  | > uptime
+  | up 0h 0m 6s
+  | > ps
+  | TASK         S PRIO STACK-FREE
+  | stationTask  R   24      4004
+  | USBH_Queue   r   24       764
+  | envTask      r   16      1324
+  | IDLE         r    0       432
+  | linkTask     B   32      1736
+  | Tmr Svc      B    2       892
+  | > free
+  | freertos heap  free 18984  min 18984
+  | lvgl pool      used 34080  peak 35160  of 45056
+  | > sensors
+  | temp 43.48 C  light 3.2 %  vdda 3293 mV
+  | > sram
+  | sram 0x68010000 +64KB: 0 bad words
+  | write 26414 KB/s  read 18500 KB/s
+  | > recipe
+  | surface 18  area 12  offset 6.0
+  | chip 5.0  scratch 3.0
+  | > last
+  | RCC_CSR 0x14000000
+  | no fault record
+  | > bl 50
+  | backlight 50 %
+  | > bl 80
+  | backlight 80 %
+  | > beep 50
+  | beep 50 ms
+  | > bl 5
+  | usage: bl <10-100>
+  | > foo
+  | unknown command: foo (try help)
+背光 PWM 占空比 80.0 %（bl 80 之后）
+点屏上的 help 按钮：
+  | > help
+  | help     list commands
+  | uptime   time since boot
+  | ps       tasks: state, priority, free stack
+  | free     freertos heap, lvgl pool
+  | sensors  temperature, light, vdda
+  | beep     beep <ms>
+  | bl       backlight <10-100>
+  | sram     external sram self-test
+  | recipe   recipe stored in eeprom
+  | last     last reset cause and fault record
+  | reboot   software reset
+一共执行了 14 条命令
+reboot 之后：RCC_CSR=0x14000000
+
+（之后由人用手指在屏幕键盘上敲 ps、点 sensors 按钮：「正常，对得齐」）

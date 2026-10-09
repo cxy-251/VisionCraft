@@ -95,6 +95,7 @@ target_sources(${CMAKE_PROJECT_NAME} PRIVATE
     App/page_mines.c
     App/page_snake.c
     App/page_tetris.c
+    App/page_paint.c
     App/touch.c
     App/mouse.c
     App/cursor.c

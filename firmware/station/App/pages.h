@@ -17,6 +17,7 @@ extern const gui_page g_page_games;           /* 二级首页：下面是各个�
 extern const gui_page g_page_mines;
 extern const gui_page g_page_snake;
 extern const gui_page g_page_tetris;
+extern const gui_page g_page_paint;
 extern const gui_page g_page_classic;           /* 二级首页：下面是手写框架版的三个页面 */
 extern const gui_page g_page_classic_station;
 extern const gui_page g_page_classic_sensors;

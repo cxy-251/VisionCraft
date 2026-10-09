@@ -248,6 +248,7 @@ HandbookIndex {
             Entry { title: qsTr("只保留当前页：LVGL 页面的建与删"); file: "handbook/f407/gui/LazyPages.qml" }
             Entry { title: qsTr("设置页：EEPROM 里的设置与闲置调暗"); file: "handbook/f407/gui/Settings.qml" }
             Entry { title: qsTr("小游戏：格子、节拍与只重画变了的格子"); file: "handbook/f407/gui/Games.qml" }
+            Entry { title: qsTr("画板：外部 SRAM 里的画布"); file: "handbook/f407/gui/Paint.qml" }
         }
         Chapter {
             title: qsTr("存储")

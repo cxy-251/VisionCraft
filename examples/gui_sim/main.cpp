@@ -4,6 +4,7 @@
 #include <QImage>
 #include <cstdio>
 #include <cstring>
+#include <cmath>
 #include <tuple>
 
 extern "C" {
@@ -20,6 +21,7 @@ extern volatile uint32_t g_lv_flushes, g_lv_flush_px, g_lv_clicks;
 extern volatile int32_t g_lv_slider;
 extern uint8_t g_sim_backlight;
 extern char g_term_inject[64];
+extern volatile uint32_t g_paint_strokes, g_paint_points, g_paint_max_gap;
 
 extern volatile uint32_t g_term_inject_seq;
 extern int g_sim_result_fresh, g_sim_image_fresh, g_sim_image_done;
@@ -217,6 +219,25 @@ int main(int argc, char *argv[])
     step("消行");                                                  save("gui-tetris-clear");
     tap(40, 38); tap(40, 38);
     step("返回两次，回到首页");
+
+    std::printf("\n==== 12. 画板 ====\n");
+    tap(392, 580);
+    step("点 PAINT（第一次进来：铺一张白纸）");
+    tap(8 + 60 + 28, 76 + 8 + 610 + 28);                              // 选红色
+    ev(GUI_DOWN, 40, 160);                                           // 快速划一笔：每隔 20 ms 才采到一个点，相邻点隔 60 多像素
+    for (int i = 1; i <= 6; ++i) { run(20); ev(GUI_MOVE, 40 + i * 60, 160 + i * 40); }
+    run(20); ev(GUI_UP, 400, 400); run(100);
+    tap(8 + 4 * 60 + 28, 76 + 8 + 610 + 28);                         // 选蓝色
+    ev(GUI_DOWN, 60, 600);                                           // 慢慢画一段波浪：点很密
+    for (int i = 1; i <= 80; ++i) { run(20); ev(GUI_MOVE, 60 + i * 4, 600 - int(60 * std::sin(i / 8.0))); }
+    run(20); ev(GUI_UP, 60 + 80 * 4, 600 - int(60 * std::sin(80 / 8.0))); run(100);   // 抬起在最后一个点（真实触摸也是这样）
+    std::printf("    画了 %u 笔、%u 个点，相邻两点最远隔 %u 像素\n", (unsigned)g_paint_strokes, (unsigned)g_paint_points, (unsigned)g_paint_max_gap);
+    std::printf("    快的那一笔中间（两个采样点之间）(130, 220) 的像素 0x%04x（红色是 0x%04x）\n", g_fb[220][130], 0xd924);
+    step("画两笔");                                                save("gui-paint");
+    tap(40, 38); tap(392, 580);
+    std::printf("    离开再回来：(130, 220) 的像素 0x%04x\n", g_fb[220][130]);
+    step("离开再回来，画还在");
+    tap(40, 38);
 
     std::printf("\n共重画控件 %lu 次\n", (unsigned long)g_gui_redraws);
     return 0;

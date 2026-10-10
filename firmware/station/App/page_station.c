@@ -229,6 +229,7 @@ void pages_background(uint32_t now)
         classic_thumbnail(iw, ih, pixels);
         app_image_done();
     }
+    term_remote_poll();                /* 上位机的命令行：命令要在这个任务里执行 */
     sensors_record(now);               /* 传感器历史：LVGL 版、手写版各记一份 */
     classic_sensors_record(now);
 }

@@ -227,6 +227,85 @@ Item {
                 }
             }
 
+            // ---------------- 板子终端 ----------------
+            // 命令在板子上执行（和板子「终端」页敲的是同一个 shell_exec），输出经链路送回来
+            Card {
+                id: shellCard
+                Layout.leftMargin: 40
+                Layout.rightMargin: 40
+                title: qsTr("板子终端（远程）")
+
+                property var history: []
+                property int historyIdx: 0
+
+                function run(cmd) {
+                    cmd = cmd.trim()
+                    if (cmd.length === 0) return
+                    if (cmd === "clear") { shellOut.text = ""; return }   // 只清这边的显示，不发给板子
+                    history = history.filter(h => h !== cmd).concat([cmd]).slice(-50)
+                    historyIdx = history.length
+                    DeviceLink.shell(cmd)
+                }
+
+                Connections {
+                    target: DeviceLink
+                    function onShellReply(command, ok, output) {
+                        let t = shellOut.text + (shellOut.text.length ? "\n" : "") + "> " + command
+                        if (output.length) t += "\n" + (ok ? output : "! " + output)
+                        if (t.length > 20000) t = t.slice(t.indexOf("\n", t.length - 20000) + 1)   // 只留最后约 2 万字
+                        shellOut.text = t
+                        shellOut.cursorPosition = shellOut.length
+                    }
+                }
+
+                Flow {
+                    Layout.fillWidth: true
+                    spacing: 8
+                    Repeater {
+                        model: ["help", "uptime", "ps", "free", "sensors", "last", "settings", "sram"]
+                        ActionButton { required property string modelData; text: modelData; enabled: page.connected; onClicked: shellCard.run(modelData) }
+                    }
+                    ActionButton { text: qsTr("清空"); enabled: shellOut.text.length > 0; onClicked: shellOut.text = "" }
+                }
+                ScrollView {
+                    Layout.fillWidth: true
+                    Layout.preferredHeight: 260
+                    background: Rectangle { radius: 6; color: Theme.codeBg; border.color: Theme.border }
+                    TextArea {
+                        id: shellOut
+                        readOnly: true
+                        selectByMouse: true
+                        wrapMode: TextEdit.NoWrap
+                        font.family: SourceProvider.monoFont
+                        font.pixelSize: 12
+                        color: Theme.text
+                        placeholderText: page.connected ? qsTr("点上面的按钮，或在下面输入命令（help 列出全部命令）")
+                                                        : qsTr("连接板子后可以在这里执行板子的终端命令")
+                        placeholderTextColor: Theme.textFaint
+                        background: null
+                    }
+                }
+                TextField {
+                    id: shellInput
+                    Layout.fillWidth: true
+                    enabled: page.connected
+                    maximumLength: 63
+                    placeholderText: qsTr("命令，回车执行；↑↓ 翻历史")
+                    font.family: SourceProvider.monoFont
+                    font.pixelSize: 13
+                    color: Theme.text
+                    background: Rectangle { radius: 6; color: Theme.codeBg; border.color: shellInput.activeFocus ? Theme.accent : Theme.border }
+                    onAccepted: { shellCard.run(text); text = "" }
+                    Keys.onUpPressed: {
+                        if (shellCard.historyIdx > 0) text = shellCard.history[--shellCard.historyIdx]
+                    }
+                    Keys.onDownPressed: {
+                        if (shellCard.historyIdx < shellCard.history.length - 1) text = shellCard.history[++shellCard.historyIdx]
+                        else { shellCard.historyIdx = shellCard.history.length; text = "" }
+                    }
+                }
+            }
+
             // ---------------- 烧录 ----------------
             Card {
                 Layout.leftMargin: 40

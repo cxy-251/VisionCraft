@@ -2,6 +2,7 @@
  * 见手册「终端页：命令解析与 LVGL 键盘」。 */
 #include "pages.h"
 
+#include "app.h"
 #include "lv_port.h"
 #include "lv_ui.h"
 #include "shell.h"
@@ -54,6 +55,52 @@ static void run(const char *cmd)
     shell_exec(cmd, append, 0);
     g_term_runs++;
     show_log();
+}
+// [endregion]
+
+// [region remote]
+/* 上位机发来的命令：和在屏上敲的一样执行、一样记进输出（前面标 PC>），输出同时攒起来作为应答发回去 */
+volatile uint32_t g_term_remote_runs;  /* 上位机执行过几条命令 */
+
+typedef struct {
+    uint8_t buf[VC_MAX_PAYLOAD];       /* 第 0 字节是状态码，后面是文字 */
+    uint16_t len;
+} remote_reply;
+
+static void collect(const char *line, void *ctx)
+{
+    remote_reply *r = ctx;
+    append(line, 0);
+    const size_t n = strlen(line);
+    if (r->len + 1u + n > sizeof r->buf) return;   /* 一帧装不下的行丢掉（现有命令的输出都不到 1 KB） */
+    if (r->len > 1) r->buf[r->len++] = '\n';
+    memcpy(r->buf + r->len, line, n);
+    r->len = (uint16_t)(r->len + n);
+}
+
+void term_remote_poll(void)
+{
+    char cmd[64];
+    uint8_t seq;
+    if (!app_take_shell(cmd, &seq))
+        return;
+    static remote_reply r;             /* 1 KB，放静态区不放任务栈 */
+    r.buf[0] = VC_OK;
+    r.len = 1;
+    char echo[72];
+    lv_snprintf(echo, sizeof echo, "PC> %s", cmd);
+    append(echo, 0);
+    if (strncmp(cmd, "reboot", 6) == 0 && (cmd[6] == 0 || cmd[6] == ' ')) {
+        /* reboot 执行完就复位了，没有机会再回应答：先回一句，等上位机取走了再执行 */
+        static const char kMsg[] = "\0rebooting";
+        app_send(VC_RSP(VC_CMD_SHELL), seq, kMsg, sizeof kMsg - 1);
+        app_tx_flush(200);
+    }
+    shell_exec(cmd, collect, &r);
+    g_term_runs++;
+    g_term_remote_runs++;
+    show_log();                        /* 终端页正在显示就刷新；不在显示时 s_out 是空的，什么也不做 */
+    app_send(VC_RSP(VC_CMD_SHELL), seq, r.buf, r.len);
 }
 // [endregion]
 

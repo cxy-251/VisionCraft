@@ -1,5 +1,5 @@
 /* 板上命令行：解析一行命令、执行、把结果一行一行交给 out。和界面无关：
- * 现在由终端页（page_term.c）调用，以后串口或上位机链路也可以调用同一个 shell_exec。见手册「终端页：命令解析与 LVGL 键盘」。 */
+ * 终端页（page_term.c）和上位机链路（SHELL 命令，也在 page_term.c）调用同一个 shell_exec。见手册「终端页：命令解析与 LVGL 键盘」。 */
 #ifndef VC_SHELL_H
 #define VC_SHELL_H
 

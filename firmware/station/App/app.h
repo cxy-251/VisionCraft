@@ -14,6 +14,8 @@ void app_init(void);
 
 /* 发一帧给上位机。任何任务都可以调用（内部加锁）；不能在中断里调用。 */
 void app_send(uint8_t type, uint8_t seq, const void *payload, uint16_t len);
+/* 等已经发出的帧全被上位机取走（最多 timeout_ms 毫秒），复位前用。取走了返回 1 */
+int app_tx_flush(uint32_t timeout_ms);
 
 /* 让蜂鸣器响 ms 毫秒，立即返回（由 StationTask 负责开关） */
 void app_beep(uint16_t ms);
@@ -46,6 +48,10 @@ uint8_t app_image_begin(uint16_t w, uint16_t h);                         /* 返�
 uint8_t app_image_data(uint32_t offset, const uint8_t *data, uint16_t len);
 int     app_take_image(uint16_t *w, uint16_t *h, const uint16_t **pixels);  /* 有新图返回 1 */
 void    app_image_done(void);                                            /* StationTask 画完后调用 */
+
+/* 上位机的命令行：LinkTask 收到 SHELL 先放下，StationTask 执行后自己回应答（bl、reboot 这些命令要在 StationTask 里做） */
+uint8_t app_post_shell(uint8_t seq, const uint8_t *cmd, uint16_t len);   /* 返回 vc_status；VC_OK 表示已接下 */
+int     app_take_shell(char cmd[64], uint8_t *seq);                       /* 有一条等着执行返回 1 */
 
 /* 给「设备」页的信息（app.c；电脑上的模拟器另有一份假的实现） */
 void     app_chip_uid(uint32_t uid[3]);

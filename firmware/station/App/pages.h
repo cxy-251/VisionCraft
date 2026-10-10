@@ -39,5 +39,6 @@ void classic_thumbnail(uint16_t w, uint16_t h, const uint16_t *pixels);
 
 /* 不管当前显示哪一页，StationTask 都要周期调用：取走上位机发来的结果 / 缩略图、记录传感器历史 */
 void pages_background(uint32_t now_ms);
+void term_remote_poll(void);           /* page_term.c：执行上位机发来的命令（不管哪一页在前台） */
 
 #endif

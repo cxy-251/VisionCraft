@@ -22,6 +22,9 @@ size_t vc_rtt_write(const void *data, size_t len, uint32_t timeout_ms);
 /* 从下行缓冲区读出最多 cap 个字节，返回实际读到的字节数，不阻塞 */
 size_t vc_rtt_read(void *dst, size_t cap);
 
+/* 等调试器把上行缓冲区读空，最多等 timeout_ms 毫秒。读空了返回 1 */
+int vc_rtt_flush(uint32_t timeout_ms);
+
 /* 因为上行缓冲区满而丢弃的字节数（调试器没在读时会增长） */
 uint32_t vc_rtt_dropped(void);
 

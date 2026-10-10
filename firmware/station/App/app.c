@@ -6,6 +6,8 @@
 #include "vc_protocol.h"
 #include "vc_rtt.h"
 
+#include <string.h>
+
 static osMutexId_t s_txMutex;
 osMessageQueueId_t g_beepQueue;   /* station.c 里消费 */
 
@@ -29,6 +31,11 @@ void app_send(uint8_t type, uint8_t seq, const void *payload, uint16_t len)
     osMutexRelease(s_txMutex);
 }
 // [endregion]
+
+int app_tx_flush(uint32_t timeout_ms)
+{
+    return vc_rtt_flush(timeout_ms);
+}
 
 // [region beep]
 void app_beep(uint16_t ms)
@@ -63,10 +70,39 @@ int app_take_result(vc_result *out)
     return fresh;
 }
 
+// [region shell]
+/* ---- 上位机的命令行：一次只放一条，上一条还没执行完就回「忙」 ---- */
+static char s_shellCmd[64];
+static uint8_t s_shellSeq;
+static volatile uint8_t s_shellPending;
+
+uint8_t app_post_shell(uint8_t seq, const uint8_t *cmd, uint16_t len)
+{
+    if (len == 0 || len >= sizeof s_shellCmd)
+        return VC_ERR_ARGS;
+    if (s_shellPending)
+        return VC_ERR_BUSY;
+    memcpy(s_shellCmd, cmd, len);
+    s_shellCmd[len] = 0;
+    s_shellSeq = seq;
+    s_shellPending = 1;                /* 最后才置位：StationTask 看到它时命令已经写好了 */
+    return VC_OK;
+}
+
+int app_take_shell(char cmd[64], uint8_t *seq)
+{
+    if (!s_shellPending)
+        return 0;
+    memcpy(cmd, s_shellCmd, sizeof s_shellCmd);
+    *seq = s_shellSeq;
+    s_shellPending = 0;
+    return 1;
+}
+// [endregion]
+
 /* ---- 缩略图 ----
  * 缓冲区 160×120×2 = 38400 字节，放在普通 RAM 里。LinkTask 往里写，StationTask 从里读；
  * 用 s_imageState 保证两边不同时碰它：画的时候不接收新图（回 BUSY），收的时候不画 */
-#include <string.h>
 
 static uint16_t s_image[VC_THUMB_MAX_W * VC_THUMB_MAX_H];
 static uint16_t s_imageW, s_imageH;

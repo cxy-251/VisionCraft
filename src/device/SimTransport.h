@@ -29,6 +29,7 @@ private:
     void send(uint8_t type, uint8_t seq, const QByteArray &payload);
     void sendTelemetry();
     QByteArray infoPayload() const;
+    QByteArray shellOutput(const QByteArray &line);
 
     // 一个方向的「线」：数据按发出的顺序、晚 m_latencyMs 毫秒送到另一头。
     // 以前每段数据各开一个 singleShot，两个到期时间相同的定时器谁先触发没有保证——

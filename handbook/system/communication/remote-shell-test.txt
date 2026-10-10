@@ -1,0 +1,96 @@
+==== 1. 上位机逐条执行板上命令（最后连发两条 uptime 不等应答）
+$ ./build/tools/vclink_probe rtt shell help uptime ps free sensors sram last settings "bl 60" "bl 100" "beep 30" frobnicate reboot uptime
+[link  ] 启动 OpenOCD
+[link  ] 已连上 OpenOCD，检查芯片在运行什么
+[link  ] 找到 RTT 控制块，打开数据通道
+[link  ] 已连接：ST-Link（RTT）
+[event ] 板子启动完成
+[event ] HELLO：板子重新启动完成
+[ok    ] 固件 0.1.0，编译于 Oct 09 2026 23:44:18，芯片 UID 17002E001351363530353037
+[ok    ] SUB_TEL  订阅遥测（1000 ms） 完成（6.5 ms）
+[shell ] > help  (ok, 13.3 ms)
+         help     list commands
+         uptime   time since boot
+         ps       tasks: state, priority, free stack
+         free     freertos heap, lvgl pool
+         sensors  temperature, light, vdda
+         beep     beep <ms>
+         bl       backlight <10-100>
+         sram     external sram self-test
+         recipe   recipe stored in eeprom
+         last     last reset cause and fault record
+         settings current settings
+         ee       ee <addr> [len]: dump eeprom bytes
+         reboot   software reset
+[shell ] > uptime  (ok, 8.3 ms)
+         up 0h 0m 24s
+[shell ] > ps  (ok, 14.8 ms)
+         TASK         S PRIO STACK-FREE
+         stationTask  R   24      7296
+         envTask      r   16      1324
+         IDLE         r    0       428
+         linkTask     B   32      1736
+         USBH_Queue   B   24       756
+         Tmr Svc      B    2       896
+[shell ] > free  (ok, 7.6 ms)
+         freertos heap  free 18904  min 18904
+         lvgl pool      used 0  peak 0  of 45056
+[shell ] > sensors  (ok, 11.5 ms)
+         temp 37.19 C  light 87.3 %  vdda 3286 mV
+[shell ] > sram  (ok, 12.9 ms)
+         sram 0x680F0000 +64KB: 0 bad words
+         write 26202 KB/s  read 18558 KB/s
+[shell ] > last  (ok, 11.7 ms)
+         RCC_CSR 0x0e000000
+         no fault record
+[shell ] > settings  (ok, 7.4 ms)
+         brightness 29  key_beep 1  dim 1 min
+         loaded rc 0  saved 0 times  dimmed 0
+[shell ] > bl 60  (ok, 11.9 ms)
+         backlight 60 % (not saved)
+[shell ] > bl 100  (ok, 8.4 ms)
+         backlight 100 % (not saved)
+[shell ] > beep 30  (ok, 12.8 ms)
+         beep 30 ms
+[shell ] > frobnicate  (ok, 8.0 ms)
+         unknown command: frobnicate (try help)
+[shell ] > reboot  (ok, 13.5 ms)
+         rebooting
+[event ] 板子启动完成
+[event ] HELLO：板子重新启动完成
+[ok    ] 固件 0.1.0，编译于 Oct 09 2026 23:44:18，芯片 UID 17002E001351363530353037
+[shell ] > uptime  (ok, 6.6 ms)
+         up 0h 0m 3s
+[shell ] > uptime  (fail, 5.7 ms)
+         板子上一条命令还没执行完
+[shell ] > uptime  (ok, 5.7 ms)
+         up 0h 0m 4s
+
+==== 2. 同一时间板子终端页的输出缓冲（调试器读 g_term_log 开头一段，读 g_term_remote_runs）
+reboot 之后缓冲从空开始：先是第 1 部分最后执行成功的两条 uptime（回「忙」的那条没有执行，也没有记下），
+之后启动了三次 VisionCraft，每次连上后自动执行 uptime ps free sram（截图用）。一共 2 + 3 × 4 = 14 条，和 remote_runs 0xe 对得上
+PC> uptime
+up 0h 0m 3s
+PC> uptime
+up 0h 0m 4s
+PC> uptime
+up 0h 0m 16s
+PC> ps
+TASK         S PRIO STACK-FREE
+stationTask  R   24      7328
+envTask      r   16      1308
+IDLE         r    0       428
+linkTask     B   32      1600
+USBH_Queue   B   24       740
+Tmr Svc      B    2       896
+PC> free
+freertos heap  free 18904  min 18904
+lvgl pool      used 0  peak 0  of 45056
+PC> sram
+sram 0x680F0000 +64KB: 0 bad words
+write 26519 KB/s  read 18545 KB/s
+……
+remote_runs 0xe
+
+==== 3. 上位机的等宽字体（在 SourceProvider::monoFont 里临时打印一行，跑一次后删掉）
+MONOFONT system=monospace resolved=Noto Sans CJK JP fixed=0 chosen=DejaVu Sans Mono

@@ -318,6 +318,7 @@ QString DeviceLink::commandName(uint8_t type)
     case VC_CMD_IMAGE_DATA: return QStringLiteral("IMAGE_DATA");
     case VC_CMD_RECIPE_GET: return QStringLiteral("RECIPE_GET");
     case VC_CMD_RECIPE_SET: return QStringLiteral("RECIPE_SET");
+    case VC_CMD_SHELL: return QStringLiteral("SHELL");
     }
     return QStringLiteral("0x%1").arg(type, 2, 16, QLatin1Char('0'));
 }
@@ -413,6 +414,29 @@ int DeviceLink::sendResult(bool ok, int defect, int inspectMs, int total, int ng
 }
 
 // ------------------------------------------------------------------ 配方
+
+// [region shell]
+int DeviceLink::shell(const QString &command)
+{
+    const QByteArray line = command.trimmed().toLatin1();
+    // 板子的命令行只认 ASCII、一行最长 63 个字符
+    if (line.isEmpty() || line.size() > 63 || command.trimmed() != QString::fromLatin1(line)) {
+        emit shellReply(command, false, tr("命令只能是 1–63 个 ASCII 字符"));
+        return -1;
+    }
+    // 命令在板子的 StationTask 里执行（sram 自检之类要几十毫秒），超时放宽到 3 秒
+    return request(VC_CMD_SHELL, line, [this, command](bool ok, int status, const QByteArray &payload) {
+        if (ok)
+            emit shellReply(command, true, QString::fromUtf8(payload));
+        else if (status == VC_ERR_BUSY)
+            emit shellReply(command, false, tr("板子上一条命令还没执行完"));
+        else if (status == VC_ERR_UNKNOWN)
+            emit shellReply(command, false, tr("这版固件没有远程终端，请烧录新固件"));
+        else
+            emit shellReply(command, false, status < 0 ? tr("没有应答") : tr("执行失败（%1）").arg(status));
+    }, 3000);
+}
+// [endregion]
 
 int DeviceLink::getRecipe()
 {

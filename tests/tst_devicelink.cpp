@@ -180,6 +180,26 @@ private slots:
         QCOMPARE(r.value("maxCenterOffset").toDouble(), 5.5);   // ×10 存整数，往返不失真
     }
 
+    void shellRunsCommands()
+    {
+        DeviceLink link;
+        connectAndSettle(link);
+        QSignalSpy spy(&link, &DeviceLink::shellReply);
+        link.shell("help");
+        QTRY_COMPARE(spy.size(), 1);
+        QVERIFY(spy.at(0).at(1).toBool());
+        const QStringList lines = spy.at(0).at(2).toString().split('\n');
+        QCOMPARE(lines.size(), 13);                               // 和固件的命令表一样多
+        QVERIFY(lines.first().startsWith("help     list commands"));
+        link.shell("frobnicate");
+        QTRY_COMPARE(spy.size(), 2);
+        QCOMPARE(spy.at(1).at(2).toString(), QString("unknown command: frobnicate (try help)"));
+        QCOMPARE(link.shell(QString("x").repeated(64)), -1);     // 超长：不发，直接报错
+        QCOMPARE(link.shell(QString::fromUtf8("帮助")), -1);      // 板子只认 ASCII
+        QCOMPARE(spy.size(), 4);
+        QVERIFY(!spy.at(3).at(1).toBool());
+    }
+
     void disconnectFailsPendingRequests()
     {
         DeviceLink link;

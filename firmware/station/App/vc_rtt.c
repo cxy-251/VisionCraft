@@ -101,6 +101,16 @@ size_t vc_rtt_read(void *dst, size_t cap)
     return n;
 }
 
+int vc_rtt_flush(uint32_t timeout_ms)
+{
+    for (uint32_t waited = 0; s_cb.up[0].rd_off != s_cb.up[0].wr_off; ++waited) {
+        if (waited >= timeout_ms)
+            return 0;
+        osDelay(1);
+    }
+    return 1;
+}
+
 uint32_t vc_rtt_dropped(void)
 {
     return s_dropped;

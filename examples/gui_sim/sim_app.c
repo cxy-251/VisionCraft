@@ -53,6 +53,10 @@ volatile uint32_t g_reset_flags = RCC_CSR_PORRSTF | RCC_CSR_PINRSTF;
 #include "shell.h"
 void shell_exec(const char *line, shell_out out, void *ctx) { (void)line; out("(simulator: commands run on the board)", ctx); }
 const char *shell_complete(const char *prefix) { (void)prefix; return 0; }
+/* 上位机的命令行：模拟器里没有链路 */
+int app_take_shell(char cmd[64], uint8_t *seq) { (void)cmd; (void)seq; return 0; }
+void app_send(uint8_t type, uint8_t seq, const void *payload, uint16_t len) { (void)type; (void)seq; (void)payload; (void)len; }
+int app_tx_flush(uint32_t timeout_ms) { (void)timeout_ms; return 1; }
 
 /* 设置页存在 EEPROM：模拟器里用一块内存假装，新芯片全是 0xFF */
 #include "eeprom.h"

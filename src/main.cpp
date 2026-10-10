@@ -8,6 +8,7 @@
 #include <QQuickWindow>
 #include <QQuickItem>
 #include <QTimer>
+#include <memory>
 
 // 开发辅助：设置 VC_SNAPSHOT=<文件.png> 时，启动后等 VC_SNAPSHOT_DELAY 毫秒（默认 2500）
 // 把主窗口截图保存下来并退出，用于在没人看屏幕时检查界面
@@ -90,7 +91,18 @@ int main(int argc, char *argv[])
                 link->connectRtt();
             else
                 link->connectSimulator();
-
+            // VC_SHELL=help;uptime：连上后依次在板子上执行这几条终端命令（截图用）
+            const QStringList cmds = qEnvironmentVariable("VC_SHELL").split(QLatin1Char(';'), Qt::SkipEmptyParts);
+            if (!cmds.isEmpty()) {
+                auto conn = std::make_shared<QMetaObject::Connection>();
+                *conn = QObject::connect(link, &DeviceLink::stateChanged, link, [link, cmds, conn] {
+                    if (link->state() != DeviceLink::Connected)
+                        return;
+                    QObject::disconnect(*conn);
+                    for (int i = 0; i < cmds.size(); ++i)   // 一条一条来：板子一次只接一条
+                        QTimer::singleShot(500 + 400 * i, link, [link, c = cmds[i]] { link->shell(c); });
+                });
+            }
         }
     }
     scheduleSnapshot(engine);

@@ -158,6 +158,13 @@ void SimTransport::handle(const vc_frame &f)
         m_recipe = payload;
         send(VC_RSP(f.type), f.seq, QByteArray(1, ok));
         break;
+    case VC_CMD_SHELL:
+        if (f.len == 0 || f.len > 63) {
+            send(VC_RSP(f.type), f.seq, QByteArray(1, char(VC_ERR_ARGS)));
+            break;
+        }
+        send(VC_RSP(f.type), f.seq, QByteArray(1, ok) + shellOutput(payload));
+        break;
     case VC_CMD_RESULT: {
         vc_result r;
         if (vc_result_read(&r, f.payload, f.len) != 0) {
@@ -172,6 +179,50 @@ void SimTransport::handle(const vc_frame &f)
             send(VC_RSP(f.type), f.seq, QByteArray(1, char(VC_ERR_UNKNOWN)));
         break;
     }
+}
+
+// 板子终端的模拟：命令表和输出格式照抄 firmware/station/App/shell.c；
+// 只有 help、uptime、beep 在模拟器里真的执行，其余命令要读板子上的硬件，回一句说明
+QByteArray SimTransport::shellOutput(const QByteArray &line)
+{
+    static const char *const kCommands[][2] = {
+        {"help", "list commands"},
+        {"uptime", "time since boot"},
+        {"ps", "tasks: state, priority, free stack"},
+        {"free", "freertos heap, lvgl pool"},
+        {"sensors", "temperature, light, vdda"},
+        {"beep", "beep <ms>"},
+        {"bl", "backlight <10-100>"},
+        {"sram", "external sram self-test"},
+        {"recipe", "recipe stored in eeprom"},
+        {"last", "last reset cause and fault record"},
+        {"settings", "current settings"},
+        {"ee", "ee <addr> [len]: dump eeprom bytes"},
+        {"reboot", "software reset"},
+    };
+    const QList<QByteArray> argv = line.simplified().split(' ');
+    const QByteArray &name = argv.first();
+    if (name == "help") {
+        QByteArrayList out;
+        for (const auto &c : kCommands)
+            out << QByteArray(c[0]).leftJustified(8, ' ') + ' ' + c[1];
+        return out.join('\n');
+    }
+    if (name == "uptime") {
+        const qint64 s = m_uptime.elapsed() / 1000;
+        return QStringLiteral("up %1h %2m %3s").arg(s / 3600).arg(s / 60 % 60).arg(s % 60).toLatin1();
+    }
+    if (name == "beep") {
+        const int ms = argv.size() > 1 ? argv[1].toInt() : 100;
+        if (ms <= 0 || ms > 2000)
+            return "usage: beep <1-2000 ms>";
+        send(VC_EVT_LOG, m_eventSeq++, QStringLiteral("模拟蜂鸣 %1 ms").arg(ms).toUtf8());
+        return "beep " + QByteArray::number(ms) + " ms";
+    }
+    for (const auto &c : kCommands)
+        if (name == c[0])
+            return "(simulator: " + name + " reads the board's hardware, connect a real board)";
+    return "unknown command: " + name + " (try help)";
 }
 
 void SimTransport::sendTelemetry()

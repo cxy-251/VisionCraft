@@ -3,6 +3,7 @@
 #include <QFile>
 #include <QFileInfo>
 #include <QFontDatabase>
+#include <QFontInfo>
 #include <QLoggingCategory>
 #include <QQmlEngine>
 #include <QRegularExpression>
@@ -73,7 +74,21 @@ SourceProvider::SourceProvider(QObject *parent)
 
 QString SourceProvider::monoFont() const
 {
-    return QFontDatabase::systemFont(QFontDatabase::FixedFont).family();
+    // 系统的「等宽字体」不一定真等宽：Steam Deck 上 monospace 被 fontconfig 指到了 Noto Sans CJK，
+    // 终端输出的列就对不齐。实际解析出来的字体不等宽时，换第一个装了的等宽字体
+    static const QString family = [] {
+        const QFont system = QFontDatabase::systemFont(QFontDatabase::FixedFont);
+        if (QFontInfo(system).fixedPitch())
+            return system.family();
+        for (const char *name : {"DejaVu Sans Mono", "Noto Sans Mono", "Hack", "Adwaita Mono", "Liberation Mono",
+                                 "Consolas", "Menlo", "Courier New"}) {
+            const QFont f(QString::fromLatin1(name));
+            if (QFontInfo(f).family() == f.family() && QFontInfo(f).fixedPitch())
+                return f.family();
+        }
+        return system.family();
+    }();
+    return family;
 }
 
 QString SourceProvider::diskPath(const QString &path) const

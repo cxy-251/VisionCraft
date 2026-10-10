@@ -116,6 +116,16 @@ static void handle(const vc_frame *f)
         break;
     }
 
+    // [region shell]
+    case VC_CMD_SHELL: {
+        /* 接下了就先不回：StationTask 执行完带着输出回应答（同一个 seq）。没接下才在这里回错误 */
+        const uint8_t st = app_post_shell(f->seq, f->payload, f->len);
+        if (st != VC_OK)
+            reply(f->type, f->seq, st, NULL, 0);
+        break;
+    }
+    // [endregion]
+
     default:   /* 包括 SET_TIME：RTC 还没配置 */
         if (VC_IS_CMD(f->type))
             reply(f->type, f->seq, VC_ERR_UNKNOWN, NULL, 0);

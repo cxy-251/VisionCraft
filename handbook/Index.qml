@@ -297,6 +297,7 @@ HandbookIndex {
             Entry { title: qsTr("二进制协议：帧、校验与重同步"); file: "handbook/system/communication/Protocol.qml" }
             Entry { title: qsTr("DeviceLink 与模拟器"); file: "handbook/system/communication/DeviceLink.qml" }
             Entry { title: qsTr("图像下发到板子屏幕"); file: "handbook/system/communication/ImageToBoard.qml"; from: "F407 屏幕驱动与 OpenCV 图像交互桥接" }
+            Entry { title: qsTr("远程终端：在上位机里敲板子的命令"); file: "handbook/system/communication/RemoteShell.qml" }
         }
         Chapter {
             title: qsTr("检测")

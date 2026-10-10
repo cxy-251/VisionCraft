@@ -49,6 +49,7 @@ enum vc_type {
     VC_CMD_IMAGE_DATA  = 0x08, /* 负载：offset(4，字节) + 像素数据；全部到齐后板子显示 */
     VC_CMD_RECIPE_GET  = 0x09, /* 应答负载见 vc_recipe；板子上没有有效配方时状态码为 VC_ERR_EMPTY */
     VC_CMD_RECIPE_SET  = 0x0A, /* 负载见 vc_recipe，写进板子的 EEPROM */
+    VC_CMD_SHELL       = 0x0B, /* 负载：一行命令（ASCII，最长 63 字节）；应答负载：输出的文字，行之间用 \n 分隔 */
 
     /* EVT：事件 */
     VC_EVT_HELLO     = 0x40, /* 板子启动完成，负载同 vc_info */

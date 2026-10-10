@@ -107,6 +107,26 @@ int main(int argc, char *argv[])
         }
         steps << [&] { app.exit(0); };
     }
+    // 第二个参数 shell，后面每个参数是一条终端命令：逐条执行，打印输出和往返时间；
+    // 最后连发两条不等应答，看第二条是否回「忙」（板子一次只放一条）
+    if (argc > 2 && QByteArray(argv[2]) == "shell") {
+        static QElapsedTimer t;
+        QObject::connect(&link, &DeviceLink::shellReply, &link, [&](const QString &cmd, bool ok, const QString &out) {
+            say(QStringLiteral("[shell ] > %1  (%2, %3 ms)").arg(cmd, ok ? "ok" : "fail").arg(t.nsecsElapsed() / 1e6, 0, 'f', 1));
+            for (const QString &line : out.split(QLatin1Char('\n')))
+                say(QStringLiteral("         ") + line);
+        });
+        QObject::connect(&link, &DeviceLink::eventReceived, &link, [&](const QVariantMap &e) {
+            if (e.value("name") == QLatin1String("hello"))
+                say(QStringLiteral("[event ] HELLO：板子重新启动完成"));
+        });
+        for (int i = 3; i < argc; ++i) {
+            const QString cmd = QString::fromLocal8Bit(argv[i]);
+            steps << [&, cmd] { t.start(); link.shell(cmd); QTimer::singleShot(cmd == "reboot" ? 4000 : 1200, next); };
+        }
+        steps << [&] { t.start(); link.shell("uptime"); link.shell("uptime"); QTimer::singleShot(1000, next); };
+        steps << [&] { app.exit(0); };
+    }
     if (soak) {
         steps << [&] {
             QObject::connect(&link, &DeviceLink::throughputFinished, [&](const QVariantMap &r) {

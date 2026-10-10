@@ -64,6 +64,6 @@ Section {
     }
 
     InSystem {
-        text: qsTr("首页第二行最右边的 TERMINAL。命令都在 StationTask 里执行（和界面同一个任务），所以 bl 这种直接写屏幕控制器的命令不需要加锁。串口还没有接：板子的 USB 转串口口需要电脑多一个 USB 口；接上后给 shell_exec 一个把行发到串口的 out 就行。")
+        text: qsTr("首页第二行最右边的 TERMINAL。命令都在 StationTask 里执行（和界面同一个任务），所以 bl 这种直接写屏幕控制器的命令不需要加锁。上位机已经接上：VisionCraft 设备页可以远程执行同样的命令，见「远程终端：在上位机里敲板子的命令」。串口还没有接：板子的 USB 转串口口需要电脑多一个 USB 口；接上后给 shell_exec 一个把行发到串口的 out 就行。")
     }
 }

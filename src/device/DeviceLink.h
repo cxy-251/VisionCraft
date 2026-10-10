@@ -64,6 +64,8 @@ public:
     // 配方：读回来发 recipeReceived（空表示板子上没有），写完发 recipeSaved
     Q_INVOKABLE int getRecipe();
     Q_INVOKABLE int setRecipe(const QVariantMap &recipe);
+    // 在板子上执行一行终端命令（和板子「终端」页上敲的一样），输出由 shellReply 送回
+    Q_INVOKABLE int shell(const QString &command);
 
     // 把图片缩到 160×120 以内、转成 RGB565，分块发给板子显示。正在发上一张时返回 false（不排队）
     bool sendImage(const QImage &image);
@@ -97,6 +99,7 @@ signals:
     void imageSent(bool ok, int bytes, double ms);
     void recipeReceived(const QVariantMap &recipe);   // 空 map：板子上还没有配方
     void recipeSaved(bool ok);
+    void shellReply(const QString &command, bool ok, const QString &output);
 
 private:
     struct Pending {

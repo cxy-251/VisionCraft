@@ -1,0 +1,65 @@
+==== 1. 终端命令 photo：读 EXIF、解缩略图（第一版：从文件第 6 字节起读 EXIF 段）
+[shell ] > photo /DCIM/100NZ_FC/DSC_0002.JPG  (ok, 111.8 ms)
+         NIKON Z fc  2025:05:16 19:19:00
+         10/600 s  f/6.3  ISO 3200  50.0 mm
+         exif 65534 B, thumb 8199 B 160x120
+         read 62 ms, decode 36 ms
+[shell ] > photo /DCIM/100NZ_FC/DSC_0013.JPG  (ok, 110.8 ms)
+         NIKON Z fc  2025:05:16 22:14:14
+         10/2500 s  f/6.3  ISO 125  50.0 mm
+         exif 65534 B, thumb 8695 B 160x120
+         read 63 ms, decode 39 ms
+[shell ] > photo /DCIM/100NZ_FC/DSC_0002.NEF  (ok, 12.6 ms)
+         /DCIM/100NZ_FC/DSC_0002.NEF: not a jpeg
+[shell ] > photo /NIKON001.DSC  (ok, 15.3 ms)
+         /NIKON001.DSC: not a jpeg
+[shell ] > photo /nope.jpg  (ok, 6.9 ms)
+         /nope.jpg: cannot open
+
+==== 2. 为什么读 64 KB 要 60 ms：目标地址没对齐
+（临时命令 rdtest：打开文件，f_lseek 到给定位置，f_read 64 KB 到外部 SRAM 里 4 字节对齐的地址，数 SD 读命令次数和走中转缓冲的块数）
+offset 0: 65536 bytes in 7 ms, 3 sd reads, 0 blocks bounced
+offset 6: 65536 bytes in 60 ms, 129 sd reads, 127 blocks bounced
+offset 4: 65536 bytes in 8 ms, 4 sd reads, 0 blocks bounced
+offset 0: 65536 bytes in 7 ms, 3 sd reads, 0 blocks bounced
+
+==== 3. 改成从文件第 0 字节一次读 68 KB 进对齐的缓冲，再在内存里找 EXIF 段
+[shell ] > photo /DCIM/100NZ_FC/DSC_0002.JPG  (ok, 66.5 ms)
+         NIKON Z fc  2025:05:16 19:19:00
+         10/600 s  f/6.3  ISO 3200  50.0 mm
+         exif 65534 B, thumb 8199 B 160x120
+         read 9 ms, decode 36 ms
+[shell ] > photo /DCIM/100NZ_FC/DSC_0013.JPG  (ok, 56.6 ms)
+         NIKON Z fc  2025:05:16 22:14:14
+         10/2500 s  f/6.3  ISO 125  50.0 mm
+         exif 65534 B, thumb 8695 B 160x120
+         read 10 ms, decode 39 ms
+[shell ] > photo /DCIM/100NZ_FC/DSC_0002.NEF  (ok, 19.4 ms)
+         /DCIM/100NZ_FC/DSC_0002.NEF: not a jpeg
+
+==== 4. 板子上点文件页（tools/files_probe.tcl 注入点击）
+点 FILES                    页面 FILES  读目录 1 次  看照片 0 张
+点第二项（DCIM）       页面 FILES  读目录 2 次  看照片 0 张
+点第一项（100NZ_FC）   页面 FILES  读目录 3 次  看照片 0 张
+点第一项（第一张 JPG） 页面 FILES  读目录 3 次  看照片 1 张
+点「下一张」           页面 FILES  读目录 3 次  看照片 2 张
+点「返回」              页面 FILES  读目录 3 次  看照片 2 张
+[shell ] > free
+         freertos heap  free 18816  min 18816
+         lvgl pool      used 19264  peak 24180  of 45056
+
+==== 5. 看屏的人
+缩略图颜色正常、方向正常；照片里左右键换一张、上键回目录，目录里左右键翻页，都正常。
+有一次点 DSC_0002 显示「没有缩略图」，换到下一张能打开，过一会再点 DSC_0002 也能打开了。
+
+==== 6. 想复现那一次失败
+调试器注入点击：连续打开 DSC_0002 25 次；02、03 之间用「下一张」「上一张」来回切 20 次（41 次打开）
+全部成功：photo_fails 0，sd_errors 0
+sdsum 连读 25 次（每次 2 MB，共 50 MB）：校验和 25 次都是 b96f515f，sd_errors 0
+
+==== 7. 原图尺寸（EXIF 0xA002 / 0xA003）
+[shell ] > photo /DCIM/100NZ_FC/DSC_0002.JPG
+         NIKON Z fc  2025:05:16 19:19:00
+         10/600 s  f/6.3  ISO 3200  50.0 mm
+         exif 65534 B, thumb 8199 B 160x120, full 5568x3712
+         read 9 ms, decode 36 ms

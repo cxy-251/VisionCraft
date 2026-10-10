@@ -6,6 +6,7 @@
 #include "eeprom.h"
 #include "fault.h"
 #include "fs.h"
+#include "photo.h"
 #include "sdcard.h"
 #include "settings.h"
 #include "lcd.h"
@@ -133,6 +134,11 @@ static void cmd_sd(shell_io *io, int argc, char **argv)
         v->csize / 2u, (unsigned long)(v->n_fatent - 2u));
     say(io, "partition at sector %lu  fat %lu  data %lu  mount %lu ms", (unsigned long)v->volbase,
         (unsigned long)v->fatbase, (unsigned long)v->database, (unsigned long)fs_mount_ms());
+    extern volatile uint32_t g_sd_reads, g_sd_errors, g_sd_last_error, g_sd_last_where, g_photo_fails;
+    extern volatile int32_t g_photo_last_rc, g_photo_last_fr;
+    say(io, "reads %lu  errors %lu (last 0x%lx at step %lu)  photo fails %lu (last rc %ld fr %ld)",
+        (unsigned long)g_sd_reads, (unsigned long)g_sd_errors, (unsigned long)g_sd_last_error, (unsigned long)g_sd_last_where,
+        (unsigned long)g_photo_fails, (long)g_photo_last_rc, (long)g_photo_last_fr);
 }
 
 /* ls [路径]：列目录。最多列 20 项（远程终端一帧 1 KB 装得下），后面只报个数 */
@@ -204,6 +210,23 @@ static void cmd_sdsum(shell_io *io, int argc, char **argv)
         for (uint32_t w = 0; w < 64u * 512u / 4u; ++w) h = (h ^ buf[w]) * 16777619u;
     }
     say(io, "2048 KB from sector %lu: fnv1a %08lx", (unsigned long)start, (unsigned long)h);
+}
+
+/* photo <路径>：读一张照片的 EXIF，解出缩略图（放在外部 SRAM 末尾），打印拍摄参数和用时 */
+static void cmd_photo(shell_io *io, int argc, char **argv)
+{
+    if (argc < 2) { say(io, "usage: photo <path>"); return; }
+    const int m = fs_mount();
+    if (m != FR_OK) { say(io, "mount: %s", fs_result_name(m)); return; }
+    static photo_info pi;
+    const int rc = photo_read(argv[1], &pi, (uint16_t *)0x680F0000u, 320, 240);
+    if (rc) { say(io, "%s: %s", argv[1], photo_error_name(rc)); if (rc < -3) say(io, "exif %lu bytes", (unsigned long)pi.app1_len); return; }
+    say(io, "%s  %s", pi.model, pi.taken);
+    say(io, "%lu/%lu s  f/%u.%u  ISO %u  %u.%u mm", (unsigned long)pi.exp_num, (unsigned long)pi.exp_den,
+        pi.fnum_x10 / 10u, pi.fnum_x10 % 10u, pi.iso, pi.focal_x10 / 10u, pi.focal_x10 % 10u);
+    say(io, "exif %lu B, thumb %lu B %ux%u, full %lux%lu", (unsigned long)pi.app1_len, (unsigned long)pi.thumb_len, pi.w, pi.h,
+        (unsigned long)pi.full_w, (unsigned long)pi.full_h);
+    say(io, "read %lu ms, decode %lu ms", (unsigned long)pi.read_ms, (unsigned long)pi.decode_ms);
 }
 // [endregion]
 
@@ -280,6 +303,7 @@ static const struct {
     {"sdbench", cmd_sdbench, "sd card read speed"},
     {"sdclk", cmd_sdclk, "sdclk [div]: sdio clock 48MHz/(div+2)"},
     {"sdsum", cmd_sdsum, "checksum of 2 MB read from the card"},
+    {"photo", cmd_photo, "photo <path>: exif and thumbnail"},
     {"recipe", cmd_recipe, "recipe stored in eeprom"},
     {"last", cmd_last, "last reset cause and fault record"},
     {"settings", cmd_settings, "current settings"},

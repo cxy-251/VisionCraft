@@ -49,6 +49,9 @@
  * 「演、鼠、标、操」这些都没有。改用 tools/make_cjk_font.sh 按界面实际用到的字生成的 vc_font_cjk_20 */
 #define LV_FONT_DEFAULT &lv_font_montserrat_20
 
+/* ---- 图片 ---- */
+#define LV_USE_TJPGD 1                     /* JPEG 解码器 TJpgDec：文件页解相机照片里的缩略图（photo.c 直接调用它） */
+
 /* ---- 主题 ---- */
 #define LV_USE_THEME_DEFAULT 1
 #define LV_THEME_DEFAULT_DARK 1            /* 深色，和上位机、原来的工位界面一致 */

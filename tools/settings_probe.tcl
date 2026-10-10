@@ -23,7 +23,7 @@ proc show {what} {
 }
 
 show "开机"
-tap 88 580
+tap 88 500
 echo "点 SETTINGS → 页面 [title]"
 tap 208 190;              show "  点亮度滑条中间偏左"
 tap 424 361;              show "  点按键音开关"
@@ -39,7 +39,7 @@ show [format "不碰它，等了 %d 秒" [expr {[clock seconds] - $t0}]]
 set clicks [v g_gui_clicks]
 tap 88 190
 show [format "点一下 STATION 图标（只唤醒）：页面 %s，点击次数 %d → %d" [title] $clicks [v g_gui_clicks]]
-tap 88 580
+tap 88 500
 echo "再点 SETTINGS → 页面 [title]"
 tap 240 427;              show "  点「恢复默认」"
 tap 40 38

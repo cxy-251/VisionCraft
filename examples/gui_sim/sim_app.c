@@ -66,3 +66,41 @@ static void ee_init(void) { if (!s_eeInit) { memset(s_ee, 0xFF, sizeof s_ee); s_
 void eeprom_init(void) { ee_init(); }
 int eeprom_read(uint8_t addr, uint8_t *dst, size_t len) { ee_init(); if (addr + len > 256) return -1; memcpy(dst, s_ee + addr, len); return 0; }
 int eeprom_write(uint8_t addr, const uint8_t *src, size_t len) { ee_init(); if (addr + len > 256) return -1; memcpy(s_ee + addr, src, len); return 0; }
+
+/* 文件页：模拟器里没有 SD 卡。给一个假目录、一张假缩略图，只用来看界面排版；名字都标明是模拟的 */
+#include "fs.h"
+#include "photo.h"
+#include <stdio.h>
+const char *fs_result_name(int fr) { return fr ? "not ready" : "ok"; }
+int fs_list(const char *path, fs_entry *out, unsigned max, unsigned *total)
+{
+    unsigned n = 0;
+    if (strcmp(path, "/") == 0) {
+        static const fs_entry root[] = {{"SIM_DCIM", 0, 1}, {"SIM_NOTE.TXT", 512, 0}};
+        for (; n < 2 && n < max; ++n) out[n] = root[n];
+    } else {
+        for (; n < 24 && n < max; ++n) {
+            snprintf(out[n].name, sizeof out[n].name, "SIM_%04u.%s", n / 2 + 1, n % 2 ? "NEF" : "JPG");
+            out[n].size = n % 2 ? 25000000u + n * 13u : 9000000u + n * 7u;
+            out[n].dir = 0;
+        }
+    }
+    *total = n;
+    return 0;
+}
+int photo_read(const char *path, photo_info *info, uint16_t *rgb565, int max_w, int max_h)
+{
+    (void)path;
+    memset(info, 0, sizeof *info);
+    strcpy(info->model, "SIMULATOR");
+    strcpy(info->taken, "2026:01:01 00:00:00");
+    info->exp_num = 1; info->exp_den = 125; info->fnum_x10 = 56; info->iso = 400; info->focal_x10 = 500;
+    info->w = 160; info->h = 120; info->full_w = 1600; info->full_h = 1200;
+    for (int y = 0; y < 120 && y < max_h; ++y)          /* 渐变色块，一看就是假的 */
+        for (int x = 0; x < 160 && x < max_w; ++x)
+            rgb565[y * 160 + x] = (uint16_t)(((x * 31 / 159) << 11) | ((y * 63 / 119) << 5) | 12);
+    return 0;
+}
+const char *photo_error_name(int rc) { return rc ? "error" : "ok"; }
+volatile int32_t g_photo_last_fr;
+volatile uint32_t g_sd_errors;

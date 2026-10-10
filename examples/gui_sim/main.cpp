@@ -142,7 +142,7 @@ int main(int argc, char *argv[])
     step("返回首页");
 
     std::printf("\n==== 8. 设置页 ====\n");
-    tap(88, 580);
+    tap(88, 500);
     step("点 SETTINGS 图标");                                    save("gui-settings");
     tap(385, 241);
     step("点开「闲置后调暗」下拉框");                            save("gui-settings-dropdown");
@@ -153,7 +153,7 @@ int main(int argc, char *argv[])
 
     std::printf("\n==== 9. 扫雷 ====\n");
     g_game_seed = 12345;                       // 固定种子：每次运行布雷都一样，截图能复现
-    tap(240, 580);
+    tap(240, 500);
     step("点 GAMES 图标");                                       save("gui-games");
     tap(88, 190);
     step("点 MINES：新开一局");                                  save("gui-mines-new");
@@ -177,7 +177,7 @@ int main(int argc, char *argv[])
     step("返回两次，回到首页");
 
     std::printf("\n==== 10. 贪吃蛇 ====\n");
-    tap(240, 580); tap(240, 190);
+    tap(240, 500); tap(240, 190);
     step("点 GAMES、SNAKE");                                     save("gui-snake-new");
     auto swipe = [](int dx, int dy) { ev(GUI_DOWN, 240, 360); ev(GUI_UP, 240 + dx * 80, 360 + dy * 80); };
     swipe(0, -1);                                                    // 往上滑一下：开始
@@ -221,7 +221,7 @@ int main(int argc, char *argv[])
     step("返回两次，回到首页");
 
     std::printf("\n==== 12. 画板 ====\n");
-    tap(392, 580);
+    tap(392, 500);
     step("点 PAINT（第一次进来：铺一张白纸）");
     tap(8 + 60 + 28, 76 + 8 + 610 + 28);                              // 选红色
     ev(GUI_DOWN, 40, 160);                                           // 快速划一笔：每隔 20 ms 才采到一个点，相邻点隔 60 多像素
@@ -234,9 +234,17 @@ int main(int argc, char *argv[])
     std::printf("    画了 %u 笔、%u 个点，相邻两点最远隔 %u 像素\n", (unsigned)g_paint_strokes, (unsigned)g_paint_points, (unsigned)g_paint_max_gap);
     std::printf("    快的那一笔中间（两个采样点之间）(130, 220) 的像素 0x%04x（红色是 0x%04x）\n", g_fb[220][130], 0xd924);
     step("画两笔");                                                save("gui-paint");
-    tap(40, 38); tap(392, 580);
+    tap(40, 38); tap(392, 500);
     std::printf("    离开再回来：(130, 220) 的像素 0x%04x\n", g_fb[220][130]);
     step("离开再回来，画还在");
+    tap(40, 38);
+
+    tap(88, 661);
+    step("点 FILES：SD 卡根目录（模拟器里是假目录）");          save("gui-files-root");
+    tap(240, 172);
+    step("点第一项：进目录");                                    save("gui-files-dir");
+    tap(240, 172);
+    step("点第一张 JPG：看缩略图（模拟器里是假的渐变图）");      save("gui-files-photo");
     tap(40, 38);
 
     std::printf("\n共重画控件 %lu 次\n", (unsigned long)g_gui_redraws);

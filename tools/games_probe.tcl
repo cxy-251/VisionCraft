@@ -20,7 +20,7 @@ proc status {} { return [expr {[read_memory [expr {$::g_mines + 325}] 8 1] + 0}]
 proc revealed {} { return [expr {[read_memory [expr {$::g_mines + 328}] 16 1] + 0}] }
 
 mww $::g_game_seed 12345
-tap 240 580; after 600
+tap 240 500; after 600
 tap 88 190; after 600
 echo [format "进入：页面 %s，换页整屏重画 %.1f ms" [title] [expr {[read_memory $::g_gui_show_cycles 32 1] / 168000.0}]]
 cell 4 4; after 300

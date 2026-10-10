@@ -7,13 +7,13 @@ static void open_page(gui_widget *w) { gui_open((const gui_page *)w->user); }
 
 // [region tiles]
 #define TILE_W 144
-#define TILE_H 184
+#define TILE_H 150                          /* 四行：184 放不下，图标和名字只占上面 142 像素 */
 #define COL(c) (int16_t)(16 + (c) * (TILE_W + 8))
 #define ROW(r) (int16_t)(GUI_BAR_H + 24 + (r) * (TILE_H + 12))
 
 /* 图标上的两个字母放在 user 里不方便（user 指向要打开的页面），所以用 text 存名字、color 存颜色，
  * 两个字母由下面这张表给出，绘制函数按控件序号取 */
-static const char *const kGlyph[] = {"ST", "SE", "DV", "LV", "CL", "TM", "SG", "GM", "PT"};
+static const char *const kGlyph[] = {"ST", "SE", "DV", "LV", "CL", "TM", "SG", "GM", "PT", "FL"};
 
 static void draw_tile(const gui_widget *w);
 static gui_widget s_tiles[] = {
@@ -26,6 +26,7 @@ static gui_widget s_tiles[] = {
     {COL(0), ROW(2), TILE_W, TILE_H, "SETTINGS", RGB565(14, 116, 144), 0, 0, draw_tile, open_page, (void *)&g_page_settings},
     {COL(1), ROW(2), TILE_W, TILE_H, "GAMES", RGB565(190, 24, 93), 0, 0, draw_tile, open_page, (void *)&g_page_games},
     {COL(2), ROW(2), TILE_W, TILE_H, "PAINT", RGB565(202, 138, 4), 0, 0, draw_tile, open_page, (void *)&g_page_paint},
+    {COL(0), ROW(3), TILE_W, TILE_H, "FILES", RGB565(13, 148, 136), 0, 0, draw_tile, open_page, (void *)&g_page_files},
 };
 // [endregion]
 

@@ -103,6 +103,8 @@ target_sources(${CMAKE_PROJECT_NAME} PRIVATE
     App/sdcard.c
     App/diskio.c
     App/fs.c
+    App/photo.c
+    App/page_files.c
     Middlewares/Third_Party/FatFs/src/ff.c
     Middlewares/Third_Party/FatFs/src/option/ccsbcs.c
     lvgl_port/lv_port.c

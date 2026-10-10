@@ -86,6 +86,7 @@ void HAL_SD_ErrorCallback(SD_HandleTypeDef *h) { (void)h; s_error = 1; osSemapho
 /* DMA 要求：地址 4 字节对齐（DMA 按字搬），而且不能在 CCM 里（CCM 只连着 CPU，DMA 看不到）。
  * 不满足的话先读进这块中转缓冲再拷出去 */
 static uint32_t s_bounce[512 / 4];
+volatile uint32_t g_sd_bounce_blocks;              /* 走中转缓冲的块数（给测试读） */
 
 static int wait_transfer_state(void)
 {
@@ -101,22 +102,27 @@ static int wait_transfer_state(void)
 
 /* 一次读分三段计时（DWT 周期数累加，给测试读）：发命令、等数据到齐、查卡回到传输状态 */
 volatile uint32_t g_sd_cyc_issue, g_sd_cyc_wait, g_sd_cyc_state, g_sd_reads;
+volatile uint32_t g_sd_errors, g_sd_last_error, g_sd_last_where;   /* 读失败几次、HAL 的错误码、哪一步（1 发命令 2 等数据 3 等状态） */
 
 static int read_dma(uint8_t *dst, uint32_t block, uint32_t count)
 {
     s_error = 0;
     osSemaphoreAcquire(s_done, 0);                  /* 清掉可能残留的一次释放 */
     const uint32_t c0 = DWT->CYCCNT;
-    if (HAL_SD_ReadBlocks_DMA(&hsd, dst, block, count) != HAL_OK)
+    if (HAL_SD_ReadBlocks_DMA(&hsd, dst, block, count) != HAL_OK) {
+        g_sd_errors++; g_sd_last_error = hsd.ErrorCode; g_sd_last_where = 1;
         return -1;
+    }
     const uint32_t c1 = DWT->CYCCNT;
     /* 等 DMA 和 SDIO 都做完（中断里释放信号量）。等的这段时间 StationTask 让出 CPU */
     if (osSemaphoreAcquire(s_done, 1000u + count) != osOK || s_error) {
+        g_sd_errors++; g_sd_last_error = hsd.ErrorCode; g_sd_last_where = 2;
         HAL_SD_Abort(&hsd);
         return -2;
     }
     const uint32_t c2 = DWT->CYCCNT;
     const int rc = wait_transfer_state();
+    if (rc) { g_sd_errors++; g_sd_last_error = hsd.ErrorCode; g_sd_last_where = 3; }
     g_sd_cyc_issue += c1 - c0;
     g_sd_cyc_wait += c2 - c1;
     g_sd_cyc_state += DWT->CYCCNT - c2;
@@ -133,6 +139,7 @@ int sd_read(void *dst, uint32_t block, uint32_t count)
     const int direct = (a & 3u) == 0 && !(a >= 0x10000000u && a < 0x10010000u);
     if (direct)
         return read_dma(p, block, count);
+    g_sd_bounce_blocks += count;
     for (uint32_t i = 0; i < count; ++i) {          /* 一块一块经中转缓冲 */
         const int rc = read_dma((uint8_t *)s_bounce, block + i, 1);
         if (rc)

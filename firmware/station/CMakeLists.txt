@@ -100,6 +100,11 @@ target_sources(${CMAKE_PROJECT_NAME} PRIVATE
     App/mouse.c
     App/cursor.c
     App/page_lvgl.c
+    App/sdcard.c
+    App/diskio.c
+    App/fs.c
+    Middlewares/Third_Party/FatFs/src/ff.c
+    Middlewares/Third_Party/FatFs/src/option/ccsbcs.c
     lvgl_port/lv_port.c
     lvgl_port/vc_font_cjk_20.c
     lvgl_port/vc_font_big_72.c
@@ -108,11 +113,16 @@ target_sources(${CMAKE_PROJECT_NAME} PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/../../protocol/vc_protocol.c
 )
 
+# FatFs 是第三方代码（ST 包里原样的 R0.12c），不看它的警告；配置在 App/ffconf.h
+set_source_files_properties(Middlewares/Third_Party/FatFs/src/ff.c Middlewares/Third_Party/FatFs/src/option/ccsbcs.c
+    PROPERTIES COMPILE_OPTIONS -w)
+
 # Add include paths
 target_include_directories(${CMAKE_PROJECT_NAME} PRIVATE
     # Add user defined include paths
     App
     lvgl_port
+    Middlewares/Third_Party/FatFs/src
     ${CMAKE_CURRENT_SOURCE_DIR}/../../protocol
 )
 

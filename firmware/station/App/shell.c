@@ -5,6 +5,8 @@
 #include "app.h"
 #include "eeprom.h"
 #include "fault.h"
+#include "fs.h"
+#include "sdcard.h"
 #include "settings.h"
 #include "lcd.h"
 #include "lv_port.h"
@@ -109,6 +111,102 @@ static void cmd_sram(shell_io *io, int argc, char **argv)
         (unsigned long)(64ull * 168000000u / (t2 - t1)));
 }
 
+// [region sd]
+/* SD 卡：初始化、挂载、打印卡的身份（CID）和文件系统。全程只读 */
+static void cmd_sd(shell_io *io, int argc, char **argv)
+{
+    (void)argc; (void)argv;
+    const int fr = fs_mount();
+    if (!sd_ready()) { say(io, "no card (init %lu ms)", (unsigned long)sd_init_ms()); return; }
+    const sd_info *c = sd_get_info();
+    say(io, "card %s  %lu MB  mid 0x%02x oem %.2s name %.5s rev %u.%u", c->type ? "SDHC/XC" : "SDSC",
+        (unsigned long)(c->blocks / 2048u), c->mid, c->oem, c->name, c->rev >> 4, c->rev & 15u);
+    say(io, "made %u-%02u  sn %08lx  clk %lu kHz  init %lu ms", c->year, c->month, (unsigned long)c->serial,
+        (unsigned long)(c->clock_hz / 1000u), (unsigned long)sd_init_ms());
+    if (fr != FR_OK) { say(io, "mount: %s", fs_result_name(fr)); return; }
+    FATFS *v = fs_volume();
+    static const char *const kType[] = {"?", "FAT12", "FAT16", "FAT32", "exFAT"};
+    char label[24] = "";
+    DWORD vsn = 0;
+    f_getlabel("", label, &vsn);
+    say(io, "%s  label '%s'  cluster %u KB  %lu clusters", kType[v->fs_type < 5 ? v->fs_type : 0], label,
+        v->csize / 2u, (unsigned long)(v->n_fatent - 2u));
+    say(io, "partition at sector %lu  fat %lu  data %lu  mount %lu ms", (unsigned long)v->volbase,
+        (unsigned long)v->fatbase, (unsigned long)v->database, (unsigned long)fs_mount_ms());
+}
+
+/* ls [路径]：列目录。最多列 20 项（远程终端一帧 1 KB 装得下），后面只报个数 */
+static void cmd_ls(shell_io *io, int argc, char **argv)
+{
+    const char *path = argc > 1 ? argv[1] : "/";
+    const int m = fs_mount();
+    if (m != FR_OK) { say(io, "mount: %s", fs_result_name(m)); return; }
+    static DIR d;
+    static FILINFO fi;                 /* 带 256 字节的长文件名，放静态区不放任务栈 */
+    const FRESULT fr = f_opendir(&d, path);
+    if (fr != FR_OK) { say(io, "%s: %s", path, fs_result_name(fr)); return; }
+    unsigned n = 0, dirs = 0;
+    unsigned long long bytes = 0;
+    const uint32_t t0 = HAL_GetTick();
+    while (f_readdir(&d, &fi) == FR_OK && fi.fname[0]) {
+        const int isDir = (fi.fattrib & AM_DIR) != 0;
+        if (n < 20) {
+            if (isDir) say(io, "  %-24s  <dir>", fi.fname);
+            else say(io, "  %-24s %9lu", fi.fname, (unsigned long)fi.fsize);
+        }
+        n++;
+        dirs += (unsigned)isDir;
+        bytes += fi.fsize;
+    }
+    f_closedir(&d);
+    say(io, "%u entries (%u dirs), %lu KB, %lu ms", n, dirs, (unsigned long)(bytes / 1024u),
+        (unsigned long)(HAL_GetTick() - t0));
+}
+
+/* sdbench：从数据区开头读一段，比较「一次读 64 块」和「一次读 1 块」的速度。只读，不改卡 */
+static void cmd_sdbench(shell_io *io, int argc, char **argv)
+{
+    (void)argc; (void)argv;
+    const int m = fs_mount();
+    if (m != FR_OK) { say(io, "mount: %s", fs_result_name(m)); return; }
+    uint8_t *buf = (uint8_t *)0x680F0000u;   /* 外部 SRAM 末尾 64 KB（sram 自检也用这里），DMA 能直接写 */
+    const uint32_t start = fs_volume()->database;
+    uint32_t t0 = HAL_GetTick();
+    for (uint32_t i = 0; i < 64u; ++i)          /* 64 次 × 64 块 × 512 字节 = 2 MB */
+        if (sd_read(buf, start + i * 64u, 64)) { say(io, "read error at %lu", (unsigned long)(start + i * 64u)); return; }
+    const uint32_t multi = HAL_GetTick() - t0;
+    t0 = HAL_GetTick();
+    for (uint32_t i = 0; i < 512u; ++i)         /* 512 次 × 1 块 = 256 KB */
+        if (sd_read(buf, start + i, 1)) { say(io, "read error at %lu", (unsigned long)(start + i)); return; }
+    const uint32_t single = HAL_GetTick() - t0;
+    say(io, "64 blocks/read: 2048 KB in %lu ms = %lu KB/s", (unsigned long)multi, (unsigned long)(2048u * 1000u / multi));
+    say(io, "1 block/read:    256 KB in %lu ms = %lu KB/s", (unsigned long)single, (unsigned long)(256u * 1000u / single));
+}
+
+/* sdclk [div]：改 SDIO 时钟（48 MHz / (div + 2)）。sdsum：读数据区开头 2 MB 算 FNV-1a 校验和。
+ * 两个一起用：不同时钟读同一段数据，校验和一样，说明快了也没读错 */
+static void cmd_sdclk(shell_io *io, int argc, char **argv)
+{
+    if (fs_mount() != FR_OK) { say(io, "no card"); return; }
+    if (argc > 1) sd_set_clock_div((uint8_t)atoi(argv[1]));
+    say(io, "sdio clock %lu kHz", (unsigned long)(sd_get_info()->clock_hz / 1000u));
+}
+
+static void cmd_sdsum(shell_io *io, int argc, char **argv)
+{
+    (void)argc; (void)argv;
+    if (fs_mount() != FR_OK) { say(io, "no card"); return; }
+    const uint32_t *buf = (const uint32_t *)0x680F0000u;
+    const uint32_t start = fs_volume()->database;
+    uint32_t h = 2166136261u;
+    for (uint32_t i = 0; i < 64u; ++i) {
+        if (sd_read((void *)buf, start + i * 64u, 64)) { say(io, "read error"); return; }
+        for (uint32_t w = 0; w < 64u * 512u / 4u; ++w) h = (h ^ buf[w]) * 16777619u;
+    }
+    say(io, "2048 KB from sector %lu: fnv1a %08lx", (unsigned long)start, (unsigned long)h);
+}
+// [endregion]
+
 static void cmd_recipe(shell_io *io, int argc, char **argv)
 {
     (void)argc; (void)argv;
@@ -177,6 +275,11 @@ static const struct {
     {"beep", cmd_beep, "beep <ms>"},
     {"bl", cmd_bl, "backlight <10-100>"},
     {"sram", cmd_sram, "external sram self-test"},
+    {"sd", cmd_sd, "sd card info and mount (read-only)"},
+    {"ls", cmd_ls, "ls [path]: list a directory"},
+    {"sdbench", cmd_sdbench, "sd card read speed"},
+    {"sdclk", cmd_sdclk, "sdclk [div]: sdio clock 48MHz/(div+2)"},
+    {"sdsum", cmd_sdsum, "checksum of 2 MB read from the card"},
     {"recipe", cmd_recipe, "recipe stored in eeprom"},
     {"last", cmd_last, "last reset cause and fault record"},
     {"settings", cmd_settings, "current settings"},

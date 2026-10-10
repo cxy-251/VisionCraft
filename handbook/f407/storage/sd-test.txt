@@ -1,0 +1,126 @@
+==== 1. 卡插好、板子重新上电后第一次挂载（SDIO 12 MHz）
+$ ./build/tools/vclink_probe rtt shell sd "ls /" sdbench
+[shell ] > sd  (ok, 75.0 ms)
+         card SDHC/XC  30240 MB  mid 0x00 oem 42 name SD16G rev 2.0
+         made 2015-08  sn 00000196  clk 12000 kHz  init 54 ms
+         FAT32  label 'NIKON Z FC'  cluster 32 KB  967296 clusters
+         partition at sector 8192  fat 9460  data 24576  mount 58 ms
+[shell ] > ls /  (ok, 11.2 ms)
+           NIKON001.DSC                   512
+           DCIM                      <dir>
+           NIKON                     <dir>
+         3 entries (2 dirs), 0 KB, 1 ms
+[shell ] > sdbench  (ok, 722.5 ms)
+         64 blocks/read: 2048 KB in 465 ms = 4404 KB/s
+         1 block/read:    256 KB in 246 ms = 1040 KB/s
+
+==== 2. 复位（卡没有断电）后再来一遍，并列出相机的照片目录
+$ ./build/tools/vclink_probe rtt shell sd "ls /" "ls /DCIM" "ls /DCIM/100NZ_FC" sdbench sdbench free ps
+[shell ] > sd  (ok, 10.6 ms)
+         card SDHC/XC  30240 MB  mid 0x00 oem 42 name SD16G rev 2.0
+         made 2015-08  sn 00000196  clk 12000 kHz  init 6 ms
+         FAT32  label 'NIKON Z FC'  cluster 32 KB  967296 clusters
+         partition at sector 8192  fat 9460  data 24576  mount 7 ms
+[shell ] > ls /  (ok, 12.2 ms)
+           NIKON001.DSC                   512
+           DCIM                      <dir>
+           NIKON                     <dir>
+         3 entries (2 dirs), 0 KB, 1 ms
+[shell ] > ls /DCIM  (ok, 15.8 ms)
+           100NZ_FC                  <dir>
+         1 entries (1 dirs), 0 KB, 1 ms
+[shell ] > ls /DCIM/100NZ_FC  (ok, 24.9 ms)
+           DSC_0002.JPG               8832804
+           DSC_0002.NEF              26451940
+           NC_FLLST.DAT                 81920
+           DSC_0003.JPG               8443689
+           DSC_0003.NEF              26014533
+           DSC_0004.JPG              10480576
+           DSC_0004.NEF              25856044
+           DSC_0005.JPG              11627849
+           DSC_0005.NEF              26720956
+           DSC_0006.JPG              10371238
+           DSC_0006.NEF              25790954
+           DSC_0007.JPG              11198631
+           DSC_0007.NEF              26248613
+           DSC_0008.JPG               8891632
+           DSC_0008.NEF              24782146
+           DSC_0009.JPG              10260540
+           DSC_0009.NEF              25686736
+           DSC_0010.JPG               8197163
+           DSC_0010.NEF              24443476
+           DSC_0011.JPG               6438809
+         231 entries (0 dirs), 3938466 KB, 8 ms
+[shell ] > sdbench  (ok, 641.3 ms)
+         64 blocks/read: 2048 KB in 384 ms = 5333 KB/s
+         1 block/read:    256 KB in 245 ms = 1044 KB/s
+[shell ] > sdbench  (ok, 633.7 ms)
+         64 blocks/read: 2048 KB in 384 ms = 5333 KB/s
+         1 block/read:    256 KB in 245 ms = 1044 KB/s
+[shell ] > free  (ok, 8.7 ms)
+         freertos heap  free 18816  min 18816
+         lvgl pool      used 0  peak 0  of 45056
+[shell ] > ps  (ok, 13.8 ms)
+         TASK         S PRIO STACK-FREE
+         stationTask  R   24      7312
+         envTask      r   16      1324
+         IDLE         r    0       428
+         linkTask     B   32      1736
+         USBH_Queue   B   24       764
+         Tmr Svc      B    2       896
+
+==== 3. 同一段数据用三种时钟读，校验和一样；速度
+$ ./build/tools/vclink_probe rtt shell sdsum "sdclk 2" sdsum sdbench "sdclk 6" sdsum sdbench "sdclk 0" sdsum sdbench
+[shell ] > sdsum  (ok, 319.0 ms)
+         2048 KB from sector 24576: fnv1a b96f515f
+[shell ] > sdclk 2  (ok, 15.0 ms)
+         sdio clock 12000 kHz
+[shell ] > sdsum  (ok, 490.7 ms)
+         2048 KB from sector 24576: fnv1a b96f515f
+[shell ] > sdbench  (ok, 639.7 ms)
+         64 blocks/read: 2048 KB in 384 ms = 5333 KB/s
+         1 block/read:    256 KB in 245 ms = 1044 KB/s
+[shell ] > sdclk 6  (ok, 14.0 ms)
+         sdio clock 6000 kHz
+[shell ] > sdsum  (ok, 846.9 ms)
+         2048 KB from sector 24576: fnv1a b96f515f
+[shell ] > sdbench  (ok, 1030.5 ms)
+         64 blocks/read: 2048 KB in 745 ms = 2748 KB/s
+         1 block/read:    256 KB in 299 ms = 856 KB/s
+[shell ] > sdclk 0  (ok, 11.6 ms)
+         sdio clock 24000 kHz
+[shell ] > sdsum  (ok, 308.6 ms)
+         2048 KB from sector 24576: fnv1a b96f515f
+[shell ] > sdbench  (ok, 439.5 ms)
+         64 blocks/read: 2048 KB in 203 ms = 10088 KB/s
+         1 block/read:    256 KB in 230 ms = 1113 KB/s
+
+==== 4. 固件里有哪些读写卡的函数（链接后的符号表）
+$ arm-none-eabi-nm station.elf | grep -E " (f_write|f_mkfs|f_unlink|f_mkdir|f_rename|f_truncate|f_sync|disk_write|HAL_SD_WriteBlocks.*|HAL_SD_Erase|SDMMC_CmdWrite.*|SDMMC_CmdErase.*|HAL_SD_ReadBlocks_DMA|SDMMC_CmdReadMultiBlock|SDMMC_CmdReadSingleBlock|f_mount|f_readdir)$"
+08010c8c T f_mount
+08010d44 T f_readdir
+08004408 T HAL_SD_ReadBlocks_DMA
+08003f58 T SDMMC_CmdReadMultiBlock
+08003f26 T SDMMC_CmdReadSingleBlock
+（写、擦除、格式化相关的一个都没有）
+
+==== 5. 新加的 ST 文件能从 GitHub 拉到（删掉本地的 14 个文件，重新配置）
+$ cmake --preset Release
+-- 拉取 STM32CubeF4 v1.28.3（缺 14 个文件）…
+拉下来的和 CubeMX 本地固件包逐个比较（忽略换行符）：14 个都一样
+ff.c ff.h diskio.h integer.h option/ccsbcs.c stm32f4xx_hal_sd.c/.h stm32f4xx_hal_mmc.c/.h stm32f4xx_ll_sdmmc.c/.h stm32f4xx_hal_iwdg.c/.h stm32f4xx_ll_iwdg.h
+
+==== 6. 远程终端一帧装不下时（临时把 ls 的上限改成 40 项）
+$ ./build/tools/vclink_probe rtt shell "ls /DCIM/100NZ_FC"
+           DSC_0012.NEF              22478500
+           DSC_0013.JPG              14145380
+           DSC_0013.NEF              27454928
+           DSC_0014.JPG              13501642
+         ... 15 lines cut
+
+==== 7. 一次读的时间花在哪（24 MHz；sdcard.c 里用 DWT 周期计数分三段累加，调试器读回后按次数平均）
+先跑 sdsum（只有 64 块一读），再跑 sdbench，相减得到单块读的部分：
+64-block reads: n=64  per read: issue 7.4 us  wait data 3152.5 us  card state 6.0 us
+1-block reads: n=512  per read: issue 7.3 us  wait data 434.2 us  card state 6.0 us
+issue = HAL_SD_ReadBlocks_DMA 发命令、启动 DMA；wait data = 等中断释放信号量；card state = CMD13 查卡回到传输状态
+另：在查卡状态的循环里数「没回到传输状态、要再等」的次数，sdbench 跑完是 0

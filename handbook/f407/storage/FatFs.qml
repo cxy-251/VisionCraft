@@ -87,7 +87,7 @@ Section {
     }
 
     InSystem {
-        text: qsTr("工位固件目前没有 FatFs。这片 Flash 里装的是开发板厂家的演示资源，固件没有动它。"
+        text: qsTr("工位固件没有在这片 SPI Flash 上用 FatFs，Flash 里装的是开发板厂家的演示资源，固件没有动它。FatFs 用在了 SD 卡上，见「SD 卡与 FatFs：只读挂载相机的卡」。"
                  + "要在板子上保存检测记录时，就按本节在 CubeMX 里打开 FATFS、实现 user_diskio.c 的几个函数；记录文件以后可以拿到电脑上直接读。")
     }
 }

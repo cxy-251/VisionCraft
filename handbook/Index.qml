@@ -256,6 +256,7 @@ HandbookIndex {
             Entry { title: qsTr("EEPROM：I2C 与掉电保存"); file: "handbook/f407/storage/Eeprom.qml"; from: "W25Q128 SPI Flash 与 AT24C02 EEPROM 在线自检" }
             Entry { title: qsTr("SPI Flash"); file: "handbook/f407/storage/SpiFlash.qml"; from: "W25Q128 SPI Flash 与 AT24C02 EEPROM 在线自检" }
             Entry { title: qsTr("FatFs 文件系统"); file: "handbook/f407/storage/FatFs.qml"; from: "FatFs 多卷文件系统与图形化资源管理器" }
+            Entry { title: qsTr("SD 卡与 FatFs：只读挂载相机的卡"); file: "handbook/f407/storage/Sd.qml" }
         }
         Chapter {
             title: "FreeRTOS"

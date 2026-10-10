@@ -79,7 +79,8 @@ function(vc_fetch_stm32cube)
     message(STATUS "拉取 STM32CubeF4 ${VC_CUBEF4_TAG}（缺 ${n} 个文件）…")
     set(tmp "${VC_ROOT}/firmware/third_party/.fetch")
     _vc_sparse_clone(https://github.com/STMicroelectronics/STM32CubeF4.git ${VC_CUBEF4_TAG} "${tmp}/cube"
-                     Drivers/CMSIS/Include Middlewares/ST/STM32_USB_Host_Library Middlewares/Third_Party/FreeRTOS)
+                     Drivers/CMSIS/Include Middlewares/ST/STM32_USB_Host_Library Middlewares/Third_Party/FreeRTOS
+                     Middlewares/Third_Party/FatFs/src)
     _vc_fetch_commit(https://github.com/STMicroelectronics/stm32f4xx_hal_driver.git ${VC_HAL_COMMIT} "${tmp}/hal")
     _vc_fetch_commit(https://github.com/STMicroelectronics/cmsis_device_f4.git ${VC_CMSIS_COMMIT} "${tmp}/cmsis_f4")
     foreach(f IN LISTS missing)

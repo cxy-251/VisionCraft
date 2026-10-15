@@ -1,5 +1,6 @@
 #include "app.h"
 #include "eeprom.h"
+#include "perf.h"
 
 #include "cmsis_os2.h"
 #include "stm32f4xx.h"
@@ -24,10 +25,17 @@ void app_send(uint8_t type, uint8_t seq, const void *payload, uint16_t len)
 {
     /* 编码缓冲区较大，放静态区而不是任务栈；由互斥锁保证同一时刻只有一个任务在用 */
     static uint8_t frame[VC_MAX_FRAME];
+    const char *name = osThreadGetName(osThreadGetId());
+    const unsigned owner = name && strcmp(name, "stationTask") == 0 ? 1u :
+                           name && strcmp(name, "envTask") == 0 ? 2u : 0u;
+    const uint32_t start = gui_cycles();
     osMutexAcquire(s_txMutex, osWaitForever);
+    const uint32_t acquired = gui_cycles();
+    perf_observe(PERF_TX_WAIT_LINK + owner, acquired - start);
     const size_t n = vc_encode(frame, sizeof(frame), type, seq, payload, len);
     if (n)
         vc_rtt_write(frame, n, 50);
+    perf_observe(PERF_TX_HOLD_LINK + owner, gui_cycles() - acquired);
     osMutexRelease(s_txMutex);
 }
 // [endregion]
@@ -40,7 +48,13 @@ int app_tx_flush(uint32_t timeout_ms)
 // [region beep]
 void app_beep(uint16_t ms)
 {
-    osMessageQueuePut(g_beepQueue, &ms, 0, 0);   /* 队列满就丢掉，不阻塞 LinkTask */
+    /* 结果也可能从 StationTask 投递；短暂禁止调度，保证计数与水位一致。 */
+    const int32_t locked = osKernelLock();
+    if (osMessageQueuePut(g_beepQueue, &ms, 0, 0) != osOK)
+        g_perf_flow[PERF_BEEP_DROP]++;
+    const uint32_t depth = osMessageQueueGetCount(g_beepQueue);
+    if (depth > g_perf_flow[PERF_BEEP_HIGH]) g_perf_flow[PERF_BEEP_HIGH] = depth;
+    osKernelRestoreLock(locked);
 }
 // [endregion]
 
@@ -51,6 +65,7 @@ static volatile uint8_t s_resultFresh;
 void app_post_result(const vc_result *r)
 {
     osKernelLock();
+    if (s_resultFresh) g_perf_flow[PERF_RESULT_OVERWRITE]++;
     s_result = *r;
     s_resultFresh = 1;
     osKernelUnlock();
@@ -75,16 +90,21 @@ int app_take_result(vc_result *out)
 static char s_shellCmd[64];
 static uint8_t s_shellSeq;
 static volatile uint8_t s_shellPending;
+static uint32_t s_shellPosted;
 
 uint8_t app_post_shell(uint8_t seq, const uint8_t *cmd, uint16_t len)
 {
     if (len == 0 || len >= sizeof s_shellCmd)
         return VC_ERR_ARGS;
-    if (s_shellPending)
+    if (s_shellPending) {
+        g_perf_flow[PERF_SHELL_BUSY]++;
         return VC_ERR_BUSY;
+    }
     memcpy(s_shellCmd, cmd, len);
     s_shellCmd[len] = 0;
     s_shellSeq = seq;
+    s_shellPosted = gui_cycles();
+    __DMB();
     s_shellPending = 1;                /* 最后才置位：StationTask 看到它时命令已经写好了 */
     return VC_OK;
 }
@@ -93,6 +113,8 @@ int app_take_shell(char cmd[64], uint8_t *seq)
 {
     if (!s_shellPending)
         return 0;
+    __DMB();
+    perf_observe(PERF_SHELL_WAIT, gui_cycles() - s_shellPosted);
     memcpy(cmd, s_shellCmd, sizeof s_shellCmd);
     *seq = s_shellSeq;
     s_shellPending = 0;
@@ -109,13 +131,16 @@ static uint16_t s_imageW, s_imageH;
 static uint32_t s_imageReceived;
 enum { IMG_IDLE, IMG_RECEIVING, IMG_READY, IMG_DRAWING };
 static volatile uint8_t s_imageState = IMG_IDLE;
+static uint32_t s_imageReadyCycles, s_imageDrawCycles;
 
 uint8_t app_image_begin(uint16_t w, uint16_t h)
 {
     if (w == 0 || h == 0 || w > VC_THUMB_MAX_W || h > VC_THUMB_MAX_H)
         return VC_ERR_ARGS;
-    if (s_imageState == IMG_DRAWING || s_imageState == IMG_READY)
+    if (s_imageState == IMG_DRAWING || s_imageState == IMG_READY) {
+        g_perf_flow[PERF_IMAGE_BUSY]++;
         return VC_ERR_BUSY;
+    }
     s_imageW = w;
     s_imageH = h;
     s_imageReceived = 0;
@@ -134,6 +159,7 @@ uint8_t app_image_data(uint32_t offset, const uint8_t *data, uint16_t len)
         // [region barrier]
         /* volatile 只保证 s_imageState 这一次写入真的发生，不保证它排在前面的普通写入（memcpy）之后。
          * __DMB() 同时是编译器屏障和 CPU 内存屏障：屏障之前的写入全部完成，才轮到后面的写入 */
+        s_imageReadyCycles = gui_cycles();
         __DMB();
         s_imageState = IMG_READY;
         // [endregion]
@@ -145,6 +171,9 @@ int app_take_image(uint16_t *w, uint16_t *h, const uint16_t **pixels)
 {
     if (s_imageState != IMG_READY)
         return 0;
+    __DMB();
+    s_imageDrawCycles = gui_cycles();
+    perf_observe(PERF_IMAGE_WAIT, s_imageDrawCycles - s_imageReadyCycles);
     s_imageState = IMG_DRAWING;
     *w = s_imageW;
     *h = s_imageH;
@@ -154,6 +183,8 @@ int app_take_image(uint16_t *w, uint16_t *h, const uint16_t **pixels)
 
 void app_image_done(void)
 {
+    perf_observe(PERF_IMAGE_WORK, gui_cycles() - s_imageDrawCycles);
+    __DMB();
     s_imageState = IMG_IDLE;
 }
 

@@ -12,6 +12,7 @@
 #include "cursor.h"
 #include "fault.h"
 #include "settings.h"
+#include "perf.h"
 
 extern osMessageQueueId_t g_beepQueue;
 
@@ -145,6 +146,13 @@ static void poll_mouse(void)
 volatile struct { uint32_t head, tail; struct { int16_t type, x, y, pad; } ev[INJECT_N]; } g_gui_inject;
 static void poll_inject(void)
 {
+    const uint32_t depth = g_gui_inject.head - g_gui_inject.tail;
+    if (depth > g_perf_flow[PERF_INJECT_HIGH]) g_perf_flow[PERF_INJECT_HIGH] = depth;
+    if (g_perf_input_request == 2) {
+        __DMB();
+        perf_observe(PERF_INPUT_MARK, gui_cycles() - g_perf_input_cycles);
+        g_perf_input_request = 0;
+    }
     while (g_gui_inject.tail != g_gui_inject.head) {
         const uint32_t i = g_gui_inject.tail % INJECT_N;
         const gui_event e = {(gui_event_type)g_gui_inject.ev[i].type, g_gui_inject.ev[i].x, g_gui_inject.ev[i].y};
@@ -169,7 +177,12 @@ void StationTask(void *argument)
     cursor_init();
     mouse_init();                       /* USB 主机库开始工作：鼠标的枚举、收报告都在库自己的任务里 */
 
+    uint32_t loopCycles = 0, touchCycles = 0, guiCycles = 0;
     for (;;) {
+        if (g_perf_reset) {
+            perf_reset_window();
+            loopCycles = touchCycles = guiCycles = 0;
+        }
         uint16_t ms;
         /* 等蜂鸣请求，最多等一个扫描周期——这样一个循环同时完成「响铃」和「扫键」 */
         if (osMessageQueueGet(g_beepQueue, &ms, NULL, SCAN_MS) == osOK) {
@@ -182,21 +195,45 @@ void StationTask(void *argument)
             HAL_TIM_PWM_Stop(&htim13, TIM_CHANNEL_1);
             beeping = 0;
         }
+        const uint32_t loopNow = gui_cycles();
+        if (loopCycles) perf_observe(PERF_LOOP_GAP, loopNow - loopCycles);
+        loopCycles = loopNow;
         scan_keys();
         const uint32_t now = HAL_GetTick();
         if (now - lastTouch >= 20u) {   /* 触摸每 20 ms 读一次 */
             lastTouch = now;
+            const uint32_t t = gui_cycles();
+            if (touchCycles) perf_observe(PERF_TOUCH_GAP, t - touchCycles);
+            touchCycles = t;
             poll_touch();
         }
         poll_mouse();
         poll_inject();
+        // [region controlled-work]
+        /* 诊断请求模拟 StationTask 内的慢 CPU 工作；保持可抢占，不访问任何外设。 */
+        const uint32_t work = g_perf_work_ms;
+        g_perf_work_ms = 0;
+        if (work && work <= 250u) {
+            g_perf_work_active = 1;
+            const uint32_t start = gui_cycles();
+            while (gui_cycles() - start < work * 168000u) __NOP();
+            perf_observe(PERF_CONTROL_WORK, gui_cycles() - start);
+            g_perf_work_active = 0;
+        }
+        // [endregion]
         fault_poll_inject();            /* 实验用：调试器要求制造故障时照做 */
         health_feed(now);               /* 三个任务都报到了才喂狗 */
         settings_idle_tick(now);        /* 闲置够久就调暗屏幕 */
+        const uint32_t bgStart = gui_cycles();
         pages_background(now);          /* 取走上位机的结果 / 缩略图、记录传感器历史 */
+        perf_observe(PERF_BACKGROUND, gui_cycles() - bgStart);
         if (now - lastGui >= 20u) {     /* 页面刷新 + 重画变了的控件 */
             lastGui = now;
+            const uint32_t t = gui_cycles();
+            if (guiCycles) perf_observe(PERF_GUI_GAP, t - guiCycles);
+            guiCycles = t;
             gui_tick(now);
+            perf_observe(PERF_GUI_WORK, gui_cycles() - t);
         }
         cursor_set(mouse_connected(), s_cx, s_cy);   /* 最后画光标：这一轮如果画到了它，它已经被收起，在这里画回来 */
     }

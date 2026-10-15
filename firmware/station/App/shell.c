@@ -3,6 +3,7 @@
 #include "FreeRTOS.h"
 #include "task.h"
 #include "app.h"
+#include "perf.h"
 #include "eeprom.h"
 #include "fault.h"
 #include "fs.h"
@@ -341,13 +342,16 @@ void shell_exec(const char *line, shell_out out, void *ctx)
         argv[argc++] = p;
     if (argc == 0)
         return;
+    const uint32_t started = gui_cycles();
     for (unsigned i = 0; i < N_COMMANDS; ++i) {
         if (strcmp(argv[0], kCommands[i].name) == 0) {
             kCommands[i].fn(&io, argc, argv);
+            perf_observe(PERF_SHELL_EXEC, gui_cycles() - started);
             return;
         }
     }
     say(&io, "unknown command: %s (try help)", argv[0]);
+    perf_observe(PERF_SHELL_EXEC, gui_cycles() - started);
 }
 // [endregion]
 

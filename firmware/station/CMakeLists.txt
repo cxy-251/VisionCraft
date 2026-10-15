@@ -75,6 +75,7 @@ target_sources(${CMAKE_PROJECT_NAME} PRIVATE
     # Add user sources here
     ${CMAKE_CURRENT_BINARY_DIR}/build_stamp.c
     App/app.c
+    App/perf.c
     App/link.c
     App/station.c
     App/env.c

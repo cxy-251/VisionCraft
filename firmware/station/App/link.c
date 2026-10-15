@@ -1,6 +1,7 @@
 /* LinkTask：从 RTT 下行缓冲区收字节 → 拆帧 → 执行命令 → 回应答 */
 #include "app.h"
 #include "fault.h"
+#include "perf.h"
 
 #include "main.h"
 #include "cmsis_os2.h"
@@ -143,6 +144,11 @@ void LinkTask(void *argument)
 
     uint8_t chunk[64];
     for (;;) {
+        if (g_perf_input_request == 1) {
+            g_perf_input_cycles = gui_cycles();
+            __DMB();
+            g_perf_input_request = 2;
+        }
         health_checkin(HEALTH_LINK);   /* 看门狗监工：我还活着 */
         const size_t n = vc_rtt_read(chunk, sizeof(chunk));
         vc_frame f;

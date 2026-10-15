@@ -1,0 +1,191 @@
+A03 非存储响应基线，2026-10-15
+
+==== 0. 条件与范围
+固件：38a4dea 后的 A03 计时改动，Release，168 MHz，未更改任务划分。
+FLASH 469460 / 1048576 B；RAM 119024 / 131072 B；CCM 60416 / 65536 B；EXTSRAM 950532 / 1048576 B。
+较 A01：Flash +1036 B，RAM +336 B；无新增 RTOS 任务/队列/堆分配。
+HOME/DEVICE/STATION，终端白名单 uptime/sensors/ps/free；不进入 FILES，不执行任何卡操作。
+四阶段同一启动：每阶段先清统计，再运行负载；50 ms 遥测一直并发。
+每阶段结束额外执行 ps/free 采样资源，计时统计包含这两条诊断。
+idle：30 个 4 B PING 和输入标记；shell：24 条循环诊断，并发 256 B PING。
+image：5 张 160x120 RGB565（每张 38400 B），每批至多四块 1000 B，并发 uptime、256 B PING。
+controlled：5 次 180 ms 可抢占 CPU 工作；每次一个输入标记、三条 uptime、八个短 PING。
+探针 RTT 客户端启用 TCP_NODELAY；OpenOCD RTT polling_interval=1 ms。
+
+==== 1. 板内峰值与主机往返
+阶段                 GUI间隔   输入标记   命令等候  PING中位/P95/最大(ms)
+单位均为 ms；板内峰值用 DWT/168000 换算。
+idle-device           28.7353    9.0131    4.0043  4.908/5.420/5.448 (n=30)
+shell-device          25.0005    9.0131    7.9960  11.013/12.922/14.318 (n=24)
+image-station         28.7353    8.3283   13.0817  58.598/61.799/63.386 (n=50)
+controlled-180ms     201.1070  188.0595  170.3088  5.523/6.934/8.191 (n=40)
+
+五张图片全部消费；image_wait 峰值 7.9555 ms，image_work 峰值 3.3356 ms。
+受控工作计数 5，耗时峰值 180.0001 ms；输入标记五次均超过 20 ms。
+五轮命令均一条成功、两条 BUSY，shell_busy=10；后续 ps/free 成功。
+本轮所有阶段发送锁等待峰值 0.0041 ms；RTT dropped bytes=0，无看门狗复位。
+PASS: four non-storage phases; five RTT images; five bounded stalls; BUSY and recovery; final DEVICE
+
+==== 2. 内存、任务与 Qt DeviceLink 交叉验证
+[idle-device]
+TASK         S PRIO STACK-FREE
+IDLE         r    0       428
+Tmr Svc      B    2       896
+USBH_Queue   B   24       764
+envTask      r   16      1324
+linkTask     B   32      1716
+stationTask  R   24      3996
+freertos heap  free 18904  min 18904
+lvgl pool      used 29704  peak 30872  of 45056
+[shell-device]
+TASK         S PRIO STACK-FREE
+IDLE         r    0       428
+Tmr Svc      B    2       896
+USBH_Queue   B   24       764
+envTask      B   16      1324
+linkTask     B   32      1688
+stationTask  R   24      3996
+freertos heap  free 18904  min 18904
+lvgl pool      used 29704  peak 30872  of 45056
+[image-station]
+TASK         S PRIO STACK-FREE
+IDLE         r    0       428
+Tmr Svc      B    2       896
+USBH_Queue   B   24       764
+envTask      r   16      1276
+linkTask     B   32      1680
+stationTask  R   24      3996
+freertos heap  free 18904  min 18904
+lvgl pool      used 12420  peak 30872  of 45056
+[controlled-180ms]
+TASK         S PRIO STACK-FREE
+IDLE         r    0       428
+Tmr Svc      B    2       896
+USBH_Queue   B   24       764
+envTask      r   16      1276
+linkTask     B   32      1680
+stationTask  R   24      3996
+freertos heap  free 18904  min 18904
+lvgl pool      used 29916  peak 31080  of 45056
+
+实板任务数仍为六个；本轮 StationTask 最小剩余栈 3996 / 8192 B。
+LVGL 峰值 31080 / 45056 B；FreeRTOS 最小剩余堆 18904 B。
+历史文件页的栈/内存峰值记录仍保留，本轮没有重测对应路径。
+
+既有 Qt 上位机链路探针（在四阶段测试后单独运行）：
+XDG_CONFIG_HOME=/tmp/vc-response-a03-final/config ./build/tools/vclink_probe rtt image
+[link  ] 启动 OpenOCD
+[link  ] 已连上 OpenOCD，检查芯片在运行什么
+[link  ] 找到 RTT 控制块，打开数据通道
+[link  ] 已连接：ST-Link（RTT）
+[ok    ] 固件 0.1.0，编译于 Oct 15 2026 19:23:27，芯片 UID 17002E001351363530353037
+[ok    ] SUB_TEL  订阅遥测（1000 ms） 完成（4.5 ms）
+[tel   ] 温度 43.48 °C  光照 3.2 %  VDDA 3286 mV  板子收帧 445 / 坏帧 0
+[image ] 成功：38400 字节，507 ms
+[ok    ] 缩略图已发送：38400 字节，507 ms
+
+==== 3. 各阶段原始统计（count/peak_ms/over20ms）
+[idle-device]
+loop_gap               319    18.0004     0
+touch_gap              159    28.0004   102
+gui_gap                159    28.7353   158
+background             320     0.7606     0
+gui_work               160     7.8653     0
+input_mark              30     9.0131     0
+shell_wait               2     4.0043     0
+shell_exec               2     0.6253     0
+image_wait               0     0.0000     0
+image_work               0     0.0000     0
+tx_wait_link            30     0.0017     0
+tx_wait_station          2     0.0017     0
+tx_wait_env             64     0.0016     0
+tx_hold_link            30     0.0098     0
+tx_hold_station          2     0.1128     0
+tx_hold_env             64     0.0163     0
+controlled_work          0     0.0000     0
+flow {"beep_high": 0, "beep_drop": 0, "shell_busy": 0, "result_overwrite": 0, "image_busy": 0, "mouse_high": 0, "inject_high": 0}
+telemetry_received=63
+memory {"g_lv_mem_used": 29704, "g_lv_mem_peak": 30872, "g_mouse_dropped": 0, "s_dropped": 0, "g_reset_flags": 335544320, "uwTick": 9836}
+[shell-device]
+loop_gap               260    14.9998     0
+touch_gap              129    24.9994    85
+gui_gap                129    25.0005   129
+background             261     1.5315     0
+gui_work               130     4.8652     0
+input_mark              24     9.0131     0
+shell_wait              26     7.9960     0
+shell_exec              26     1.3973     0
+image_wait               0     0.0000     0
+image_work               0     0.0000     0
+tx_wait_link            24     0.0017     0
+tx_wait_station         26     0.0017     0
+tx_wait_env             52     0.0016     0
+tx_hold_link            24     0.1355     0
+tx_hold_station         26     0.1140     0
+tx_hold_env             52     0.0354     0
+controlled_work          0     0.0000     0
+flow {"beep_high": 0, "beep_drop": 0, "shell_busy": 0, "result_overwrite": 0, "image_busy": 0, "mouse_high": 0, "inject_high": 0}
+telemetry_received=52
+memory {"g_lv_mem_used": 29704, "g_lv_mem_peak": 30872, "g_mouse_dropped": 0, "s_dropped": 0, "g_reset_flags": 335544320, "uwTick": 12557}
+[image-station]
+loop_gap               512    20.2198     2
+touch_gap              257    29.0004   213
+gui_gap                257    28.7353   253
+background             513     3.4733     0
+gui_work               258     8.3878     0
+input_mark              50     8.3283     0
+shell_wait              52    13.0817     0
+shell_exec              52     1.2823     0
+image_wait               5     7.9555     0
+image_work               5     3.3356     0
+tx_wait_link           250     0.0041     0
+tx_wait_station         52     0.0017     0
+tx_wait_env            103     0.0017     0
+tx_hold_link           250     0.1550     0
+tx_hold_station         52     0.1116     0
+tx_hold_env            103     0.0255     0
+controlled_work          0     0.0000     0
+flow {"beep_high": 0, "beep_drop": 0, "shell_busy": 0, "result_overwrite": 0, "image_busy": 0, "mouse_high": 0, "inject_high": 0}
+telemetry_received=104
+memory {"g_lv_mem_used": 12420, "g_lv_mem_peak": 30872, "g_mouse_dropped": 0, "s_dropped": 0, "g_reset_flags": 335544320, "uwTick": 19669}
+[controlled-180ms]
+loop_gap               122   194.0000     5
+touch_gap               62   200.9999    52
+gui_gap                 62   201.1070    58
+background             123     1.4413     0
+gui_work                63     5.7639     0
+input_mark               5   188.0595     5
+shell_wait               7   170.3088     5
+shell_exec               7     1.3095     0
+image_wait               0     0.0000     0
+image_work               0     0.0000     0
+tx_wait_link            50     0.0017     0
+tx_wait_station          7     0.0017     0
+tx_wait_env             28     0.0016     0
+tx_hold_link            50     0.0172     0
+tx_hold_station          7     0.1116     0
+tx_hold_env             28     0.0186     0
+controlled_work          5   180.0001     5
+flow {"beep_high": 0, "beep_drop": 0, "shell_busy": 10, "result_overwrite": 0, "image_busy": 0, "mouse_high": 0, "inject_high": 0}
+telemetry_received=27
+memory {"g_lv_mem_used": 29916, "g_lv_mem_peak": 31080, "g_mouse_dropped": 0, "s_dropped": 0, "g_reset_flags": 335544320, "uwTick": 23467}
+
+==== 4. 复现与限制
+source scripts/steamdeck-env.sh
+cd firmware/station && nice -n 19 cmake --build --preset Release -j2
+回到根目录，按 CLAUDE.md 烧录并校验当前 Release 固件。
+python3 tools/response_probe.py --output /tmp/vc-response-a03
+输出 run.txt 可由 shell 重定向保存；results.json 和 OpenOCD 日志写到指定目录。
+协议编码和 CRC 使用临时编译的 protocol/vc_protocol.c；进程结束删除临时共享库。
+每个窗口内不暂停 CPU，窗口结束短暂停核取得一致快照，再恢复运行。
+input_mark 是 LinkTask 到输入轮询的标记，不是实际触摸到显示的延迟。
+image_work 不是屏幕最终呈现延迟；本轮只验证协议确认和缓冲消费，未做显示像素回读。
+DWT 包含抢占/等待，32 位约 25.6 秒回绕；本轮相邻采样和有界工作均远短于此。
+over20ms 是严格 >20 ms 的次数，不能当作丢帧率，正常刷新略超 20 ms 也计入。
+PING 包含 TCP/OpenOCD/排队/Python 调度；各阶段负载长度不同，不能当成相同条件对比。
+传图时 PING 排在四个图片分块之后，其 RTT 不等于板内锁等待。
+鼠标/蜂鸣队列、结果覆盖等为零只表示本轮未发生；未施加这些路径的满队列压力。
+未覆盖 RTT 满缓冲/停止读取、所有终端命令、真实触摸链路和存储，不能外推最坏上界。
+决策：当前诊断与 RTT 图像负载暂不拆任务；未来慢功能先分步或通过有界工作交接，LVGL 仍由 StationTask 操作。
+脚本结束关闭 50 ms 遥测并留在 DEVICE；后续 Qt 探针使用其默认 1000 ms 订阅。
+Qt 探针退出后恢复 s_periodMs=0；最终读取确认遥测关闭、work_ms/work_active/input_request 均为 0，页面为 DEVICE。

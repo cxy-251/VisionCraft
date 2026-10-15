@@ -1,4 +1,5 @@
 #include "mouse.h"
+#include "perf.h"
 
 #include "cmsis_os2.h"
 #include "usb_host.h"
@@ -37,6 +38,8 @@ void USBH_HID_EventCallback(USBH_HandleTypeDef *phost)
         g_mouse_reports++;
         if (osMessageQueuePut(s_queue, &r, 0, 0) != osOK)
             g_mouse_dropped++;
+        const uint32_t depth = osMessageQueueGetCount(s_queue);
+        if (depth > g_perf_flow[PERF_MOUSE_HIGH]) g_perf_flow[PERF_MOUSE_HIGH] = depth;
     }
 }
 // [endregion]

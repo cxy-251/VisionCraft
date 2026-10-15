@@ -72,20 +72,37 @@ int eeprom_write(uint8_t addr, const uint8_t *src, size_t len) { ee_init(); if (
 #include "photo.h"
 #include <stdio.h>
 const char *fs_result_name(int fr) { return fr ? "not ready" : "ok"; }
+int fs_check(void) { return 0; }
+static const uint16_t kDate = (uint16_t)((46u << 9) | (1u << 5) | 1u), kTime = (uint16_t)(12u << 11);   /* 2026-01-01 12:00 */
 int fs_list(const char *path, fs_entry *out, unsigned max, unsigned *total)
 {
     unsigned n = 0;
     if (strcmp(path, "/") == 0) {
-        static const fs_entry root[] = {{"SIM_DCIM", 0, 1}, {"SIM_NOTE.TXT", 512, 0}};
-        for (; n < 2 && n < max; ++n) out[n] = root[n];
+        static const fs_entry root[] = {{"SIM_NOTE.TXT", 1200, 0, 0, 0}, {"SIM_DCIM", 0, 0, 0, 1}, {"SIM_DATA.BIN", 4096, 0, 0, 0}, {"SIM_LOGS", 0, 0, 0, 1}};
+        for (; n < 4 && n < max; ++n) { out[n] = root[n]; out[n].date = kDate; out[n].time = kTime; }
     } else {
         for (; n < 24 && n < max; ++n) {
             snprintf(out[n].name, sizeof out[n].name, "SIM_%04u.%s", n / 2 + 1, n % 2 ? "NEF" : "JPG");
             out[n].size = n % 2 ? 25000000u + n * 13u : 9000000u + n * 7u;
-            out[n].dir = 0;
+            out[n].date = kDate; out[n].time = (uint16_t)(kTime + (n << 5)); out[n].dir = 0;
         }
     }
     *total = n;
+    return 0;
+}
+int fs_read_head(const char *path, void *buf, uint32_t max, uint32_t *n)
+{
+    uint8_t *b = buf;
+    if (strstr(path, ".TXT")) {
+        static const char kText[] = "SIMULATOR: a fake text file.\nLine 2: the real board shows the file's first 8 KB.\n"
+                                    "Line 3: non-ASCII bytes are shown as dots.\n";
+        *n = sizeof kText - 1 < max ? sizeof kText - 1 : max;
+        memcpy(b, kText, *n);
+    } else {
+        *n = max < 256 ? max : 256;
+        for (uint32_t i = 0; i < *n; ++i) b[i] = (uint8_t)(i * 7u);   /* 假的二进制内容 */
+        if (*n >= 4) memcpy(b, "II*", 4);
+    }
     return 0;
 }
 int photo_read(const char *path, photo_info *info, uint16_t *rgb565, int max_w, int max_h)
@@ -96,9 +113,10 @@ int photo_read(const char *path, photo_info *info, uint16_t *rgb565, int max_w, 
     strcpy(info->taken, "2026:01:01 00:00:00");
     info->exp_num = 1; info->exp_den = 125; info->fnum_x10 = 56; info->iso = 400; info->focal_x10 = 500;
     info->w = 160; info->h = 120; info->full_w = 1600; info->full_h = 1200;
+    const unsigned shift = (unsigned)(strlen(path) > 9 ? path[strlen(path) - 6] : 0) * 5u;   /* 每张换个颜色 */
     for (int y = 0; y < 120 && y < max_h; ++y)          /* 渐变色块，一看就是假的 */
         for (int x = 0; x < 160 && x < max_w; ++x)
-            rgb565[y * 160 + x] = (uint16_t)(((x * 31 / 159) << 11) | ((y * 63 / 119) << 5) | 12);
+            rgb565[y * 160 + x] = (uint16_t)((((x + shift) * 31 / 159 % 32) << 11) | ((y * 63 / 119) << 5) | ((shift / 3) % 32));
     return 0;
 }
 const char *photo_error_name(int rc) { return rc ? "error" : "ok"; }

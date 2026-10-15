@@ -51,6 +51,13 @@ add_executable(${CMAKE_PROJECT_NAME})
 # Add STM32CubeMX generated sources
 add_subdirectory(cmake/stm32cubemx)
 
+# [region sd-timeout]
+# HAL 默认数据超时为 0xFFFFFFFF 个 SDIO 时钟。24 MHz 下约 179 秒，
+# 拔插卡时 SCR 等待会先触发约 4 秒的看门狗。限定为数据时钟下 1 秒，
+# 不修改下载的 HAL 源码；CubeMX 重新生成后也保留此设置。
+target_compile_definitions(STM32_Drivers PRIVATE SDMMC_DATATIMEOUT=24000000U)
+# [endregion]
+
 # Link directories setup
 target_link_directories(${CMAKE_PROJECT_NAME} PRIVATE
     # Add user defined library search paths

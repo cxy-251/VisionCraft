@@ -1,0 +1,185 @@
+FILES 扩展验证，2026-10-15
+
+==== 1. 本机构建
+firmware/station: Release，arm-none-eabi-gcc，-Os，-j2；通过。
+最终固件 FLASH 462732 / 1048576 B；RAM 118176 / 131072 B；CCMRAM 60416 / 65536 B；EXTSRAM 950532 / 1048576 B。
+以上是链接器的区域用量；运行时堆和任务栈另见第 3 节。
+VisionCraft、example_gui_sim、tst_handbook_refs、tst_layering：构建通过。
+OpenOCD 烧录、verify、reset：通过。
+
+==== 2. 桌面模拟器（假目录、假照片，不代表实板读卡）
+==== 13. 文件页 ====
+  点 FILES：根目录，列表视图（模拟器里是假目录） 当前页 FILES        点击 140 次，这一步写了 1532576 个像素
+    LVGL 内存池：用了 44672 字节，最多 46096（模拟器是 64 位，指针 8 字节，比板子多用）
+  点第一项（文件夹在前）：进目录 当前页 FILES        点击 140 次，这一步写了 300794 个像素
+  往上拖：列表滚动，控件循环使用 当前页 FILES        点击 140 次，这一步写了 10011904 个像素
+  切到图标视图：照片显示缩略图（一轮解一张） 当前页 FILES        点击 140 次，这一步写了 423580 个像素
+  点一张照片                              当前页 FILES        点击 140 次，这一步写了 310016 个像素
+  回到列表、回上一级                  当前页 FILES        点击 140 次，这一步写了 935786 个像素
+  点 SIM_NOTE.TXT：按文本看              当前页 FILES        点击 140 次，这一步写了 310016 个像素
+  点 SIM_DATA.BIN：按十六进制看        当前页 FILES        点击 140 次，这一步写了 631824 个像素
+    PASS: 打开照片、文本、二进制；滚动重绑；图标切回列表无缩略图残留
+
+共重画控件 275 次
+
+==== 3. 实板：当前没有可用卡，终端诊断与页面返回
+自动点击前先在空白处唤醒：闲置调暗后的第一下只负责唤醒，不会打开页面。
+以下来自本次固件烧录后的 ST-Link 读取；不是之前版本的测量。
+start FILES
+tap 40 38 => VISIONCRAFT
+tap 392 300 => TERMINAL
+command sd; runs=2
+command ls; runs=3
+command ps; runs=4
+command free; runs=5
+type a command, or tap one below
+> free
+freertos heap  free 18816  min 18816
+lvgl pool      used 29128  peak 30084  of 45056
+> sd
+no card (init 3 ms)
+> ls
+mount: not ready
+> ps
+TASK         S PRIO STACK-FREE
+stationTask  R   24      3472
+envTask      r   16      1308
+IDLE         r    0       428
+linkTask     B   32      1736
+USBH_Queue   B   24       756
+Tmr Svc      B    2       896
+> free
+freertos heap  free 18816  min 18816
+lvgl pool      used 11740  peak 30084  of 45056
+
+tap 40 38 => VISIONCRAFT
+tap 88 661 => FILES
+FILES listRc=3, mounted=0, ready=0, LVGL=29384/45056 peak=30348
+
+==== 4. 插卡后不复位：自动挂载
+AUTO-MOUNT: page=FILES path=/ ready=1 mounted=1 listRc=0 loads=3
+
+==== 5. 实板有卡回归（tools/files_probe.tcl）
+FILES root: page=FILES path=/ listRc=0 open=4294967295 grid=0 loads=1 views=0 thumbs=0 binds=2
+DCIM: page=FILES path=/DCIM listRc=0 open=4294967295 grid=0 loads=2 views=0 thumbs=0 binds=3
+photo directory: page=FILES path=/DCIM/100NZ_FC listRc=0 open=4294967295 grid=0 loads=3 views=0 thumbs=0 binds=4
+first JPG: page=FILES path=/DCIM/100NZ_FC listRc=0 open=0 grid=0 loads=3 views=1 thumbs=0 binds=5
+next JPG: page=FILES path=/DCIM/100NZ_FC listRc=0 open=2 grid=0 loads=3 views=2 thumbs=0 binds=6
+grid thumbnails: page=FILES path=/DCIM/100NZ_FC listRc=0 open=4294967295 grid=1 loads=3 views=2 thumbs=8 binds=9
+grid scroll: page=FILES path=/DCIM/100NZ_FC listRc=0 open=4294967295 grid=1 loads=3 views=2 thumbs=10 binds=13
+back to list: page=FILES path=/DCIM/100NZ_FC listRc=0 open=4294967295 grid=0 loads=3 views=2 thumbs=10 binds=16
+RAW hex preview: page=FILES path=/DCIM/100NZ_FC listRc=0 open=1 grid=0 loads=5 views=3 thumbs=10 binds=20
+PASS: file navigation, JPG, next JPG, grid thumbnails, scrolling, list and RAW open
+LVGL used=31064 peak=35496 of 45056; SD errors=0
+
+==== 6. 连续浏览和滚动后内存
+after repeated photos and scrolling: page=FILES path=/DCIM/100NZ_FC listRc=0 open=4294967295 grid=1 loads=5 views=12 thumbs=19 binds=56
+LVGL peak=35716; SD errors=0
+type a command, or tap one below
+> ps
+TASK         S PRIO STACK-FREE
+stationTask  R   24      2668
+envTask      r   16      1308
+IDLE         r    0       428
+linkTask     B   32      1736
+USBH_Queue   B   24       756
+Tmr Svc      B    2       896
+> free
+freertos heap  free 18816  min 18816
+lvgl pool      used 11748  peak 35716  of 45056
+
+ready for visual and hotplug check: page=FILES path=/DCIM/100NZ_FC listRc=0 open=4294967295 grid=1 loads=5 views=12 thumbs=19 binds=57
+
+说明：本次连续切换 9 张 JPG，随后 4 次向下拖动图标列表，未出现 SD 读取错误。
+StationTask 最少剩余栈 2668 B / 8192 B，FreeRTOS 最小剩余堆 18816 B；LVGL 峰值 35716 B / 45056 B。
+该峰值只覆盖本轮操作，不代表所有目录和文件组合的最坏情况。
+文本预览用桌面假文件验证；真实卡已验证 JPG 与 NEF 十六进制，不向相机卡写测试文件。
+
+==== 7. 真实插拔：发现并定位看门狗复位
+用户确认照片显示、切换正常，且没有按复位键或断电。
+第一次监测仅检查最终状态，曾输出 PASS；随后发现目录、计数被重置，不能算作通过。
+修正测试：监测 uptime 是否倒退；第二次采样明确捕获复位。
+以下 PC 来自修复前 ELF，nm / objdump 对应 SD_FindSCR.constprop.0（0x08004310 起）。
+HOTPLUG elapsed=0ms ready=1 mounted=1 listRc=0 open=4294967295 path=/
+HOTPLUG elapsed=47600ms ready=0 mounted=0 listRc=3 open=4294967295 path=/
+RESET: uptime 279108 -> 36, flags=0x24000000
+fault=0x0 0x0 0x0 0x0 0x0 0x0 0x0 0x0 0x0 0x0 0x0 0x0 0x0 0x0 0x0
+TRACE uptime=278071 ready=0 mounted=0 rc=3 pc=0x800439e icsr=0x0 sdio=0x3 0x100 0x0 0x473 0x33 0x920 0x5b590000 0xec3f7f80 0xa4000da 0xffffffff 0x8 0x33 0x1f8 0x82400 0x0 0x32a
+TRACE uptime=278278 ready=0 mounted=0 rc=3 pc=0x800436e icsr=0x0 sdio=0x3 0x100 0x0 0x473 0x33 0x920 0x5b590000 0xec3f7f80 0xa4000da 0xffffffff 0x8 0x33 0x1f8 0x82400 0x0 0x32a
+TRACE uptime=278485 ready=0 mounted=0 rc=3 pc=0x800439a icsr=0x0 sdio=0x3 0x100 0x0 0x473 0x33 0x920 0x5b590000 0xec3f7f80 0xa4000da 0xffffffff 0x8 0x33 0x1f8 0x82400 0x0 0x32a
+TRACE uptime=278692 ready=0 mounted=0 rc=3 pc=0x800439c icsr=0x0 sdio=0x3 0x100 0x0 0x473 0x33 0x920 0x5b590000 0xec3f7f80 0xa4000da 0xffffffff 0x8 0x33 0x1f8 0x82400 0x0 0x32a
+TRACE uptime=278899 ready=0 mounted=0 rc=3 pc=0x8002cd4 icsr=0x0 sdio=0x3 0x100 0x0 0x473 0x33 0x920 0x5b590000 0xec3f7f80 0xa4000da 0xffffffff 0x8 0x33 0x1f8 0x82400 0x0 0x32a
+TRACE uptime=279105 ready=0 mounted=0 rc=3 pc=0x800439a icsr=0x0 sdio=0x3 0x100 0x0 0x473 0x33 0x920 0x5b590000 0xec3f7f80 0xa4000da 0xffffffff 0x8 0x33 0x1f8 0x82400 0x0 0x32a
+寄存器快照：DTIMER=0xffffffff、DLEN=8、DCOUNT=0x1f8、STA=0x82400（RXACT 仍置位）。
+处理：停数据通道和中断、RCC 复位 SDIO、清待处理中断；将数据硬件超时限定为 24000000 个 SDIO 时钟。
+仅缩短超时还不够：DMA 完成后如果不清 DTEN / 数据中断，空闲一秒会报误超时，目录回归能检出。
+现于完成和错误回调中关闭数据通道、清数据标志，再通知读任务。
+
+==== 8. 修复后回归
+FILES root: page=FILES path=/ listRc=0 open=4294967295 grid=0 loads=1 views=0 thumbs=0 binds=2
+DCIM: page=FILES path=/DCIM listRc=0 open=4294967295 grid=0 loads=2 views=0 thumbs=0 binds=3
+photo directory: page=FILES path=/DCIM/100NZ_FC listRc=0 open=4294967295 grid=0 loads=3 views=0 thumbs=0 binds=4
+first JPG: page=FILES path=/DCIM/100NZ_FC listRc=0 open=0 grid=0 loads=3 views=1 thumbs=0 binds=5
+next JPG: page=FILES path=/DCIM/100NZ_FC listRc=0 open=2 grid=0 loads=3 views=2 thumbs=0 binds=6
+grid thumbnails: page=FILES path=/DCIM/100NZ_FC listRc=0 open=4294967295 grid=1 loads=3 views=2 thumbs=8 binds=9
+grid scroll: page=FILES path=/DCIM/100NZ_FC listRc=0 open=4294967295 grid=1 loads=3 views=2 thumbs=8 binds=14
+back to list: page=FILES path=/DCIM/100NZ_FC listRc=0 open=4294967295 grid=0 loads=3 views=2 thumbs=8 binds=17
+parent directory: page=FILES path=/DCIM listRc=0 open=4294967295 grid=0 loads=4 views=2 thumbs=8 binds=19
+reenter photo directory: page=FILES path=/DCIM/100NZ_FC listRc=0 open=4294967295 grid=0 loads=5 views=2 thumbs=8 binds=20
+RAW hex preview: page=FILES path=/DCIM/100NZ_FC listRc=0 open=1 grid=0 loads=5 views=3 thumbs=8 binds=21
+PASS: file navigation, JPG, next JPG, grid thumbnails, scrolling, list and RAW open
+LVGL used=31004 peak=35132 of 45056; SD errors=0
+
+CMD disconnect cycle 0: elapsed=1601 ready=1 mounted=1 listRc=0 init_ms=6
+CMD disconnect cycle 1: elapsed=1602 ready=1 mounted=1 listRc=0 init_ms=6
+CMD disconnect cycle 2: elapsed=1601 ready=1 mounted=1 listRc=0 init_ms=6
+CMD disconnect cycle 3: elapsed=1601 ready=1 mounted=1 listRc=0 init_ms=6
+CMD disconnect cycle 4: elapsed=1601 ready=1 mounted=1 listRc=0 init_ms=6
+PASS: five forced CMD disconnect/reinitialization cycles without reset; PD2 MODER restored
+
+after repeated photos and scrolling: page=FILES path=/DCIM/100NZ_FC listRc=0 open=4294967295 grid=1 loads=5 views=12 thumbs=17 binds=55
+LVGL peak=35664; SD errors=0
+type a command, or tap one below
+> ps
+TASK         S PRIO STACK-FREE
+stationTask  R   24      2668
+envTask      r   16      1308
+IDLE         r    0       428
+linkTask     B   32      1736
+USBH_Queue   B   24       740
+Tmr Svc      B    2       896
+> free
+freertos heap  free 18816  min 18816
+lvgl pool      used 11748  peak 35664  of 45056
+> sdsum
+2048 KB from sector 24576: fnv1a b96f515f
+> sdsum
+2048 KB from sector 24576: fnv1a b96f515f
+> sdsum
+2048 KB from sector 24576: fnv1a b96f515f
+
+ready for visual and hotplug check: page=FILES path=/DCIM/100NZ_FC listRc=0 open=4294967295 grid=1 loads=5 views=12 thumbs=17 binds=56
+
+连续三次读取同一段 2 MB，fnv1a 都为 b96f515f，与前一版实测一致。
+本轮 LVGL 峰值 35664 / 45056 B，StationTask 最少剩余栈 2668 B，FreeRTOS 最小剩余堆 18816 B。
+
+==== 9. 修复后真实插拔
+用户完成修复后的拔卡 / 插回。三分钟监测窗口已经结束，未覆盖这次操作，不能把该监测输出当成 PASS。
+随后读取运行状态：uptime=383666 ms，复位标志 0x14000000（本轮 OpenOCD 初始复位，不含看门狗位）。
+浏览次数仍为 12，目录加载次数从 5 增为 6，缩略图从 17 增为 25，表明目录已重载且之前运行状态保留。
+用户确认画面与切换正常；以下后验状态与用户完成确认共同验证本轮恢复，不是完整时序抓取。
+
+after user confirmed physical removal/reinsertion: page=FILES path=/DCIM/100NZ_FC listRc=0 open=4294967295 grid=1 loads=6 views=12 thumbs=25 binds=58
+uptime=383666 reset_flags=0x14000000
+fault_record=0x0 0x0 0x0 0x0 0x0 0x0 0x0 0x0 0x0 0x0 0x0 0x0 0x0 0x0 0x0
+card ready=1 mounted=1 SD errors=0
+SDIO DCTRL=0x0 MASK=0x0
+LVGL used=30460 peak=35664
+PASS: mounted, no watchdog reset flag, pre-hotplug browsing counters preserved
+
+复现入口：
+tools/files_probe.sh                普通回归，自动复位，使用现有相机目录。
+tools/files_probe.sh --reinit       停在 FILES，自动制造五次 CMD 失联，恢复 PD2 寄存器。
+tools/files_probe.sh --hotplug      停在 FILES，三分钟内手工拔卡 / 插回，检查期间未重启。
+tools/files_probe.sh --hotplug-trace 追加 PCSR、ICSR 和 SDIO 寄存器采样，失败时定位卡在哪里。
+上述操作全程只读，不向相机卡写测试文件。

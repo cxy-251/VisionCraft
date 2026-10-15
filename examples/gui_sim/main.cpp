@@ -8,6 +8,8 @@
 #include <tuple>
 
 extern "C" {
+#include "lvgl.h"
+#include "lv_port.h"
 #include "gui.h"
 #include "pages.h"
 #include "app.h"
@@ -24,10 +26,19 @@ extern char g_term_inject[64];
 extern volatile uint32_t g_paint_strokes, g_paint_points, g_paint_max_gap;
 
 extern volatile uint32_t g_term_inject_seq;
+extern volatile uint32_t g_files_loads, g_files_views, g_files_thumbs, g_files_binds;
 extern int g_sim_result_fresh, g_sim_image_fresh, g_sim_image_done;
 }
 
 static QString g_dir;
+
+static unsigned visible_images(lv_obj_t *obj)
+{
+    unsigned n = lv_obj_check_type(obj, &lv_image_class) && lv_obj_is_visible(obj);
+    for (unsigned i = 0; i < lv_obj_get_child_count(obj); ++i)
+        n += visible_images(lv_obj_get_child(obj, i));
+    return n;
+}
 
 static void save(const char *name)
 {
@@ -239,12 +250,38 @@ int main(int argc, char *argv[])
     step("离开再回来，画还在");
     tap(40, 38);
 
+    std::printf("\n==== 13. 文件页 ====\n");
+    const uint32_t views0 = g_files_views, binds0 = g_files_binds;
     tap(88, 661);
-    step("点 FILES：SD 卡根目录（模拟器里是假目录）");          save("gui-files-root");
-    tap(240, 172);
-    step("点第一项：进目录");                                    save("gui-files-dir");
-    tap(240, 172);
-    step("点第一张 JPG：看缩略图（模拟器里是假的渐变图）");      save("gui-files-photo");
+    step("点 FILES：根目录，列表视图（模拟器里是假目录）");    save("gui-files-root");
+    run(1100);                                                       // lv_port 每秒更新一次内存池用量
+    std::printf("    LVGL 内存池：用了 %u 字节，最多 %u（模拟器是 64 位，指针 8 字节，比板子多用）\n", (unsigned)g_lv_mem_used, (unsigned)g_lv_mem_peak);
+    tap(240, 160);
+    step("点第一项（文件夹在前）：进目录");                      save("gui-files-dir");
+    for (int i = 0; i < 12; ++i) { ev(i ? GUI_MOVE : GUI_DOWN, 240, 600 - i * 30); run(20); }
+    ev(GUI_UP, 240, 270); run(800);
+    step("往上拖：列表滚动，控件循环使用");                       save("gui-files-scrolled");
+    tap(436, 106);
+    run(3000);
+    step("切到图标视图：照片显示缩略图（一轮解一张）");          save("gui-files-grid");
+    tap(88, 220);
+    step("点一张照片");                                          save("gui-files-photo");
+    tap(40, 106); tap(436, 106); tap(42, 106);
+    step("回到列表、回上一级");                                  save("gui-files-root2");
+    if (visible_images(lv_screen_active()) != 0) {
+        std::fprintf(stderr, "FAIL: 切回列表后仍有缩略图残留\n");
+        return 1;
+    }
+    tap(240, 409);
+    step("点 SIM_NOTE.TXT：按文本看");                           save("gui-files-text");
+    tap(42, 106); tap(240, 333);
+    step("点 SIM_DATA.BIN：按十六进制看");                       save("gui-files-hex");
+    if (g_files_views != views0 + 3 || g_files_binds <= binds0 + 2 || g_files_thumbs == 0) {
+        std::fprintf(stderr, "FAIL: 文件打开、滚动绑定或缩略图加载没有完成\n");
+        return 1;
+    }
+    std::printf("    PASS: 打开照片、文本、二进制；滚动重绑；图标切回列表无缩略图残留\n");
+    tap(42, 106);
     tap(40, 38);
 
     std::printf("\n共重画控件 %lu 次\n", (unsigned long)g_gui_redraws);

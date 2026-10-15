@@ -14,6 +14,25 @@ static uint32_t s_initMs;
 static osSemaphoreId_t s_done;
 static volatile int s_error;
 
+// [region reset]
+/* HAL_SD_DeInit 只关电源和 MSP，不复位 DPSM/FIFO。读卡后拔卡会留下 RXACT，
+ * 再读 8 字节 SCR 时可能仍在等上一笔数据。先停中断/数据通道，再真正复位外设。 */
+static void sd_deinit(void)
+{
+    HAL_NVIC_DisableIRQ(SDIO_IRQn);
+    SDIO->MASK = 0;
+    SDIO->DCTRL = 0;
+    __HAL_SD_CLEAR_FLAG(&hsd, SDIO_STATIC_FLAGS);
+    HAL_SD_DeInit(&hsd);
+    __HAL_RCC_SDIO_FORCE_RESET();
+    __HAL_RCC_SDIO_RELEASE_RESET();
+    HAL_NVIC_ClearPendingIRQ(SDIO_IRQn);
+    HAL_NVIC_ClearPendingIRQ(DMA2_Stream3_IRQn);
+    HAL_NVIC_ClearPendingIRQ(DMA2_Stream6_IRQn);
+    hsd.Context = SD_CONTEXT_NONE;
+}
+// [endregion]
+
 // [region init]
 int sd_init(void)
 {
@@ -22,6 +41,8 @@ int sd_init(void)
     if (!s_done)
         s_done = osSemaphoreNew(1, 0, NULL);
     const uint32_t t0 = HAL_GetTick();
+    __HAL_RCC_SDIO_FORCE_RESET();
+    __HAL_RCC_SDIO_RELEASE_RESET();
     /* 和 sdio.c 里 CubeMX 生成的设置一样，只是失败了不进 Error_Handler */
     hsd.Instance = SDIO;
     hsd.Init.ClockEdge = SDIO_CLOCK_EDGE_RISING;
@@ -37,7 +58,7 @@ int sd_init(void)
         rc = -2;
     s_initMs = HAL_GetTick() - t0;
     if (rc != 0) {
-        HAL_SD_DeInit(&hsd);
+        sd_deinit();
         return rc;
     }
 
@@ -75,12 +96,46 @@ void sd_set_clock_div(uint8_t div)
     s_info.clock_hz = 48000000u / (div + 2u);
 }
 
+// [region hotplug]
+/* 卡槽没有接「卡在不在」的检测脚，只能问卡：读失败、或者 CMD13 没应答，就当卡被拔了 */
+void sd_lost(void)
+{
+    if (!s_ready) return;
+    s_ready = 0;
+    sd_deinit();                                    /* 清空 DPSM/FIFO；下次 sd_init 从头识别 */
+}
+
+int sd_alive(void)
+{
+    if (!s_ready) return 0;
+    hsd.ErrorCode = HAL_SD_ERROR_NONE;
+    const HAL_SD_CardStateTypeDef st = HAL_SD_GetCardState(&hsd);   /* CMD13，几微秒 */
+    if (hsd.ErrorCode != HAL_SD_ERROR_NONE || st != HAL_SD_CARD_TRANSFER) {
+        sd_lost();
+        return 0;
+    }
+    return 1;
+}
+// [endregion]
+
 int sd_ready(void) { return s_ready; }
 const sd_info *sd_get_info(void) { return &s_info; }
 uint32_t sd_init_ms(void) { return s_initMs; }
 
-void HAL_SD_RxCpltCallback(SD_HandleTypeDef *h) { (void)h; osSemaphoreRelease(s_done); }
-void HAL_SD_ErrorCallback(SD_HandleTypeDef *h) { (void)h; s_error = 1; osSemaphoreRelease(s_done); }
+// [region data-complete]
+/* DMA 的完成回调可能先于 SDIO 的 DATAEND 中断执行。HAL 在 DMA 回调里已经
+ * 清了 DATAEND，但没有关 DTEN/数据中断；空闲一秒后就会报一个假的数据超时。
+ * 归还读缓冲前停掉这一笔数据通道，下一次 HAL_SD_ReadBlocks_DMA 会重新配置。 */
+static void stop_data(SD_HandleTypeDef *h)
+{
+    h->Instance->MASK = 0;
+    h->Instance->DCTRL = 0;
+    __HAL_SD_CLEAR_FLAG(h, SDIO_STATIC_DATA_FLAGS);
+}
+
+void HAL_SD_RxCpltCallback(SD_HandleTypeDef *h) { stop_data(h); osSemaphoreRelease(s_done); }
+void HAL_SD_ErrorCallback(SD_HandleTypeDef *h) { stop_data(h); s_error = 1; osSemaphoreRelease(s_done); }
+// [endregion]
 
 // [region read]
 /* DMA 要求：地址 4 字节对齐（DMA 按字搬），而且不能在 CCM 里（CCM 只连着 CPU，DMA 看不到）。
@@ -130,10 +185,20 @@ static int read_dma(uint8_t *dst, uint32_t block, uint32_t count)
     return rc;
 }
 
+static int sd_read_raw(void *dst, uint32_t block, uint32_t count);
+
 int sd_read(void *dst, uint32_t block, uint32_t count)
 {
     if (!s_ready)
         return -1;
+    const int rc = sd_read_raw(dst, block, count);
+    if (rc && !sd_alive())             /* 读失败、而且卡也不应答了：卡被拔了 */
+        return -3;
+    return rc;
+}
+
+static int sd_read_raw(void *dst, uint32_t block, uint32_t count)
+{
     uint8_t *p = dst;
     const uintptr_t a = (uintptr_t)p;
     const int direct = (a & 3u) == 0 && !(a >= 0x10000000u && a < 0x10010000u);

@@ -1,6 +1,7 @@
 #include "fs.h"
 
 #include "main.h"
+#include "sdcard.h"
 
 #include <string.h>
 
@@ -8,10 +9,13 @@ static FATFS s_fs;                     /* 不能放 CCM：里面的 512 字节�
 static int s_mounted;
 static uint32_t s_mountMs;
 
+static void unmount(void);
+
 int fs_mount(void)
 {
-    if (s_mounted)
+    if (s_mounted && sd_ready())
         return FR_OK;
+    unmount();                         /* 读的时候发现卡没了（sd_ready 变 0）：先把旧的卸掉 */
     const uint32_t t0 = HAL_GetTick();
     /* 最后一个参数 1：现在就挂载（读引导扇区、找 FAT），而不是等第一次打开文件时 */
     const FRESULT fr = f_mount(&s_fs, "", 1);
@@ -19,6 +23,27 @@ int fs_mount(void)
     s_mounted = fr == FR_OK;
     return fr;
 }
+
+// [region hotplug]
+/* FatFs 报磁盘错误、或者卡不应答了：卸载。FatFs 里缓存的扇区、FAT 位置都作废，下次从头挂 */
+static void unmount(void)
+{
+    if (s_mounted) f_mount(NULL, "", 0);
+    s_mounted = 0;
+}
+
+static int check_result(int fr)
+{
+    if (fr == FR_DISK_ERR || fr == FR_NOT_READY || !sd_ready()) unmount();
+    return fr;
+}
+
+int fs_check(void)
+{
+    if (s_mounted && !sd_alive()) unmount();
+    return fs_mount();
+}
+// [endregion]
 
 int fs_mounted(void) { return s_mounted; }
 FATFS *fs_volume(void) { return &s_fs; }
@@ -42,20 +67,38 @@ int fs_list(const char *path, fs_entry *out, unsigned max, unsigned *total)
         return m;
     static DIR d;
     static FILINFO fi;                 /* 带 256 字节的长文件名，放静态区不放任务栈 */
-    const FRESULT fr = f_opendir(&d, path);
+    FRESULT fr = f_opendir(&d, path);
     if (fr != FR_OK)
-        return fr;
+        return check_result(fr);
     unsigned n = 0;
-    while (f_readdir(&d, &fi) == FR_OK && fi.fname[0]) {
+    while ((fr = f_readdir(&d, &fi)) == FR_OK && fi.fname[0]) {
+        if (fi.fattrib & (AM_HID | AM_SYS)) continue;   /* 隐藏文件、系统文件不列（和电脑上的文件管理器一样） */
         if (n < max) {
             strncpy(out[n].name, fi.fname, sizeof out[n].name - 1);
             out[n].name[sizeof out[n].name - 1] = 0;
             out[n].size = (uint32_t)fi.fsize;
+            out[n].date = fi.fdate;
+            out[n].time = fi.ftime;
             out[n].dir = (fi.fattrib & AM_DIR) != 0;
         }
         n++;
     }
     f_closedir(&d);
     *total = n;
-    return FR_OK;
+    return check_result(fr);           /* 读到一半出错不能当成「目录到头了」 */
+}
+
+int fs_read_head(const char *path, void *buf, uint32_t max, uint32_t *n)
+{
+    *n = 0;
+    const int m = fs_mount();
+    if (m != FR_OK) return m;
+    static FIL f;
+    FRESULT fr = f_open(&f, path, FA_READ);
+    if (fr != FR_OK) return check_result(fr);
+    UINT br = 0;
+    fr = f_read(&f, buf, max, &br);
+    f_close(&f);
+    *n = br;
+    return check_result(fr);
 }

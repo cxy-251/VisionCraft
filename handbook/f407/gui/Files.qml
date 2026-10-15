@@ -2,8 +2,8 @@ import QtQuick
 import VisionCraft
 
 Section {
-    title: qsTr("文件页：目录与照片缩略图")
-    lead: qsTr("首页第四行的 FILES：列出 SD 卡上的目录，点 JPG 看相机嵌在照片里的缩略图和拍摄参数。照片 6–14 MB，板子只读开头的 68 KB——缩略图和参数都在那里。全程只读。")
+    title: qsTr("文件页：目录、缩略图与文件预览")
+    lead: qsTr("首页第四行的 FILES：列表和图标两种视图，拖动浏览目录；点 JPG 看 EXIF 缩略图和拍摄参数，点文本看内容，其他文件看十六进制。每秒检查卡的状态，插回卡自动重试。全程只读。")
 
     Why {
         text: qsTr("「SD 卡与 FatFs」一节只有终端命令能看卡。这一节在屏上浏览，顺便学 JPEG 文件的开头长什么样：EXIF 是一个嵌在 JPEG 里的 TIFF 结构，相机把拍摄参数和一张 160×120 的小 JPEG 放在里面。"
@@ -47,22 +47,27 @@ Section {
     }
 
     CodeRef { file: "firmware/station/App/page_files.c"; region: "state" }
-    CodeRef { file: "firmware/station/App/page_files.c"; region: "view" }
+    CodeRef { file: "firmware/station/App/page_files.c"; region: "recycle" }
+    CodeRef { file: "firmware/station/App/page_files.c"; region: "thumbs" }
+    CodeRef { file: "firmware/station/App/page_files.c"; region: "viewers" }
 
     Figure {
-        files: ["handbook/f407/gui/figures/gui-files-dir.png", "handbook/f407/gui/figures/gui-files-photo.png"]
-        captions: [qsTr("模拟器：目录（假数据）"), qsTr("模拟器：照片（假的渐变图；板子上是真的缩略图）")]
+        files: ["handbook/f407/gui/figures/gui-files-dir.png", "handbook/f407/gui/figures/gui-files-grid.png", "handbook/f407/gui/figures/gui-files-photo.png", "handbook/f407/gui/figures/gui-files-text.png", "handbook/f407/gui/figures/gui-files-hex.png"]
+        captions: [qsTr("桌面模拟器：目录列表（假数据）"), qsTr("图标视图，停下滚动后逐张生成缩略图"), qsTr("照片预览（模拟器中的渐变图）"), qsTr("文本预览"), qsTr("十六进制预览")]
     }
 
     KeyPoints {
         label: qsTr("页面")
         points: [
-            qsTr("一页 9 行，左右翻页；整个目录先读进外部 SRAM 的数组（一项 72 字节，最多 512 项），翻页、上一张下一张都不用再读卡。照片目录 231 项读一次 7 ms。"),
-            qsTr("行和按钮在建页面时就建好，换目录、翻页只改文字（只保留当前页：离开时整页删掉，数据留在控件以外的变量里）。LVGL 内存池峰值 24180 / 45056 字节。"),
-            qsTr("板上按键：看目录时左右翻页、上键回上一级；看照片时左右换一张（跳过 NEF）、上键回目录。和游戏页一样，这些键不再发给上位机。"),
-            qsTr("首页的图标从 184 改成 150 像素高，排得下第四行。调试器脚本和模拟器里点第三行的坐标跟着改了。")
+            qsTr("目录最多保留 512 项，文件夹在前、再按名字排序；隐藏和系统文件不列出。每项带 FAT 日期与时间，列表显示大小与修改时间。目录超过上限时，状态行说明只展示前 512 项。"),
+            qsTr("列表和图标视图共用 15 组控件。透明占位对象撑开内容高度，滚动时重新绑定可见条目，不为整个目录创建几百组控件。切回列表时要同时隐藏缩略图、恢复类型图标，避免控件复用留下上一项的图片。"),
+            qsTr("图标视图只加载可见 JPG：停止滚动 200 ms 后，每次 tick 最多解一张。160×120 的图缩成 80×60，18 张缓存共 172800 字节，放外部 SRAM。换目录时清空缓存。"),
+            qsTr("文本最多读开头 8 KB；等宽字体只有 ASCII，非 ASCII 字节显示成点。二进制最多显示开头 1 KB，每行 8 字节，包含偏移、十六进制和可打印字符。RAW、音频、视频有类型图标，当前不解码这些文件。"),
+            qsTr("板上按键：目录中 WKUP 向上滚、KEY1 向下滚、KEY2 回上一级；照片中 KEY2/KEY0 上一张/下一张，WKUP 回目录。照片也可以左右滑动切换。")
         ]
     }
+
+    Para { text: qsTr("下面保留第一版文件页的实板记录；当时使用分页控件，其内存测量和按键方式不代表当前版本。") }
 
     CodeRef { file: "handbook/f407/gui/files-test.txt"; from: "==== 4"; to: "sd_errors 0$"; caption: qsTr("板子上：点击、看屏、想复现一次失败") }
 
@@ -80,7 +85,30 @@ Section {
         answerNote: qsTr("能解，但要把整个 6–14 MB 的文件都读完、哈夫曼解码全部数据（缩小只省了反变换和输出）。读卡按 10 MB/s 就要约 1 秒；解码按缩略图 8 KB 36 ms 粗算，10 MB 要几十秒。都是估算，没有实测。据说尼康在 MakerNote（厂家自定义的那一项）里还放了一张更大的预览图，用它会更实际——没有验证。")
     }
 
+    CodeRef { file: "firmware/station/App/sdcard.c"; region: "hotplug" }
+    CodeRef { file: "firmware/station/App/sdcard.c"; region: "reset" }
+    CodeRef { file: "firmware/station/App/sdcard.c"; region: "data-complete" }
+    CodeRef { file: "firmware/station/CMakeLists.txt"; region: "sd-timeout" }
+    CodeRef { file: "firmware/station/App/fs.c"; region: "hotplug" }
+    CodeRef { file: "firmware/station/App/page_files.c"; region: "tick" }
+
+    KeyPoints {
+        label: qsTr("插拔卡与错误恢复")
+        points: [
+            qsTr("卡槽没有独立检测脚。文件页每秒发 CMD13 检查卡状态；失败则关闭 SDIO、卸载 FatFs，清除目录并退出文件预览。没有挂载时会重试挂载。"),
+            qsTr("重新挂载后读取当前目录；如果新卡没有这个目录，则退回根目录。读目录中途遇到错误也必须报告，不能当作正常读到目录末尾。"),
+            qsTr("实板插拔暴露过一个隐藏问题：界面最终回来了，但实际上是看门狗复位后重新挂载。采样看到程序停在 HAL 的 SD_FindSCR 循环，数据通道仍是 RXACT，计数与新的 8 字节 SCR 不符。HAL_SD_DeInit 不会完整复位 SDIO 的数据状态机，所以现在明确停止数据通道并复位外设。"),
+            qsTr("HAL 默认数据超时是 0xFFFFFFFF 个 SDIO 时钟，24 MHz 下约 179 秒，远大于约 4 秒的看门狗。构建时限定为 24000000 个时钟（24 MHz 下约 1 秒）。DMA 完成或出错后还要关闭数据通道与中断，否则空闲期间会出现误超时。"),
+            qsTr("恢复测试同时检查 HAL 毫秒计数没有倒退：发生重启就失败，不能只看最后目录是否出现。调试器还可以把 CMD 引脚暂时切成输入，验证自动重新初始化；测试结束还原寄存器。这是通信失联测试，不能代替真实插拔。"),
+            qsTr("轮询有边界：如果两次检查之间迅速换卡，单凭 CMD13 状态不能可靠识别卡的身份变化。热插拔后的界面和资源占用需要实板验证。")
+        ]
+    }
+
+    CodeRef { file: "handbook/f407/gui/files-browser-test.txt"; from: "==== 1"; to: "==== 2"; caption: qsTr("本轮构建与烧录") }
+    CodeRef { file: "handbook/f407/gui/files-browser-test.txt"; from: "==== 2"; to: "==== 3"; caption: qsTr("桌面模拟器回归，使用假目录与假照片") }
+    CodeRef { file: "handbook/f407/gui/files-browser-test.txt"; from: "==== 3"; caption: qsTr("本轮实板测量、故障修复与验证范围") }
+
     InSystem {
-        text: qsTr("首页第四行的 FILES。没插卡时进来显示读不了卡的原因，再进一次会重试。终端命令 photo <路径> 打印同样的 EXIF 信息和用时。")
+        text: qsTr("首页第四行的 FILES。终端 sd / ls / photo 命令可以分别检查卡、目录和照片解码；页面和终端都只读，不会修改相机卡中的文件。")
     }
 }

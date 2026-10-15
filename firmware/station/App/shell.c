@@ -117,7 +117,7 @@ static void cmd_sram(shell_io *io, int argc, char **argv)
 static void cmd_sd(shell_io *io, int argc, char **argv)
 {
     (void)argc; (void)argv;
-    const int fr = fs_mount();
+    const int fr = fs_check();         /* 挂着的话先问卡还在不在 */
     if (!sd_ready()) { say(io, "no card (init %lu ms)", (unsigned long)sd_init_ms()); return; }
     const sd_info *c = sd_get_info();
     say(io, "card %s  %lu MB  mid 0x%02x oem %.2s name %.5s rev %u.%u", c->type ? "SDHC/XC" : "SDSC",
@@ -145,7 +145,7 @@ static void cmd_sd(shell_io *io, int argc, char **argv)
 static void cmd_ls(shell_io *io, int argc, char **argv)
 {
     const char *path = argc > 1 ? argv[1] : "/";
-    const int m = fs_mount();
+    const int m = fs_check();
     if (m != FR_OK) { say(io, "mount: %s", fs_result_name(m)); return; }
     static DIR d;
     static FILINFO fi;                 /* 带 256 字节的长文件名，放静态区不放任务栈 */
@@ -154,7 +154,8 @@ static void cmd_ls(shell_io *io, int argc, char **argv)
     unsigned n = 0, dirs = 0;
     unsigned long long bytes = 0;
     const uint32_t t0 = HAL_GetTick();
-    while (f_readdir(&d, &fi) == FR_OK && fi.fname[0]) {
+    FRESULT rd;
+    while ((rd = f_readdir(&d, &fi)) == FR_OK && fi.fname[0]) {
         const int isDir = (fi.fattrib & AM_DIR) != 0;
         if (n < 20) {
             if (isDir) say(io, "  %-24s  <dir>", fi.fname);
@@ -165,6 +166,7 @@ static void cmd_ls(shell_io *io, int argc, char **argv)
         bytes += fi.fsize;
     }
     f_closedir(&d);
+    if (rd != FR_OK) say(io, "read error: %s", fs_result_name(rd));
     say(io, "%u entries (%u dirs), %lu KB, %lu ms", n, dirs, (unsigned long)(bytes / 1024u),
         (unsigned long)(HAL_GetTick() - t0));
 }
@@ -173,7 +175,7 @@ static void cmd_ls(shell_io *io, int argc, char **argv)
 static void cmd_sdbench(shell_io *io, int argc, char **argv)
 {
     (void)argc; (void)argv;
-    const int m = fs_mount();
+    const int m = fs_check();
     if (m != FR_OK) { say(io, "mount: %s", fs_result_name(m)); return; }
     uint8_t *buf = (uint8_t *)0x680F0000u;   /* 外部 SRAM 末尾 64 KB（sram 自检也用这里），DMA 能直接写 */
     const uint32_t start = fs_volume()->database;
@@ -193,7 +195,7 @@ static void cmd_sdbench(shell_io *io, int argc, char **argv)
  * 两个一起用：不同时钟读同一段数据，校验和一样，说明快了也没读错 */
 static void cmd_sdclk(shell_io *io, int argc, char **argv)
 {
-    if (fs_mount() != FR_OK) { say(io, "no card"); return; }
+    if (fs_check() != FR_OK) { say(io, "no card"); return; }
     if (argc > 1) sd_set_clock_div((uint8_t)atoi(argv[1]));
     say(io, "sdio clock %lu kHz", (unsigned long)(sd_get_info()->clock_hz / 1000u));
 }
@@ -201,7 +203,7 @@ static void cmd_sdclk(shell_io *io, int argc, char **argv)
 static void cmd_sdsum(shell_io *io, int argc, char **argv)
 {
     (void)argc; (void)argv;
-    if (fs_mount() != FR_OK) { say(io, "no card"); return; }
+    if (fs_check() != FR_OK) { say(io, "no card"); return; }
     const uint32_t *buf = (const uint32_t *)0x680F0000u;
     const uint32_t start = fs_volume()->database;
     uint32_t h = 2166136261u;
@@ -216,7 +218,7 @@ static void cmd_sdsum(shell_io *io, int argc, char **argv)
 static void cmd_photo(shell_io *io, int argc, char **argv)
 {
     if (argc < 2) { say(io, "usage: photo <path>"); return; }
-    const int m = fs_mount();
+    const int m = fs_check();
     if (m != FR_OK) { say(io, "mount: %s", fs_result_name(m)); return; }
     static photo_info pi;
     const int rc = photo_read(argv[1], &pi, (uint16_t *)0x680F0000u, 320, 240);

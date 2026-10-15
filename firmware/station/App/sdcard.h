@@ -19,6 +19,8 @@ typedef struct {
 
 int sd_init(void);              /* 初始化卡（已经好了就直接返回 0）。0 成功；没插卡或失败返回负数 */
 int sd_ready(void);
+int sd_alive(void);             /* 发一条 CMD13 问卡的状态：卡还在返回 1；没应答就认定卡被拔了（sd_ready 变 0） */
+void sd_lost(void);             /* 认定卡没了：关掉 SDIO，下次 sd_init 重新识别 */
 const sd_info *sd_get_info(void);
 int sd_read(void *dst, uint32_t block, uint32_t count);   /* 0 成功 */
 uint32_t sd_init_ms(void);      /* 上一次 sd_init 用了多少毫秒 */

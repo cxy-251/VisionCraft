@@ -1,7 +1,7 @@
 /*******************************************************************************
  * Size: 16 px
  * Bpp: 4
- * Opts: --font /tmp/tmp.QTdEO15VzI/mono.otf -r 0x20-0x7E --size 16 --bpp 4 --format lvgl --lv-font-name vc_font_mono_16 --lv-include lvgl.h --no-compress -o /home/deck/Games/claude/VisionCraft/firmware/station/lvgl_port/vc_font_mono_16.c
+ * Opts: --font /tmp/tmp.O9IUKa1SkX/mono.otf -r 0x20-0x7E --size 16 --bpp 4 --format lvgl --lv-font-name vc_font_mono_16 --lv-include lvgl.h --no-compress -o /home/deck/Games/claude/VisionCraft/firmware/station/lvgl_port/vc_font_mono_16.c
  ******************************************************************************/
 
 #ifdef LV_LVGL_H_INCLUDE_SIMPLE

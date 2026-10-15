@@ -76,8 +76,12 @@ void Error_Handler(void);
 #define KEY_WKUP_EXTI_IRQn EXTI0_IRQn
 #define PA4_DAC1_ADC2_LOOP_Pin GPIO_PIN_4
 #define PA4_DAC1_ADC2_LOOP_GPIO_Port GPIOA
+#define FLASH_CS_Pin GPIO_PIN_14
+#define FLASH_CS_GPIO_Port GPIOB
 #define LCD_BL_Pin GPIO_PIN_15
 #define LCD_BL_GPIO_Port GPIOB
+#define NRF_CS_Pin GPIO_PIN_7
+#define NRF_CS_GPIO_Port GPIOG
 #define USB_PWR_Pin GPIO_PIN_15
 #define USB_PWR_GPIO_Port GPIOA
 #define EEPROM_SCL_Pin GPIO_PIN_8

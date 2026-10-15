@@ -140,3 +140,27 @@ int photo_read(const char *path, photo_info *info, uint16_t *rgb565, int max_w, 
 const char *photo_error_name(int rc) { return rc ? "error" : "ok"; }
 volatile int32_t g_photo_last_fr;
 volatile uint32_t g_sd_errors;
+
+/* 桌面没有板载 RNG，游戏使用时钟后备种子；固定 g_game_seed 仍可复现。 */
+int random_word(uint32_t *value) { if (value) *value = 0; return 0; }
+
+/* 板载诊断界面假对象：桌面不接触任何存储器。 */
+#include "diagnostics.h"
+#include "eeprom_diag.h"
+#include "flash_diag.h"
+#include "spiflash.h"
+sram_diag_status g_sram_diag;
+ee_diag_status g_ee_diag;
+flash_diag_status g_flash_diag;
+nor_device g_flash={.id=0xef4018,.capacity=NOR_CAPACITY,.write_base=NOR_CAPACITY-NOR_SECTOR,.write_size=NOR_SECTOR};
+uint32_t g_diag_kind;
+int diag_busy(void) { return 0; }
+int diag_start(unsigned kind,uint32_t now) {
+    (void)now; g_diag_kind=kind;
+    if(kind==DIAG_SRAM) g_sram_diag.result=DIAG_PASS;
+    else if(kind==DIAG_EEPROM) { g_ee_diag.result=EE_PASS; g_ee_diag.restored=1; }
+    else if(kind==DIAG_FLASH) { g_flash_diag.result=FD_PASS; g_flash_diag.restored=1; }
+    return 0;
+}
+void diag_cancel(void) {}
+int diag_retry(uint32_t now) { (void)now; return 1; }

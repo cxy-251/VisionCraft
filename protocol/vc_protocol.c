@@ -3,6 +3,12 @@
 
 #include <string.h>
 
+int vc_image_chunk_valid(uint32_t received, uint32_t total, uint32_t offset, uint16_t len)
+{
+    return total && total <= VC_THUMB_MAX_W * VC_THUMB_MAX_H * 2u && received <= total &&
+           offset == received && len && len <= VC_MAX_PAYLOAD - 4u && len <= total - received;
+}
+
 // [region scope]
 int vc_scope_config_valid(uint32_t rate, uint16_t count)
 {

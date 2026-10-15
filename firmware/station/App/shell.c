@@ -6,6 +6,10 @@
 #include "perf.h"
 #include "eeprom.h"
 #include "eeprom_diag.h"
+#include "spiflash.h"
+#include "random.h"
+#include "diagnostics.h"
+#include "flash_diag.h"
 #include "fault.h"
 #include "fs.h"
 #include "photo.h"
@@ -104,6 +108,7 @@ static void cmd_bl(shell_io *io, int argc, char **argv)
 static void cmd_sram(shell_io *io, int argc, char **argv)
 {
     (void)argc; (void)argv;
+    if (diag_busy() || g_ee_diag.saved_valid || g_flash_diag.saved_valid) { say(io,"diagnostic busy or restore pending"); return; }
     volatile uint32_t *p = (volatile uint32_t *)0x680F0000u;
     const uint32_t words = 16384u;
     uint32_t x = 0x1234567u, bad = 0;
@@ -287,16 +292,82 @@ static void cmd_ee(shell_io *io, int argc, char **argv)
     }
 }
 
+static void cmd_rng(shell_io *io, int argc, char **argv)
+{
+    if (argc > 2 || (argc == 2 && strcmp(argv[1], "stats"))) { say(io, "usage: rng [stats]"); return; }
+    if (argc == 1) {
+        uint32_t value;
+        if (random_word(&value)) say(io, "rng %08lx", (unsigned long)value);
+        else say(io, "rng unavailable; no stale sample");
+    }
+    say(io, "rng good %lu errors %lu", (unsigned long)g_rng_good, (unsigned long)g_rng_bad);
+}
+
+static void cmd_flash(shell_io *io, int argc, char **argv)
+{
+    if (argc == 1) {
+        uint8_t status = 0;
+        const int rc = nor_status(&g_flash, &status);
+        say(io, "flash id %06lx capacity %lu init %d status %02x rc %d", (unsigned long)g_flash.id,
+            (unsigned long)g_flash.capacity, g_flash_rc, status, rc);
+        say(io,"volume %lu diag %06lx +%lu",(unsigned long)g_flash_volume_bytes,
+            (unsigned long)g_flash.write_base,(unsigned long)g_flash.write_size);
+        return;
+    }
+    if (argc < 3 || strcmp(argv[1], "read")) { say(io, "usage: flash [read <addr> [len 1-32]]"); return; }
+    char *end;
+    const unsigned long addr = strtoul(argv[2], &end, 0);
+    if (!*argv[2] || *end) { say(io, "invalid flash address"); return; }
+    long len = 16;
+    if (argc == 4) { len = strtol(argv[3], &end, 0); if (!*argv[3] || *end) len = 0; }
+    if (len < 1 || len > 32) { say(io, "invalid flash length"); return; }
+    uint8_t data[32];
+    const int rc = spiflash_read((uint32_t)addr, data, (size_t)len);
+    if (rc) { say(io, "flash read error %d", rc); return; }
+    for (int i = 0; i < len; i += 8) {
+        char text[48], *out = text;
+        out += lv_snprintf(out, 12, "%06lx:", addr+i);
+        for (int j = i; j < len && j < i+8; ++j) out += lv_snprintf(out, 5, " %02x", data[j]);
+        say(io, "%s", text);
+    }
+}
+
+// [region diagnostics]
+static void cmd_diag(shell_io *io, int argc, char **argv)
+{
+    int rc=VC_OK;
+    if(argc==3 && !strcmp(argv[1],"start")) {
+        const unsigned kind=!strcmp(argv[2],"sram") ? DIAG_SRAM : !strcmp(argv[2],"eeprom") ? DIAG_EEPROM :
+            !strcmp(argv[2],"flash") ? DIAG_FLASH : DIAG_NONE;
+        rc=diag_start(kind,HAL_GetTick());
+    } else if(argc==2 && !strcmp(argv[1],"cancel")) diag_cancel();
+    else if(argc==2 && !strcmp(argv[1],"retry")) rc=diag_retry(HAL_GetTick());
+    else if(argc!=1) { say(io,"diag [start sram|eeprom|flash|cancel|retry]"); return; }
+    say(io,"diag command rc %d active %u kind %lu",rc,(unsigned)diag_busy(),(unsigned long)g_diag_kind);
+    say(io,"sram result %lu phase %lu offset %lu bad %lu",(unsigned long)g_sram_diag.result,
+        (unsigned long)g_sram_diag.phase,(unsigned long)g_sram_diag.offset,(unsigned long)g_sram_diag.bad);
+    say(io,"eeprom result %lu pending %u restored %u",(unsigned long)g_ee_diag.result,g_ee_diag.saved_valid,g_ee_diag.restored);
+    say(io,"flash result %lu phase %lu offset %lu",(unsigned long)g_flash_diag.result,
+        (unsigned long)g_flash_diag.phase,(unsigned long)g_flash_diag.offset);
+    say(io,"flash error %lu restore_error %lu pending %u restored %u",(unsigned long)g_flash_diag.error,
+        (unsigned long)g_flash_diag.restore_error,g_flash_diag.saved_valid,g_flash_diag.restored);
+    say(io,"flash crc %08lx restored %08lx elapsed %lu ms",(unsigned long)g_flash_diag.backup_crc,
+        (unsigned long)g_flash_diag.restored_crc,(unsigned long)g_flash_diag.elapsed_ms);
+    say(io,"RAM %lu/131072 CCM %lu/65536 external %lu/983040 +64K scratch",(unsigned long)diag_ram_used(),
+        (unsigned long)diag_ccm_used(),(unsigned long)diag_external_used());
+}
+// [endregion]
+
 // [region eetest]
 static void cmd_eetest(shell_io *io, int argc, char **argv)
 {
     if (argc > 2) { say(io, "usage: eetest [start|cancel|retry]"); return; }
     if (argc == 2) {
         if (!strcmp(argv[1], "start")) {
-            if (ee_diag_start(HAL_GetTick()) != 0) { say(io, "eetest busy; restore pending data before restart"); return; }
-        } else if (!strcmp(argv[1], "cancel")) ee_diag_cancel();
+            if (diag_start(DIAG_EEPROM, HAL_GetTick()) != VC_OK) { say(io, "eetest busy; restore pending data before restart"); return; }
+        } else if (!strcmp(argv[1], "cancel")) { if (g_diag_kind==DIAG_EEPROM) diag_cancel(); }
         else if (!strcmp(argv[1], "retry")) {
-            if (ee_diag_retry() != 0) { say(io, "eetest no failed restore to retry"); return; }
+            if ((g_diag_kind!=DIAG_EEPROM || diag_retry(HAL_GetTick()) != VC_OK)) { say(io, "eetest no failed restore to retry"); return; }
         } else { say(io, "usage: eetest [start|cancel|retry]"); return; }
     }
     static const char *const phases[] = {"idle", "backup", "write", "verify", "restore", "restore-verify", "done", "restore-failed"};
@@ -339,6 +410,9 @@ static const struct {
     {"recipe", cmd_recipe, "recipe stored in eeprom"},
     {"last", cmd_last, "last reset cause and fault record"},
     {"settings", cmd_settings, "current settings"},
+    {"diag", cmd_diag, "diag [start sram|eeprom|flash|cancel|retry]"},
+    {"rng", cmd_rng, "rng [stats]: hardware entropy"},
+    {"flash", cmd_flash, "flash [read <addr> [len]]: board SPI NOR"},
     {"eetest", cmd_eetest, "eetest [start|cancel|retry]: reserved page test"},
     {"ee", cmd_ee, "ee <addr> [len]: dump eeprom bytes"},
     {"reboot", cmd_reboot, "software reset"},

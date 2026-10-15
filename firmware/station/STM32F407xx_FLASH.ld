@@ -177,6 +177,7 @@ SECTIONS
     *(.ccmbss)
     *(.ccmbss*)
     . = ALIGN(8);
+    __ccm_used_end = .;
   } >CCMRAM
 
   /* VisionCraft：外部 SRAM 里的大数组（缩略图等）。NOLOAD：不占 Flash、不清零。
@@ -187,7 +188,9 @@ SECTIONS
     *(.extsram)
     *(.extsram*)
     . = ALIGN(4);
+    __ext_used_end = .;
   } >EXTSRAM
+  ASSERT(ADDR(.extsram) + SIZEOF(.extsram) <= 0x680F0000, "external static buffers overlap diagnostic scratch")
 
   /* used by the startup to initialize data */
   _sidata = LOADADDR(.data);
@@ -284,6 +287,7 @@ SECTIONS
     PROVIDE ( _end = . );
     . = . + _Min_Heap_Size;
     . = . + _Min_Stack_Size;
+    __ram_used_end = ALIGN(8);
     . = ALIGN(8);
   } >RAM
 

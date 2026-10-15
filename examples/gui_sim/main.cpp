@@ -15,6 +15,9 @@ extern "C" {
 #include "app.h"
 #include "settings.h"
 #include "game.h"
+#include "diagnostics.h"
+#include "eeprom_diag.h"
+#include "flash_diag.h"
 extern uint16_t g_fb[800][480];
 extern unsigned long g_pixels_written;
 extern uint32_t g_now;
@@ -50,6 +53,14 @@ static bool visible_label(lv_obj_t *obj, const char *text)
     for (unsigned i = 0; i < lv_obj_get_child_count(obj); ++i)
         if (visible_label(lv_obj_get_child(obj, i), text)) return true;
     return false;
+}
+
+static lv_obj_t *find_label(lv_obj_t *obj,const char *text)
+{
+    if(lv_obj_check_type(obj,&lv_label_class) && std::strcmp(lv_label_get_text(obj),text)==0) return obj;
+    for(unsigned i=0;i<lv_obj_get_child_count(obj);++i)
+        if(auto *found=find_label(lv_obj_get_child(obj,i),text)) return found;
+    return nullptr;
 }
 
 static void save(const char *name)
@@ -117,6 +128,24 @@ int main(int argc, char *argv[])
     step("返回，点 DEVICE");                                   save("gui-device");
     run(3000);
     step("停 3 秒（运行时间每秒刷新）");
+    if (argc > 2 && std::strcmp(argv[2], "--diagnostics-only") == 0) {
+        for(auto [label,kind] : {std::tuple{"SRAM自检",DIAG_SRAM}, {"EEPROM自检",DIAG_EEPROM}, {"Flash自检",DIAG_FLASH}}) {
+            auto *text=find_label(lv_screen_active(),label);
+            if(!text) return 1;
+            auto *button=lv_obj_get_parent(text);
+            lv_obj_scroll_to_view_recursive(button,LV_ANIM_OFF); run(200);
+            lv_area_t rect;lv_obj_get_coords(button,&rect);
+            tap((rect.x1+rect.x2)/2,(rect.y1+rect.y2)/2+GUI_BAR_H);
+            if(g_diag_kind!=unsigned(kind)) return 1;
+        }
+        if(g_sram_diag.result!=DIAG_PASS || !g_ee_diag.restored || !g_flash_diag.restored) return 1;
+        lv_obj_scroll_to_view_recursive(find_label(lv_screen_active(),"仅测保留区；不访问SD卡"),LV_ANIM_OFF);run(200);
+        save("gui-device-diagnostics");
+        tap(40,38);tap(392,190);run(200);
+        if(!find_label(lv_screen_active(),"Flash自检")) return 1;
+        std::printf("PASS: diagnostics buttons through pointer events, simulated results retained on recreation; no storage I/O\n");
+        return 0;
+    }
     if (argc > 2 && std::strcmp(argv[2], "--device-only") == 0) {
         save("gui-device-tasks");
         if (g_device_tasks.count != 6 || g_device_task_updates < 4 ||

@@ -131,6 +131,8 @@ typedef struct {
 #define VC_THUMB_MAX_W 160u
 #define VC_THUMB_MAX_H 120u
 #define VC_IMAGE_CHUNK 1000u     /* 每个 IMAGE_DATA 帧最多带的像素字节数 */
+/* 有序分块、减法比较防整数回绕；错误不能推进接收计数。 */
+int vc_image_chunk_valid(uint32_t received, uint32_t total, uint32_t offset, uint16_t len);
 
 typedef struct {
     int16_t  cpu_temp_c100;    /* 片内温度 ×100，例如 3512 = 35.12 °C */

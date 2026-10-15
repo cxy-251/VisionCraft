@@ -14,6 +14,8 @@
 #include "settings.h"
 #include "perf.h"
 #include "eeprom_diag.h"
+#include "spiflash.h"
+#include "diagnostics.h"
 
 extern osMessageQueueId_t g_beepQueue;
 
@@ -173,6 +175,7 @@ void StationTask(void *argument)
     cycle_counter_init();
     gui_init(&g_page_home);             /* 先把首页画出来，触摸芯片的复位要几百毫秒 */
     settings_load();                    /* 亮度等设置：EEPROM 里有就用，没有用默认值 */
+    spiflash_init();
     pages_init();                       /* LVGL 初始化；页面的控件进入时才建 */
     touch_init();
     cursor_init();
@@ -228,10 +231,10 @@ void StationTask(void *argument)
         const uint32_t bgStart = gui_cycles();
         pages_background(now);          /* 取走上位机的结果 / 缩略图、记录传感器历史 */
         perf_observe(PERF_BACKGROUND, gui_cycles() - bgStart);
-        if (ee_diag_active()) {
+        if (diag_busy()) {
             const uint32_t step = gui_cycles();
-            ee_diag_poll(HAL_GetTick());
-            perf_observe(PERF_EEPROM_STEP, gui_cycles() - step);
+            diag_poll(HAL_GetTick());
+            perf_observe(PERF_DIAG_STEP, gui_cycles() - step);
         }
         if (now - lastGui >= 20u) {     /* 页面刷新 + 重画变了的控件 */
             lastGui = now;

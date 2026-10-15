@@ -1,3 +1,4 @@
+#include "memory.h"
 /* LinkTask：从 RTT 下行缓冲区收字节 → 拆帧 → 执行命令 → 回应答 */
 #include "app.h"
 #include "fault.h"
@@ -38,7 +39,7 @@ static size_t make_info(uint8_t *dst)
 
 static void reply(uint8_t cmd, uint8_t seq, uint8_t status, const uint8_t *data, uint16_t len)
 {
-    static uint8_t buf[1 + VC_MAX_PAYLOAD];   /* 只有 LinkTask 用，不需要锁 */
+    static uint8_t buf[1 + VC_MAX_PAYLOAD] CPU_BUFFER;   /* 只有 LinkTask 用，不需要锁 */
     buf[0] = status;
     if (len)
         memcpy(&buf[1], data, len);

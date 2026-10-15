@@ -118,3 +118,20 @@ qt_add_executable(tst_eeprom_driver tst_eeprom_driver.cpp
 target_include_directories(tst_eeprom_driver PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/eeprom_stubs ${PROJECT_SOURCE_DIR}/firmware/station/App ${PROJECT_SOURCE_DIR}/protocol)
 target_link_libraries(tst_eeprom_driver PRIVATE Qt6::Core Qt6::Test)
 add_test(NAME tst_eeprom_driver COMMAND tst_eeprom_driver)
+
+qt_add_executable(tst_nor tst_nor.cpp ${PROJECT_SOURCE_DIR}/firmware/station/App/nor.c)
+target_include_directories(tst_nor PRIVATE ${PROJECT_SOURCE_DIR}/firmware/station/App)
+target_link_libraries(tst_nor PRIVATE Qt6::Core Qt6::Test)
+add_test(NAME tst_nor COMMAND tst_nor)
+
+qt_add_executable(tst_diagnostics tst_diagnostics.cpp
+    ${PROJECT_SOURCE_DIR}/firmware/station/App/nor.c ${PROJECT_SOURCE_DIR}/firmware/station/App/flash_diag.c
+    ${PROJECT_SOURCE_DIR}/firmware/station/App/eeprom_diag.c ${PROJECT_SOURCE_DIR}/firmware/station/App/diagnostics.c)
+target_include_directories(tst_diagnostics PRIVATE ${PROJECT_SOURCE_DIR}/firmware/station/App ${PROJECT_SOURCE_DIR}/protocol)
+target_link_libraries(tst_diagnostics PRIVATE Qt6::Core Qt6::Test)
+add_test(NAME tst_diagnostics COMMAND tst_diagnostics)
+
+qt_add_executable(tst_game_seed tst_game_seed.cpp ${PROJECT_SOURCE_DIR}/firmware/station/App/game.c)
+target_include_directories(tst_game_seed PRIVATE ${PROJECT_SOURCE_DIR}/examples/gui_sim/include ${PROJECT_SOURCE_DIR}/firmware/station/App)
+target_link_libraries(tst_game_seed PRIVATE Qt6::Core Qt6::Test)
+add_test(NAME tst_game_seed COMMAND tst_game_seed)

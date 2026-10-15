@@ -12,6 +12,7 @@ if {![info exists RNG_COUNT]} { set RNG_COUNT 4096 }
 
 # [region enable]
 set ahb2_before [rd $RCC_AHB2ENR]
+if {$ahb2_before & (1 << 6)} { error "RNG 已由正式固件管理，请使用 rng 命令" }
 mww $RCC_AHB2ENR [expr {$ahb2_before | (1 << 6)}]     ;# RCC_AHB2ENR.RNGEN：给 RNG 送时钟
 mww $RNG_CR 0x4                                      ;# RNG_CR.RNGEN：启动
 echo [format "AHB2ENR 0x%08x -> 0x%08x，RNG_CR=0x%x，RNG_SR=0x%x" $ahb2_before [rd $RCC_AHB2ENR] [rd $RNG_CR] [rd $RNG_SR]]

@@ -36,6 +36,21 @@ class TstProtocol : public QObject {
     Q_OBJECT
 
 private slots:
+    void orderedImageChunks()
+    {
+        QVERIFY(vc_image_chunk_valid(0, 38400, 0, 1000));
+        QVERIFY(vc_image_chunk_valid(38000, 38400, 38000, 400));
+        QVERIFY(!vc_image_chunk_valid(1000, 38400, 0, 1000));
+        QVERIFY(!vc_image_chunk_valid(0, 38400, 1000, 1000));
+        QVERIFY(!vc_image_chunk_valid(0, 38400, UINT32_MAX, 1));
+        QVERIFY(!vc_image_chunk_valid(0, 38400, UINT32_MAX-15, 32));
+        QVERIFY(!vc_image_chunk_valid(38400, 38400, 38400, 1));
+        QVERIFY(!vc_image_chunk_valid(0, 0, 0, 1));
+        QVERIFY(!vc_image_chunk_valid(1, 0, 1, 1));
+        QVERIFY(!vc_image_chunk_valid(0, 38401, 0, 1));
+        QVERIFY(!vc_image_chunk_valid(0, 38400, 0, 1021));
+        QVERIFY(!vc_image_chunk_valid(0, 38400, 0, 0));
+    }
     void scopeMetadata()
     {
         QVERIFY(vc_scope_config_valid(10000, 32));

@@ -57,6 +57,7 @@ private:
     QElapsedTimer m_rtcElapsed; // 走时用单调计时，不随电脑墙上时钟跳变
     vc_scope_meta m_scopeMeta{};
     quint32 m_scopeSerial = 0;
+    uint32_t m_imageTotal = 0, m_imageReceived = 0;
     bool m_scopePresent = false;
     QElapsedTimer m_scopeElapsed;
 };

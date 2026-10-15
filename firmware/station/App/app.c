@@ -1,3 +1,4 @@
+#include "memory.h"
 #include "app.h"
 #include "eeprom.h"
 #include "perf.h"
@@ -26,7 +27,7 @@ void app_init(void)
 void app_send(uint8_t type, uint8_t seq, const void *payload, uint16_t len)
 {
     /* 编码缓冲区较大，放静态区而不是任务栈；由互斥锁保证同一时刻只有一个任务在用 */
-    static uint8_t frame[VC_MAX_FRAME];
+    static uint8_t frame[VC_MAX_FRAME] CPU_BUFFER;
     const char *name = osThreadGetName(osThreadGetId());
     const unsigned owner = name && strcmp(name, "stationTask") == 0 ? 1u :
                            name && strcmp(name, "envTask") == 0 ? 2u : 0u;
@@ -153,7 +154,7 @@ uint8_t app_image_begin(uint16_t w, uint16_t h)
 uint8_t app_image_data(uint32_t offset, const uint8_t *data, uint16_t len)
 {
     const uint32_t total = (uint32_t)s_imageW * s_imageH * 2u;
-    if (s_imageState != IMG_RECEIVING || offset + len > total)
+    if (s_imageState != IMG_RECEIVING || !data || !vc_image_chunk_valid(s_imageReceived, total, offset, len))
         return VC_ERR_ARGS;
     memcpy((uint8_t *)s_image + offset, data, len);   /* 像素按小端存放，正好是 uint16_t 的内存布局 */
     s_imageReceived += len;

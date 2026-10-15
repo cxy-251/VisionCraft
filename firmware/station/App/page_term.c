@@ -1,3 +1,4 @@
+#include "memory.h"
 /* 「终端」页：上面是输出，中间一排常用命令和输入行，下面是 LVGL 自带的键盘。命令由 shell.c 执行。
  * 见手册「终端页：命令解析与 LVGL 键盘」。 */
 #include "pages.h"
@@ -88,7 +89,7 @@ void term_remote_poll(void)
     uint8_t seq;
     if (!app_take_shell(cmd, &seq))
         return;
-    static remote_reply r;             /* 1 KB，放静态区不放任务栈 */
+    static remote_reply r CPU_BUFFER;             /* 1 KB，放静态区不放任务栈 */
     r.buf[0] = VC_OK;
     r.len = 1;
     r.cut = 0;

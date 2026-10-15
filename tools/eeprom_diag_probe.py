@@ -85,7 +85,7 @@ def run(p):
     ps = shell(p, "ps").encode()
     free = shell(p, "free").encode()
     result = p.snapshot("eeprom-diagnostic-and-scope", latencies, ps, free)
-    require(result["stats"]["eeprom_step"]["count"] == 11, "expected one backup, eight pattern steps and two restore steps")
+    require(result["stats"]["diagnostic_step"]["count"] == 11, "expected one backup, eight pattern steps and two restore steps")
     (p.folder/"results.json").write_text(json.dumps(result, indent=2)+"\n")
     print(status+"\n"+ps.decode()+"\n"+free.decode(), flush=True)
     print("PASS: full 256-byte EEPROM unchanged; four patterns twice, cancel, concurrent scope and telemetry; final DEVICE", flush=True)

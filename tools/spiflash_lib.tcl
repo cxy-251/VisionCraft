@@ -50,6 +50,7 @@ proc hex {l} { set s ""; foreach b $l { append s [format "%02x " $b] }; return [
 
 proc spiflash_open {} {
     global saved orig SPI1 RCC_APB2ENR
+    if {[rd $RCC_APB2ENR] & (1 << 12)} { error "SPI1 已由正式固件管理，请使用 flash/diag 命令，禁止旧脚本覆盖" }
     foreach a $saved { set orig($a) [rd $a] }
     # [region setup]
     mww $RCC_APB2ENR [expr {[rd $RCC_APB2ENR] | (1 << 12)}]   ;# SPI1 时钟

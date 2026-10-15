@@ -3,6 +3,10 @@
 
 #include "app.h"
 #include "clock.h"
+#include "diagnostics.h"
+#include "eeprom_diag.h"
+#include "flash_diag.h"
+#include "spiflash.h"
 #include "lv_port.h"
 #include "fault.h"
 #include "lv_ui.h"
@@ -15,6 +19,9 @@ LV_FONT_DECLARE(vc_font_mono_16)
 static lv_obj_t *s_taskRows[APP_TASK_MAX], *s_taskCells[APP_TASK_MAX][4], *s_taskError;
 static uint32_t s_lastUpdate;
 static lv_obj_t *s_clock;
+static lv_obj_t *s_diagValues[4], *s_diagMessage, *s_diagButtons[3], *s_diagCancel, *s_diagRetry;
+static uint32_t s_lastDiag;
+volatile uint32_t g_device_diag_updates;
 app_task_snapshot g_device_tasks;    /* 调试器读取，和屏幕显示同一份快照 */
 volatile int32_t g_device_tasks_rc;
 volatile uint32_t g_device_task_updates, g_device_task_cycles, g_device_task_peak_cycles;
@@ -133,6 +140,67 @@ static void reset_group(void)
 }
 // [endregion]
 
+// [region diagnostics]
+static void diagnostics_update(void)
+{
+    static const char *const result[]={"未运行","进行中","通过","失败","已取消"};
+    char text[80];
+    lv_snprintf(text,sizeof text,"%s / %lu 错字",result[g_sram_diag.result],(unsigned long)g_sram_diag.bad);
+    ui_set_text(s_diagValues[DIAG_SRAM],text);
+    lv_snprintf(text,sizeof text,"%s%s",result[g_ee_diag.result],g_ee_diag.phase==EE_RESTORE_FAILED ? " / 待恢复" : g_ee_diag.restored ? " / 已恢复" : "");
+    ui_set_text(s_diagValues[DIAG_EEPROM],text);
+    lv_snprintf(text,sizeof text,"%s%s",result[g_flash_diag.result],g_flash_diag.phase==FD_RESTORE_FAILED ? " / 待恢复" : g_flash_diag.restored ? " / 已恢复" : "");
+    ui_set_text(s_diagValues[DIAG_FLASH],text);
+    const int busy=diag_busy(), pending=g_ee_diag.saved_valid || g_flash_diag.saved_valid;
+    for(unsigned i=0;i<3;++i) {
+        if(busy || pending || (i==2 && !g_flash.write_size)) lv_obj_add_state(s_diagButtons[i],LV_STATE_DISABLED);
+        else lv_obj_remove_state(s_diagButtons[i],LV_STATE_DISABLED);
+    }
+    if(busy) lv_obj_remove_state(s_diagCancel,LV_STATE_DISABLED); else lv_obj_add_state(s_diagCancel,LV_STATE_DISABLED);
+    if(!busy && pending) lv_obj_remove_state(s_diagRetry,LV_STATE_DISABLED); else lv_obj_add_state(s_diagRetry,LV_STATE_DISABLED);
+    g_device_diag_updates++;
+}
+static void diagnostics_action(lv_event_t *e)
+{
+    const unsigned action=(unsigned)(uintptr_t)lv_event_get_user_data(e);
+    int rc=0;
+    if(action==4) diag_cancel();
+    else if(action==5) rc=diag_retry(HAL_GetTick());
+    else rc=diag_start(action,HAL_GetTick());
+    ui_set_text(s_diagMessage,rc ? "未启动：诊断忙、待恢复或区域不可用" : "已接收；分步执行，写入后恢复原值");
+    diagnostics_update();
+}
+static lv_obj_t *diagnostics_button(lv_obj_t *parent,const char *text,unsigned action)
+{
+    lv_obj_t *button=lv_button_create(parent);
+    lv_obj_set_style_bg_color(button,lv_color_hex(0x334155),0);
+    lv_obj_set_style_pad_all(button,10,0);
+    ui_text(button,text,UI_TEXT);
+    lv_obj_add_event_cb(button,diagnostics_action,LV_EVENT_CLICKED,(void *)(uintptr_t)action);
+    return button;
+}
+static void diagnostics_build(void)
+{
+    lv_obj_t *card=group("板载诊断");
+    s_diagValues[DIAG_SRAM]=row(card,"SRAM 末尾64KB","未运行");
+    s_diagValues[DIAG_EEPROM]=row(card,"EEPROM 保留页","未运行");
+    s_diagValues[DIAG_FLASH]=row(card,"Flash 保留扇区","未运行");
+    char text[64];
+    lv_snprintf(text,sizeof text,"%06lX / %lu MB",(unsigned long)g_flash.id,(unsigned long)(g_flash.capacity/1048576u));
+    row(card,"SPI Flash",text);
+    lv_obj_t *buttons=ui_row(card);
+    s_diagButtons[0]=diagnostics_button(buttons,"SRAM自检",DIAG_SRAM);
+    s_diagButtons[1]=diagnostics_button(buttons,"EEPROM自检",DIAG_EEPROM);
+    s_diagButtons[2]=diagnostics_button(buttons,"Flash自检",DIAG_FLASH);
+    buttons=ui_row(card);
+    s_diagCancel=diagnostics_button(buttons,"取消",4);
+    s_diagRetry=diagnostics_button(buttons,"重试恢复",5);
+    s_diagMessage=ui_text(card,"仅测保留区；不访问SD卡",UI_MUTED);
+    lv_obj_set_width(s_diagMessage,LV_PCT(100));
+    diagnostics_update();
+}
+// [endregion]
+
 static void device_build(void)
 {
     char line[40];
@@ -145,6 +213,7 @@ static void device_build(void)
     s_lvmem = row(run, "LVGL 内存池", "--");
     s_clock = row(run, "本地时间", "未校时");
     tasks_build();
+    diagnostics_build();
 
     lv_obj_t *fw = group("固件");
     lv_snprintf(line, sizeof line, "%d.%d.%d", APP_FW_MAJOR, APP_FW_MINOR, APP_FW_PATCH);
@@ -199,6 +268,7 @@ static void device_leave(void) { ui_page_hide(&s_screen); }
 
 static void device_tick(uint32_t now)
 {
+    if (now-s_lastDiag>=100u) { s_lastDiag=now; diagnostics_update(); }
     if (now - s_lastUpdate >= 1000u) { s_lastUpdate = now; update(now); }
     lv_port_run();
 }

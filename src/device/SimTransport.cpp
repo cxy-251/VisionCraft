@@ -213,12 +213,20 @@ void SimTransport::handle(const vc_frame &f)
         send(VC_RSP(VC_CMD_SUB_TEL), f.seq, QByteArray(1, ok));
         break;
     }
-    case VC_CMD_IMAGE_BEGIN:
-        send(VC_RSP(f.type), f.seq, QByteArray(1, char(f.len == 4 ? VC_OK : VC_ERR_ARGS)));
+    case VC_CMD_IMAGE_BEGIN: {
+        const unsigned w = f.len == 4 ? vc_get_u16(f.payload) : 0;
+        const unsigned h = f.len == 4 ? vc_get_u16(f.payload+2) : 0;
+        const bool valid = w && w <= VC_THUMB_MAX_W && h && h <= VC_THUMB_MAX_H;
+        if (valid) { m_imageTotal = w*h*2u; m_imageReceived = 0; }
+        send(VC_RSP(f.type), f.seq, QByteArray(1, char(valid ? VC_OK : VC_ERR_ARGS)));
         break;
-    case VC_CMD_IMAGE_DATA:
-        send(VC_RSP(f.type), f.seq, QByteArray(1, char(f.len > 4 ? VC_OK : VC_ERR_ARGS)));
+    }
+    case VC_CMD_IMAGE_DATA: {
+        const bool valid = f.len > 4 && vc_image_chunk_valid(m_imageReceived, m_imageTotal, vc_get_u32(f.payload), f.len-4);
+        if (valid) m_imageReceived += f.len-4;
+        send(VC_RSP(f.type), f.seq, QByteArray(1, char(valid ? VC_OK : VC_ERR_ARGS)));
         break;
+    }
     case VC_CMD_RECIPE_GET:
         send(VC_RSP(f.type), f.seq, m_recipe.isEmpty() ? QByteArray(1, char(VC_ERR_EMPTY)) : QByteArray(1, ok) + m_recipe);
         break;

@@ -1,0 +1,91 @@
+A05 正式 PA4 回环与 Qt 波形，2026-10-15
+
+==== 0. 构建与范围
+基线 8dc2dcb；本机 Release 编译、OpenOCD 烧录和校验；无接线、无 SD 操作。
+FLASH 476692 / 1048576 B；RAM 124400 / 131072 B；CCM 60416 / 65536 B；EXTSRAM 950532 / 1048576 B。
+较 A04：Flash +4036 B，RAM +5336 B；采样静态缓冲 4096 B、DAC 表 256 B、应答缓冲及外设句柄。
+未新增任务/队列/堆分配；DMA 缓冲在普通 SRAM，不使用 CCM 或旧脚本固定地址。
+CubeMX 生成 ADC2_IN4、DMA2 Stream2 Channel1、TIM2/TIM6。
+PA4 同时作 DAC1 与 ADC2；CubeMX 引脚模型不能同时登记这两个功能。
+ADC2/PA4 由 .ioc 声明，DAC1 的寄存器和 DMA1 Stream5 Channel7 由 App/scope.c 管理，不占另一根引脚。
+DAC 错误 DMA 中断优先级6；生成的 ADC DMA 中断优先级5，均满足 FreeRTOS 最大系统调用优先级5。
+采集范围 10..200 kS/s、32..2048 点；帧内均匀采样。连续显示是有限帧轮询，帧间不连续。
+
+==== 1. Historical register scripts protected ====
+scope_probe.tcl: DAC 已由固件启用，禁止旧实验覆盖外设和固定 RAM；请使用 Qt 数据页或 scope_link_probe.py
+dac_probe.tcl: DAC 已由固件启用，请使用 Qt 数据页或 scope_link_probe.py
+==== 2. Invalid arguments and capture BUSY ====
+PASS: range/length, BUSY, bounds, STOP releases hardware and buffer
+==== 3. Three sample rates ====
+{"id": 2, "rate": 10000.0, "count": 2048, "dac_hz": 1000.3810975609756, "min": 405, "max": 3712, "mean": 2052.16, "measured_hz": 1000.493, "busy": 9, "vdda_mv": 3273}
+{"id": 3, "rate": 50000.0, "count": 2048, "dac_hz": 1000.3810975609756, "min": 407, "max": 3704, "mean": 2052.15, "measured_hz": 1000.513, "busy": 2, "vdda_mv": 3291}
+{"id": 4, "rate": 200000.0, "count": 2048, "dac_hz": 1000.3810975609756, "min": 400, "max": 3714, "mean": 2075.11, "measured_hz": 1000.0, "busy": 1, "vdda_mv": 3291}
+==== 4. Client loss and stale capture IDs ====
+PASS: finite capture stopped without client, reconnect/restart rejects stale ID, repeated STOP
+==== 5. Twenty frames with telemetry, PING and input marks ====
+板内计时统计见第 7 节。
+TASK         S PRIO STACK-FREE
+IDLE         r    0       428
+Tmr Svc      B    2       896
+USBH_Queue   B   24       756
+envTask      r   16      1276
+linkTask     B   32      1672
+stationTask  R   24      3996
+freertos heap  free 18816  min 18816
+lvgl pool      used 30520  peak 31628  of 45056
+completed=25 errors=0 state=0
+PASS: actual PA4 loopback, no wires/storage, normal firmware remains responsive; final DEVICE
+
+==== 6. Qt DeviceLink 实板交叉验证
+XDG_CONFIG_HOME=/tmp/vc-a05/config ./build/tools/vclink_probe rtt scope /tmp/vc-a05/qt-samples
+[link  ] 启动 OpenOCD
+[link  ] 已连上 OpenOCD，检查芯片在运行什么
+[link  ] 找到 RTT 控制块，打开数据通道
+[link  ] 已连接：ST-Link（RTT）
+[ok    ] 固件 0.1.0，编译于 Oct 15 2026 22:28:55，芯片 UID 17002E001351363530353037
+[ok    ] SUB_TEL  订阅遥测（1000 ms） 完成（92.3 ms）
+[scope ] frame=30 count=2048 rate=10000 Hz min=404 max=3714 measured=1000.37 Hz total=302.2 ms
+[tel   ] 温度 45.58 °C  光照 2.8 %  VDDA 3271 mV  板子收帧 291 / 坏帧 0
+[scope ] frame=31 count=2048 rate=50000 Hz min=398 max=3712 measured=1000.40 Hz total=130.5 ms
+[scope ] frame=32 count=2048 rate=200000 Hz min=405 max=3708 measured=1000.11 Hz total=102.0 ms
+[scope ] PASS: three rates, complete blocks; board loopback
+
+==== 7. 并发响应窗口
+20 帧：50 kS/s、1024 点；50 ms 遥测并发，每帧一个 PING 和输入轮询标记。
+窗口峰值（ms），不是最坏上界：
+loop_gap             count= 176 peak=21.0004
+touch_gap            count=  88 peak=26.9428
+gui_gap              count=  88 peak=27.6749
+background           count= 177 peak=0.7253
+gui_work             count=  89 peak=11.2004
+input_mark           count=  20 peak=10.1204
+shell_wait           count=   2 peak=5.0045
+shell_exec           count=   2 peak=0.5899
+tx_wait_link         count= 140 peak=0.0018
+tx_wait_station      count=   2 peak=0.0018
+tx_wait_env          count=  36 peak=0.0017
+tx_hold_link         count= 140 peak=0.2854
+tx_hold_station      count=   2 peak=0.1128
+tx_hold_env          count=  36 peak=0.0277
+PING {"count": 20, "median_ms": 6.243, "p95_ms": 13.019, "max_ms": 13.552}
+FreeRTOS 堆最小 18816 B；StationTask 剩余栈 3996 B，LinkTask 1672 B；LVGL 峰值 31628 / 45056 B。
+20 标记全部被处理，峰值 10.1204 ms；GUI 调用间隔峰值 27.6749 ms；RTT 丢字节0，无看门狗复位。
+输入标记不是真实触摸到像素的延迟；未重跑历史文件页内存峰值，未覆盖所有并发负载。
+
+==== 8. 桌面验证与复现
+tst_protocol：采样参数/元数据长度与除数检查。
+tst_devicelink：完整帧、频率、取消/立即重启、迟到回包、断连、坏分块位置/越界值、重启通知。
+tst_scope_ui：连续三帧后暂停、最后完整帧保持、4倍缩放/平移、离开页面取消。
+2026-10-15 最终回归：tst_protocol、tst_devicelink、tst_scope_ui、tst_layering，4/4 通过（10.56 s）；tst_handbook_refs 另行通过（0.22 s）。
+所有自动运行使用临时设置目录；GUI 测试使用模拟通道，不操作板子。
+实板：source scripts/steamdeck-env.sh；本机编译/烧录后：
+PYTHONDONTWRITEBYTECODE=1 python3 tools/scope_link_probe.py --output /tmp/vc-scope
+界面：连接设备→数据→板上波形；连续采集/暂停、采样率/点数选择、时间放大和位置滑条。
+VC_PAGE=2 VC_AUTOCONNECT=rtt VC_SCOPE=1 可启动一次 50 kS/s、2048 点采集供截图。
+Qt 单帧统计包含采样、协议与回传；不能把 200 kS/s 当成屏幕帧率或无损持续流带宽。
+模拟器与实板同样支持 ID/状态/边界校验；模拟波形非物理测量，界面明确标识。
+保留一帧实板原始 ADC 数据：handbook/f407/analog/scope-stream-200k.txt（2048 行，200 kS/s）。
+DAC 固定约 1000.381 Hz（84 MHz/656/128），频率估计使用带回差的过零，未做绝对幅值/晶振精度校准。
+标称 DAC 表 448..3648 与 ADC 实测约400..3714存在模拟偏差，原始码展示不伪装为精密电压。
+帧采满由 IRQ 关 ADC 触发、通知 LinkTask；任务停硬件后才允许读缓冲。STOP 幂等；1秒采集超时保护。
+客户端丢失时有限采集仍结束；不发送无限采样流，也不会覆盖正在读取的缓冲。新 START 会替换上一张就绪帧。

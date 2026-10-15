@@ -1,6 +1,10 @@
 # 用调试器操作 DAC 通道 1（PA4），再用 ADC2 的通道 4 读同一个引脚——PA4 既是 DAC 输出也是 ADC 输入，不用接线。
 #   openocd -f interface/stlink.cfg -f target/stm32f4x.cfg -c init -f tools/dac_probe.tcl -c exit
-# 工位固件不用 DAC、ADC2、PA4；ADC1/ADC3 的公共设置（分频）由固件配置，这里不改。结束时寄存器写回原值。
+# 历史实验：当前固件已使用 DAC/ADC2/PA4，不可在采集驱动上直接改寄存器。
+if {([lindex [read_memory 0x40023840 32 1] 0] & (1 << 29)) != 0} {
+    error "DAC 已由固件启用，请使用 Qt 数据页或 scope_link_probe.py"
+}
+# 旧实验中 ADC1/ADC3 的公共设置（分频）由固件配置，这里不改。结束时寄存器写回原值。
 
 proc rd {a} { return [read_memory $a 32 1] }
 set RCC_APB1ENR 0x40023840; set RCC_APB2ENR 0x40023844; set GPIOA 0x40020000

@@ -82,6 +82,8 @@ Item {
                       : qsTr("板子未连接：在「设备」页连接后开始记录。下面是本次运行已记录的数据。")
             }
 
+            ScopePanel { Layout.fillWidth: true }
+
             ChartCard { title: qsTr("片内温度"); unit: " °C"; series: page.temp; tone: Theme.pitfall; minRange: 6 }
             ChartCard { title: qsTr("环境光照"); unit: " %"; series: page.light; tone: Theme.workerLane; minRange: 10; floor: 0 }
             ChartCard { title: qsTr("供电电压 VDDA"); unit: " V"; series: page.vdda; tone: Theme.accent; minRange: 0.05; decimals: 3 }

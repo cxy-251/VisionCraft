@@ -77,6 +77,7 @@ target_sources(${CMAKE_PROJECT_NAME} PRIVATE
     App/app.c
     App/perf.c
     App/clock.c
+    App/scope.c
     App/link.c
     App/station.c
     App/env.c

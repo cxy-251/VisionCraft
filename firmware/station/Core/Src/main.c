@@ -107,6 +107,9 @@ int main(void)
   MX_I2C1_Init();
   MX_IWDG_Init();
   MX_RTC_Init();
+  MX_TIM2_Init();
+  MX_TIM6_Init();
+  MX_ADC2_Init();
   /* USER CODE BEGIN 2 */
   lcd_init();   /* 屏初始化要用 HAL_Delay，必须在调度器启动之前做（此时 TIM7 时基已在运行） */
 

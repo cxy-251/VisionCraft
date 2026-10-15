@@ -29,6 +29,19 @@ target_include_directories(tst_devicelink PRIVATE ${PROJECT_SOURCE_DIR}/protocol
 target_link_libraries(tst_devicelink PRIVATE Qt6::Core Qt6::Gui Qt6::Network Qt6::SerialPort Qt6::Qml Qt6::Test)
 add_test(NAME tst_devicelink COMMAND tst_devicelink)
 
+# 原生 QML 波形控件：真实连续/暂停处理、缩放、离页停止（模拟通道，不操作板子）。
+qt_add_executable(tst_scope_ui tst_scope_ui.cpp
+    ${PROJECT_SOURCE_DIR}/protocol/vc_protocol.c
+    ${PROJECT_SOURCE_DIR}/src/device/DeviceLink.cpp
+    ${PROJECT_SOURCE_DIR}/src/device/SimTransport.cpp
+    ${PROJECT_SOURCE_DIR}/src/device/SerialTransport.cpp
+    ${PROJECT_SOURCE_DIR}/src/device/RttTransport.cpp
+    ${PROJECT_SOURCE_DIR}/src/device/Transport.h)
+target_include_directories(tst_scope_ui PRIVATE ${PROJECT_SOURCE_DIR}/protocol ${PROJECT_SOURCE_DIR}/src/device)
+target_compile_definitions(tst_scope_ui PRIVATE VC_SOURCE_DIR="${PROJECT_SOURCE_DIR}")
+target_link_libraries(tst_scope_ui PRIVATE Qt6::Core Qt6::Gui Qt6::Quick Qt6::QuickControls2 Qt6::Network Qt6::SerialPort Qt6::Qml Qt6::Test)
+add_test(NAME tst_scope_ui COMMAND tst_scope_ui)
+
 # 检测算法：用模拟产线的标准答案算混淆矩阵
 qt_add_executable(tst_inspector tst_inspector.cpp
     ${PROJECT_SOURCE_DIR}/src/vision/PartGenerator.cpp

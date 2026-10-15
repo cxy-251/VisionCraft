@@ -26,6 +26,36 @@ private:
     uint8_t m_status;
 };
 
+class BrokenScopeSim : public SimTransport {
+public:
+    explicit BrokenScopeSim(bool badValue) : m_badValue(badValue) {}
+    void write(const QByteArray &bytes) override
+    {
+        vc_decoder decoder; vc_decoder_init(&decoder); vc_frame f{};
+        for (char byte : bytes) {
+            if (!vc_decoder_feed(&decoder, uint8_t(byte), &f)) continue;
+            if (f.type == VC_CMD_SCOPE_START && f.len == 6) m_total = vc_get_u16(f.payload+4);
+            if (f.type != VC_CMD_SCOPE_READ || f.len != 8) continue;
+            const auto count = vc_get_u16(f.payload+6);
+            QByteArray payload(1+VC_SCOPE_BLOCK_HEADER+2*count, 0);
+            auto *p = reinterpret_cast<uint8_t *>(payload.data())+1;
+            vc_put_u32(p, vc_get_u32(f.payload));
+            vc_put_u16(p+4, vc_get_u16(f.payload+4) + (m_badValue ? 0 : 1));
+            vc_put_u16(p+6, m_total);
+            if (m_badValue) vc_put_u16(p+8, 5000);
+            QByteArray response(VC_MAX_FRAME, 0);
+            response.resize(qsizetype(vc_encode(reinterpret_cast<uint8_t *>(response.data()), response.size(),
+                VC_RSP(f.type), f.seq, reinterpret_cast<const uint8_t *>(payload.constData()), payload.size())));
+            QTimer::singleShot(0, this, [this, response] { emit bytesReceived(response); });
+            return;
+        }
+        SimTransport::write(bytes);
+    }
+private:
+    uint16_t m_total = 0;
+    bool m_badValue;
+};
+
 class TstDeviceLink : public QObject {
     Q_OBJECT
 
@@ -43,6 +73,92 @@ class TstDeviceLink : public QObject {
     }
 
 private slots:
+    void scopeRoundTrip()
+    {
+        DeviceLink link;
+        connectAndSettle(link);
+        QSignalSpy finished(&link, &DeviceLink::scopeFinished);
+        QVERIFY(link.startScope(50000, 2048));
+        QVERIFY(link.scopeBusy());
+        QVERIFY(!link.startScope(50000, 512));
+        QTRY_COMPARE_WITH_TIMEOUT(finished.size(), 1, 3000);
+        QVERIFY2(finished[0][0].toBool(), qPrintable(finished[0][1].toString()));
+        QVERIFY(!link.scopeBusy());
+        const auto f = link.scopeFrame();
+        QCOMPARE(f.value("samples").toList().size(), 2048);
+        QCOMPARE(f.value("rate").toDouble(), 50000.0);
+        QVERIFY(qAbs(f.value("measuredHz").toDouble() - 1000.38) < 5);
+        QVERIFY(f.value("min").toInt() < 600);
+        QVERIFY(f.value("max").toInt() > 3500);
+        link.stopScope();
+        QCOMPARE(link.scopeFrame(), f); // 暂停保留完整帧
+    }
+
+    void scopeCancelRestart()
+    {
+        DeviceLink link;
+        connectAndSettle(link);
+        QVERIFY(link.startScope(10000, 2048));
+        QTest::qWait(15);
+        link.stopScope();
+        QVERIFY(!link.scopeBusy());
+        QSignalSpy finished(&link, &DeviceLink::scopeFinished);
+        QVERIFY(link.startScope(100000, 512));
+        QTRY_COMPARE_WITH_TIMEOUT(finished.size(), 1, 3000);
+        QVERIFY2(finished[0][0].toBool(), qPrintable(finished[0][1].toString()));
+        QCOMPARE(link.scopeFrame().value("count").toInt(), 512);
+        QTest::qWait(250);
+        QCOMPARE(finished.size(), 1); // 旧请求/轮询回调不会发布旧帧
+        QVERIFY(link.startScope(10000, 2048));
+        link.disconnectDevice();
+        QVERIFY(!link.scopeBusy());
+        QTest::qWait(250);
+        QCOMPARE(link.scopeFrame().value("count").toInt(), 512);
+    }
+
+    void scopeBadConfiguration()
+    {
+        DeviceLink link;
+        connectAndSettle(link);
+        QVERIFY(!link.startScope(0, 2048));
+        QVERIFY(!link.startScope(50000, 65536));
+        QVERIFY(!link.startScope(50000, 31));
+        QVERIFY(!link.scopeBusy());
+        QVERIFY(link.scopeFrame().isEmpty());
+    }
+
+    void scopeRejectsBrokenBlocks()
+    {
+        for (bool badValue : {false, true}) {
+            DeviceLink link;
+            link.connectWith(new BrokenScopeSim(badValue));
+            QTRY_COMPARE(link.state(), DeviceLink::Connected);
+            QSignalSpy finished(&link, &DeviceLink::scopeFinished);
+            QVERIFY(link.startScope(50000, 512));
+            QTRY_COMPARE(finished.size(), 1);
+            QVERIFY(!finished[0][0].toBool());
+            QVERIFY(finished[0][1].toString().contains(badValue ? QStringLiteral("ADC") : QStringLiteral("分块")));
+            QVERIFY(!link.scopeBusy());
+            QVERIFY(link.scopeFrame().isEmpty()); // 不发布部分帧或越界值
+        }
+    }
+
+    void scopeBoardRestart()
+    {
+        DeviceLink link;
+        connectAndSettle(link);
+        QSignalSpy finished(&link, &DeviceLink::scopeFinished);
+        QVERIFY(link.startScope(10000, 2048));
+        QTest::qWait(10);
+        QByteArray hello(VC_HEADER_SIZE + VC_TRAILER_SIZE, 0);
+        vc_encode(reinterpret_cast<uint8_t *>(hello.data()), hello.size(), VC_EVT_HELLO, 0, nullptr, 0);
+        sim(link)->injectNoise(hello); // 有效 HELLO 模拟采集中收到板子重启通知
+        QTRY_COMPARE(finished.size(), 1);
+        QVERIFY(!finished[0][0].toBool());
+        QVERIFY(!link.scopeBusy());
+        QVERIFY(link.scopeFrame().isEmpty());
+        QVERIFY(link.scopeStatus().contains(QStringLiteral("重启")));
+    }
     void connectsAndReadsInfo()
     {
         DeviceLink link;

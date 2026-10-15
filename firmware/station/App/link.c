@@ -3,6 +3,7 @@
 #include "fault.h"
 #include "perf.h"
 #include "clock.h"
+#include "scope.h"
 
 #include "main.h"
 #include "cmsis_os2.h"
@@ -148,6 +149,29 @@ static void handle(const vc_frame *f)
     }
     // [endregion]
 
+    // [region scope]
+    case VC_CMD_SCOPE_START: {
+        vc_scope_meta meta;
+        uint8_t data[VC_SCOPE_META_SIZE];
+        const uint8_t rc = f->len == 6 ? app_scope_start(vc_get_u32(f->payload), vc_get_u16(f->payload + 4), &meta) : VC_ERR_ARGS;
+        if (rc == VC_OK) vc_scope_meta_write(data, &meta);
+        reply(f->type, f->seq, rc, data, rc == VC_OK ? sizeof data : 0);
+        break;
+    }
+    case VC_CMD_SCOPE_READ: {
+        static uint8_t data[VC_SCOPE_BLOCK_HEADER + 2*VC_SCOPE_CHUNK_SAMPLES];
+        uint16_t len = 0;
+        const uint8_t rc = f->len == 8 ? app_scope_read(vc_get_u32(f->payload), vc_get_u16(f->payload+4),
+            vc_get_u16(f->payload+6), data, &len) : VC_ERR_ARGS;
+        reply(f->type, f->seq, rc, data, len);
+        break;
+    }
+    case VC_CMD_SCOPE_STOP:
+        if (!f->len) app_scope_stop();
+        reply(f->type, f->seq, f->len ? VC_ERR_ARGS : VC_OK, NULL, 0);
+        break;
+    // [endregion]
+
     default:
         if (VC_IS_CMD(f->type))
             reply(f->type, f->seq, VC_ERR_UNKNOWN, NULL, 0);
@@ -159,12 +183,14 @@ void LinkTask(void *argument)
 {
     (void)argument;
     vc_decoder_init(&s_decoder);
+    app_scope_init();
 
     uint8_t info[VC_INFO_SIZE];
     app_send(VC_EVT_HELLO, 0, info, (uint16_t)make_info(info));
 
     uint8_t chunk[64];
     for (;;) {
+        app_scope_poll();
         if (g_perf_input_request == 1) {
             g_perf_input_cycles = gui_cycles();
             __DMB();

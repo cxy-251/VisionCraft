@@ -13,7 +13,8 @@ Qt 6 + OpenCV 上位机（`src/`、`qml/`），STM32F407ZG 工位固件（`firmw
 - 用户最新要求（2026-10-15）：不要再操作他的 SD 卡。后续开发与验证不进入 FILES、不执行读写卡/存储诊断/插拔测试；使用设备页、任务信息、RTT 等其他路径。保留既有 SD 实验记录，不把旧回归脚本自动带进新任务。
 - 外设配置改 `firmware/station/station.ioc`，再用 `tools/cubemx_generate.sh` 重新生成（约 3 分钟，会自动重打 USB 库补丁 `firmware/third_party/patch_usbh_hid.cmake`）。生成后看 `git diff`。CubeMX 的 ioc 参数名先到 `~/Applications/STM32CubeMX/db/mcu/IP/*.xml` 里查，别猜。
 - 界面：首页和标题栏是手写框架（`App/gui.c`），工位 / 传感器 / 设备页是 LVGL（`App/page_*.c`，共用 `App/lv_ui.c`），CLASSIC 里是手写版的旧页面（名字带 OLD）。中文字体改了界面文字要重跑 `tools/make_cjk_font.sh`。
-- 内存很紧：当前片内 RAM 链接占用约 91%，CCM 92%（LVGL 内存池和绘图缓冲），外部 SRAM（`.extsram`）放大缓冲。加功能后量三样：LVGL 内存池、StationTask 栈、FreeRTOS 堆（设备页及本项非存储探针；不要自动运行含 FILES 的旧页面脚本）。
+- 内存很紧：当前片内 RAM 链接占用约 95%，CCM 92%（LVGL 内存池和绘图缓冲），外部 SRAM（`.extsram`）放大缓冲。加功能后量三样：LVGL 内存池、StationTask 栈、FreeRTOS 堆（设备页及本项非存储探针；不要自动运行含 FILES 的旧页面脚本）。
+- PA4 波形：`.ioc` 生成 ADC2/PA4/TIM2/TIM6，CubeMX 不支持在同一 PA4 同时登记 DAC_OUT1，因此 DAC1 和 DMA1 流5由 `App/scope.c` 扩展配置，中断入口也在此文件。不要为补 DAC 再给 PA4 改另一复用或占用第二根引脚。旧裸寄存器 `scope_probe.tcl` 的固定 RAM 已不安全，使用 `scope_link_probe.py` 或 Qt 数据页。
 - 板上实验：用调试器脚本（`tools/*.tcl`）注入点击、按 `arm-none-eabi-nm` 的符号名读写变量；改过的寄存器在脚本结束前写回。实验完烧回正式固件。PF9/PF10 两个 LED 保持熄灭。
 - 需要人动手的（看屏、按键、插线）一次问清楚。
 

@@ -1,7 +1,11 @@
 # DAC → ADC 回环「示波器」：DAC 用 TIM6 + DMA 按表输出正弦，ADC2 用 TIM2 + DMA 采样同一个引脚 PA4，采完读出来存成文件。
 #   openocd -f interface/stlink.cfg -f target/stm32f4x.cfg -c init \
 #     -c "set SCOPE_OUT samples.txt; set DAC_RATE 128000; set ADC_RATE 200000" -f tools/scope_probe.tcl -c exit
-# 全部由 DMA 完成，CPU 照常跑固件。用到的 TIM2、TIM6、DMA1 流 5、DMA2 流 2、DAC、ADC2、PA4 工位固件都没用；
+# 历史裸寄存器实验，当前工位固件已占用这些外设；不能覆盖其固定 SRAM 地址。
+if {([lindex [read_memory 0x40023840 32 1] 0] & (1 << 29)) != 0} {
+    error "DAC 已由固件启用，禁止旧实验覆盖外设和固定 RAM；请使用 Qt 数据页或 scope_link_probe.py"
+}
+# 以下是旧实验：用到的 TIM2、TIM6、DMA1 流 5、DMA2 流 2、DAC、ADC2、PA4 当时固件都没用；
 # 正弦表和采样缓冲放在固件没用到的那段 RAM（0x2001A000 起）。结束时把动过的寄存器写回原值。
 
 proc rd {a} { return [read_memory $a 32 1] }

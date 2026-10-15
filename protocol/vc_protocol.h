@@ -51,6 +51,9 @@ enum vc_type {
     VC_CMD_RECIPE_SET  = 0x0A, /* 负载见 vc_recipe，写进板子的 EEPROM */
     VC_CMD_SHELL       = 0x0B, /* 负载：一行命令（ASCII，最长 63 字节）；应答负载：输出的文字，行之间用 \n 分隔 */
     VC_CMD_GET_TIME    = 0x0C, /* 空请求；应答：valid(1) source(1) + vc_datetime(8)，未校时时日历为零 */
+    VC_CMD_SCOPE_START = 0x0D, /* rate_hz(4) count(2)；应答 vc_scope_meta，采集中再 START 回 BUSY */
+    VC_CMD_SCOPE_READ  = 0x0E, /* capture_id(4) offset(2) count(2)；应答 id(4) offset(2) total(2) + uint16 samples */
+    VC_CMD_SCOPE_STOP  = 0x0F, /* 空请求；停止并释放快照，重复 STOP 也成功 */
 
     /* EVT：事件 */
     VC_EVT_HELLO     = 0x40, /* 板子启动完成，负载同 vc_info */
@@ -151,6 +154,22 @@ enum { VC_CLOCK_NONE = 0, VC_CLOCK_LSE = 1 };
 int vc_datetime_valid(const vc_datetime *t); /* 检查实际日期、闰年和星期一致性 */
 size_t vc_datetime_write(uint8_t *dst, const vc_datetime *t);
 int vc_datetime_read(vc_datetime *t, const uint8_t *src, size_t len);
+// [endregion]
+
+// [region scope]
+#define VC_SCOPE_MAX_SAMPLES 2048u
+#define VC_SCOPE_CHUNK_SAMPLES 256u
+#define VC_SCOPE_META_SIZE 20u
+#define VC_SCOPE_BLOCK_HEADER 8u
+/* 有限帧采集：actual ADC rate = timer_hz/adc_div；正弦频率 = timer_hz/dac_div/128。
+ * vdda_mv=0 表示尚无供电电压快照；原始采样值始终为 0..4095。 */
+typedef struct {
+    uint32_t id, timer_hz, adc_div, dac_div;
+    uint16_t count, vdda_mv;
+} vc_scope_meta;
+int vc_scope_config_valid(uint32_t rate, uint16_t count);
+size_t vc_scope_meta_write(uint8_t *dst, const vc_scope_meta *m);
+int vc_scope_meta_read(vc_scope_meta *m, const uint8_t *src, size_t len);
 // [endregion]
 
 /* ---------------- 小端读写 ---------------- */

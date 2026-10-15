@@ -29,6 +29,9 @@ class DeviceLink : public QObject {
     Q_PROPERTY(QVariantMap telemetry READ telemetry NOTIFY telemetryChanged)
     Q_PROPERTY(QVariantMap stats READ stats NOTIFY statsChanged)
     Q_PROPERTY(QVariantMap deviceClock READ deviceClock NOTIFY deviceClockChanged)
+    Q_PROPERTY(bool scopeBusy READ scopeBusy NOTIFY scopeStateChanged)
+    Q_PROPERTY(QString scopeStatus READ scopeStatus NOTIFY scopeStateChanged)
+    Q_PROPERTY(QVariantMap scopeFrame READ scopeFrame NOTIFY scopeFrameChanged)
 
 public:
     enum State { Disconnected, Connecting, Connected };
@@ -46,6 +49,9 @@ public:
     QVariantMap info() const { return m_info; }
     QVariantMap telemetry() const { return m_telemetry; }
     QVariantMap deviceClock() const { return m_deviceClock; }
+    bool scopeBusy() const { return m_scope.active; }
+    QString scopeStatus() const { return m_scopeStatus; }
+    QVariantMap scopeFrame() const { return m_scopeFrame; }
     QVariantMap stats() const;
 
     // ---- 连接 ----
@@ -62,6 +68,8 @@ public:
     Q_INVOKABLE int setTimeNow();
     Q_INVOKABLE int getTime();
     Q_INVOKABLE int subscribeTelemetry(int periodMs);
+    Q_INVOKABLE bool startScope(int rate = 50000, int samples = 2048);
+    Q_INVOKABLE void stopScope();
     Q_INVOKABLE int sendResult(bool ok, int defect, int inspectMs, int total, int ng);
 
     // 配方：读回来发 recipeReceived（空表示板子上没有），写完发 recipeSaved
@@ -94,6 +102,9 @@ signals:
     void infoChanged();
     void telemetryChanged();
     void deviceClockChanged();
+    void scopeStateChanged();
+    void scopeFrameChanged();
+    void scopeFinished(bool ok, const QString &message);
     void statsChanged();
     void eventReceived(const QVariantMap &event);
     void commandFinished(const QString &command, bool ok, const QString &summary);
@@ -131,6 +142,17 @@ private:
     QVariantMap m_telemetry;
     QVariantMap m_deviceClock;
     bool m_clockPending = false;
+    struct ScopeCapture {
+        bool active = false;
+        quint64 epoch = 0;
+        vc_scope_meta meta{};
+        QVariantList samples;
+        QElapsedTimer clock;
+    } m_scope;
+    QString m_scopeStatus;
+    QVariantMap m_scopeFrame;
+    void scopeRead(quint64 epoch);
+    void scopeFail(const QString &message);
 
     vc_decoder m_decoder;
     uint8_t m_nextSeq = 1;

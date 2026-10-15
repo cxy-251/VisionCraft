@@ -3,12 +3,40 @@ import VisionCraft
 
 Section {
     title: qsTr("DAC → ADC 回环示波器")
-    lead: qsTr("让 DAC 由定时器和 DMA 驱动、不停地输出正弦，ADC 也由定时器和 DMA 驱动、按固定速率采样同一个引脚，就得到一台简陋的「信号发生器 + 示波器」。整个过程 CPU 一行代码也不用执行。")
+    lead: qsTr("定时器决定 DAC 更新和 ADC 采样节拍，DMA 搬运数据，CPU 管理配置、缓冲交接与传输。正式固件现已接通 Qt 数据页；PA4 同引脚回环，无需跳线。")
 
     Why {
         text: qsTr("「DAC」一节是一个点一个点地写、一个点一个点地读，靠调试器每次几毫秒，测不了随时间变化的信号。真实的采集要求「每隔固定时间采一个点」，这件事靠程序循环是做不准的，要交给硬件：定时器决定节拍，DMA 负责搬数据。"
-                 + "本节全部用调试器配置寄存器：TIM6 + DMA1 让 DAC 按一张 128 点的正弦表输出，TIM2 + DMA2 让 ADC2 采 2048 个点放进 RAM，采完读出来在电脑上画图。PA4 同时是 DAC 输出和 ADC 输入，不用接线。"
-                 + "用到的定时器、DMA 流、DAC、ADC2 工位固件都没用，固件照常运行；正弦表和采样缓冲放在固件没用到的那段 RAM（0x2001A000 起，固件的变量到 0x200172C0 为止）。")
+                 + "当前实现用 TIM6 + DMA1 驱动 DAC 的 128 点表，TIM2 + DMA2 驱动 ADC2，LinkTask 管理一次有限长度采集，并按请求分块读回。Qt 只发布完整帧，可以连续采集、暂停、放大和平移。")
+    }
+
+    KeyPoints {
+        label: qsTr("当前 A05：硬件到 Qt 的闭环")
+        points: [
+            qsTr(".ioc 生成 PA4/ADC2_IN4、DMA2 Stream2 Channel1、TIM2 和 TIM6。CubeMX 不能在 PA4 同时登记两种模拟功能，DAC1 的最小寄存器配置及 DMA1 Stream5 Channel7 由独立 scope.c 扩展管理，不借用第二根引脚。"),
+            qsTr("DMA 数据放在编译器分配的普通 SRAM：2048 点采样缓冲、128 点 DAC 表。没有使用旧脚本的固定 RAM 地址，也没有新增任务、队列或动态堆分配。"),
+            qsTr("LinkTask 是唯一控制者。先让 DAC 运行至少 2 ms，再启动 ADC；预热在轮询中推进，不阻塞界面任务。ADC 采满中断立即关触发并发线程标志，任务收到后停止硬件，才把缓冲变成只读就绪状态。"),
+            qsTr("协议 START 返回采集编号、计时器频率/分频、点数和 VDDA 快照。READ 指定编号/偏移/数量，每块带编号、偏移和总点数；BUSY 时稍后重试。STOP 可重复调用，取消或错误后可重新采集。"),
+            qsTr("Qt 检查编号、块位置、长度、总点数和 ADC 码范围，拒绝部分帧与错块。取消、断连或重启通知使旧请求失效；暂停保留最后完整帧。连续模式每帧回传后再发起下一帧，帧之间有间隔。")
+        ]
+    }
+    Figure {
+        files: ["handbook/f407/analog/scope-qt.png"]
+        captions: [qsTr("正式 Qt 数据页：实板 PA4 回环；横轴用实际采样率，纵轴为原始 12 位 ADC 码")]
+    }
+    CodeRef { file: "protocol/vc_protocol.h"; region: "scope" }
+    CodeRef { file: "firmware/station/App/scope.c"; region: "dac-extension" }
+    CodeRef { file: "firmware/station/App/scope.c"; region: "ownership" }
+    CodeRef { file: "firmware/station/App/scope.c"; region: "notify" }
+    CodeRef { file: "firmware/station/App/link.c"; region: "scope" }
+    CodeRef { file: "src/device/DeviceLink.cpp"; region: "scope" }
+    CodeRef { file: "handbook/f407/analog/scope-stream-test.txt"; from: "==== 0"; to: "==== 6"; caption: qsTr("正式固件：三档采样、停止重启、客户端丢失和二十帧并发") }
+    CodeRef { file: "handbook/f407/analog/scope-stream-test.txt"; from: "==== 6"; caption: qsTr("真实 Qt 链路、响应、内存与复现范围") }
+    Pitfall {
+        text: qsTr("200 kS/s 是帧内采样速率，不是屏幕刷新率，也不是持续回传速率。ADC 采满后已停，RTT 读回和下一帧启动之间有空档。当前固定约 1 kHz 信号、10–200 kS/s、32–2048 点；没有实现连续无缝流、任意外部探头输入、触发电平或绝对电压校准。")
+    }
+    Para {
+        text: qsTr("以下保留历史裸寄存器实验和旧数据，未在本轮重跑。旧脚本曾使用 0x2001A000 起的固定 RAM，当时固件变量较少；当前这些地址已经不能视为空闲。脚本现在检测到 DAC 被固件启用就拒绝运行。正式回归使用 scope_link_probe.py 或 Qt 数据页。")
     }
 
     CodeRef { file: "tools/scope_probe.tcl"; region: "dac-dma" }
@@ -18,7 +46,7 @@ Section {
         points: [
             qsTr("TIM6 每次计满产生一个更新事件，配置成把它送到 TRGO 输出；DAC 选 TIM6 TRGO 作触发源。每触发一次，DAC 就向 DMA 要一个新值。"),
             qsTr("DMA1 流 5（通道 7）把正弦表一个个搬到 DAC 的数据寄存器，循环模式：搬到表尾自动回到表头，永远不停。"),
-            qsTr("TIM6 的时钟 84 MHz，重装值 656 − 1，每秒触发 128000 次；表有 128 个点，所以正弦是 1000 Hz。"),
+            qsTr("TIM6 的时钟 84 MHz，重装值 656 − 1，每秒实际触发约 128049 次；表有 128 个点，所以正弦约 1000.381 Hz，128 kHz / 1 kHz 是目标值。"),
             qsTr("OpenOCD 的 Tcl 里没有 sin()，正弦表在电脑上算好存成 tools/scope_sine128.txt：2048 + 1600 × sin，留出两端，避开「DAC」一节测到的饱和区。")
         ]
     }
@@ -52,7 +80,7 @@ Section {
         label: qsTr("看清台阶")
         points: [
             qsTr("把采样率提到 500 kHz、放大看开头一小段，正弦变成了台阶：DAC 每 1/128000 秒（7.8 µs）才变一次，ADC 在这期间采了约 4 个点，读到的都是同一级。真实的信号发生器会在 DAC 后面接一个低通滤波器把台阶抹平。"),
-            qsTr("第一个点是 20：ADC 刚打开后的第一次转换不可信。四种采样率下第一个点都只有 20–47，其余点最低也有 395。分析时要扔掉它。")
+            qsTr("历史脚本第一个点是 20：四种采样率下第一个点都只有 20–47，其余点最低也有 395，旧分析扔掉它。当前驱动预热 DAC 并先配置触发再启动 ADC，三档本轮帧全部点的最小值都在约 400，未沿用无条件扔首点。")
         ]
     }
 
@@ -97,7 +125,6 @@ Section {
     }
 
     InSystem {
-        text: qsTr("本节是调试器版本的示波器。做成工位系统的功能时，固件负责这些配置，并把 DMA 采满的数据经 RTT 送给上位机（吞吐量见「RTT：经调试口通信」，约 80 KB/s，足够每秒传几十帧 2048 点的波形），上位机在「数据」页实时画出来。"
-                 + "这一步还没有做；本节的寄存器配置、要清的标志、要扔掉的第一个点，都是到时候要搬进固件的。")
+        text: qsTr("A05 已接入 App/scope.c、DeviceLink 和 qml/data/ScopePanel.qml。实板 10、50、200 kS/s 都接收到完整 2048 点，过零估计约 1 kHz；在本轮二十帧并发窗口中 GUI 调用间隔峰值 27.67 ms，输入轮询标记峰值 10.12 ms。它们仅是本轮观测值，不是最坏上界，完整数据和复现方式见本节前半部分。")
     }
 }

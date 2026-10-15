@@ -53,6 +53,13 @@ void DeviceLink::setState(State s)
         return;
     m_state = s;
     if (s != Connected) {
+        ++m_scope.epoch;
+        const bool wasActive = m_scope.active;
+        m_scope.active = false;
+        m_scope.samples.clear();
+        m_scopeStatus = tr("设备未连接");
+        emit scopeStateChanged();
+        if (wasActive) emit scopeFinished(false, m_scopeStatus);
         m_deviceClock.clear();
         emit deviceClockChanged();
     }
@@ -90,6 +97,8 @@ void DeviceLink::connectWith(Transport *transport)
     m_txFrames = m_txBytes = m_rxBytes = 0;
     m_info.clear();
     m_telemetry.clear();
+    m_scopeFrame.clear();
+    emit scopeFrameChanged();
     emit infoChanged();
     emit telemetryChanged();
 
@@ -128,12 +137,17 @@ void DeviceLink::connectWith(Transport *transport)
 
 void DeviceLink::disconnectDevice()
 {
+    ++m_scope.epoch;  // 已发出的旧分块即使随后回包，也不再发布波形
     m_tp.running = false;
     m_img.active = false;
     if (!m_transport)
         return;
     // 断开前让板子停止遥测：否则它会一直往没人读的缓冲区里写，写满后每帧都要等超时再丢弃
     if (m_state == Connected) {
+        QByteArray scopeStop(VC_MAX_FRAME, Qt::Uninitialized);
+        const size_t stopSize = vc_encode(reinterpret_cast<uint8_t *>(scopeStop.data()), size_t(scopeStop.size()),
+            VC_CMD_SCOPE_STOP, 0, nullptr, 0);
+        m_transport->write(scopeStop.left(qsizetype(stopSize)));
         QByteArray stop(2, 0);
         QByteArray frame(VC_MAX_FRAME, Qt::Uninitialized);
         const size_t n = vc_encode(reinterpret_cast<uint8_t *>(frame.data()), size_t(frame.size()),
@@ -254,6 +268,7 @@ void DeviceLink::onFrame(const vc_frame &f)
     QVariantMap ev{{QStringLiteral("type"), f.type}};
     switch (f.type) {
     case VC_EVT_HELLO:
+        if (m_scope.active && !m_info.isEmpty()) scopeFail(tr("设备重启，采集已取消，请重新采集"));
         ev[QStringLiteral("name")] = QStringLiteral("hello");
         emit logLine(QStringLiteral("event"), tr("板子启动完成"));
         getInfo();
@@ -317,6 +332,9 @@ QString DeviceLink::commandName(uint8_t type)
     case VC_CMD_GET_INFO: return QStringLiteral("GET_INFO");
     case VC_CMD_SET_TIME: return QStringLiteral("SET_TIME");
     case VC_CMD_GET_TIME: return QStringLiteral("GET_TIME");
+    case VC_CMD_SCOPE_START: return QStringLiteral("SCOPE_START");
+    case VC_CMD_SCOPE_READ: return QStringLiteral("SCOPE_READ");
+    case VC_CMD_SCOPE_STOP: return QStringLiteral("SCOPE_STOP");
     case VC_CMD_BEEP: return QStringLiteral("BEEP");
     case VC_CMD_SUB_TEL: return QStringLiteral("SUB_TEL");
     case VC_CMD_RESULT: return QStringLiteral("RESULT");
@@ -430,6 +448,130 @@ int DeviceLink::getTime()
                     time.toString(QStringLiteral("HH:mm:ss")) : tr("未校时")}};
         }
         emit deviceClockChanged();
+    });
+}
+// [endregion]
+
+// [region scope]
+bool DeviceLink::startScope(int rate, int samples)
+{
+    if (m_scope.active) return false;
+    if (m_state != Connected || rate < 0 || samples < 0 || samples > 65535 ||
+        !vc_scope_config_valid(uint32_t(rate), uint16_t(samples))) {
+        m_scopeStatus = tr("未连接或采集参数无效");
+        emit scopeStateChanged();
+        emit scopeFinished(false, m_scopeStatus);
+        return false;
+    }
+    const quint64 epoch = ++m_scope.epoch;
+    m_scope.active = true;
+    m_scope.samples.clear();
+    m_scope.clock.start();
+    m_scopeStatus = tr("采集中…");
+    emit scopeStateChanged();
+    QByteArray data(6, 0);
+    vc_put_u32(reinterpret_cast<uint8_t *>(data.data()), uint32_t(rate));
+    vc_put_u16(reinterpret_cast<uint8_t *>(data.data()) + 4, uint16_t(samples));
+    request(VC_CMD_SCOPE_START, data, [this, epoch, samples](bool ok, int status, const QByteArray &reply) {
+        if (epoch != m_scope.epoch || !m_scope.active) return;
+        if (!ok) {
+            scopeFail(status == VC_ERR_UNKNOWN ? tr("固件不支持波形采集，请烧录当前固件") : tr("启动采集失败，状态码 %1").arg(status));
+            return;
+        }
+        if (vc_scope_meta_read(&m_scope.meta, reinterpret_cast<const uint8_t *>(reply.constData()), reply.size()) != 0 ||
+            m_scope.meta.count != samples) {
+            scopeFail(tr("采集元数据无效")); return;
+        }
+        scopeRead(epoch);
+    });
+    return true;
+}
+
+void DeviceLink::stopScope()
+{
+    const quint64 epoch = ++m_scope.epoch;
+    const bool wasActive = m_scope.active;
+    m_scope.active = false;
+    m_scope.samples.clear();
+    m_scopeStatus = tr("已停止，保留最后完整帧");
+    emit scopeStateChanged();
+    if (wasActive) emit scopeFinished(false, m_scopeStatus);
+    if (m_state == Connected) request(VC_CMD_SCOPE_STOP, {}, [this, epoch](bool ok, int, const QByteArray &) {
+        if (!ok && epoch == m_scope.epoch) {
+            m_scopeStatus = tr("停止未确认；设备有有限帧与超时保护");
+            emit scopeStateChanged();
+        }
+    });
+}
+
+void DeviceLink::scopeFail(const QString &message)
+{
+    ++m_scope.epoch;
+    m_scope.active = false;
+    m_scope.samples.clear();
+    if (m_state == Connected) request(VC_CMD_SCOPE_STOP, {});
+    m_scopeStatus = message;
+    emit scopeStateChanged();
+    emit scopeFinished(false, message);
+    emit logLine(QStringLiteral("error"), message);
+}
+
+void DeviceLink::scopeRead(quint64 epoch)
+{
+    if (epoch != m_scope.epoch || !m_scope.active) return;
+    const uint16_t offset = uint16_t(m_scope.samples.size());
+    const uint16_t count = uint16_t(std::min<unsigned>(VC_SCOPE_CHUNK_SAMPLES, m_scope.meta.count - offset));
+    QByteArray data(8, 0);
+    auto *d = reinterpret_cast<uint8_t *>(data.data());
+    vc_put_u32(d, m_scope.meta.id); vc_put_u16(d+4, offset); vc_put_u16(d+6, count);
+    request(VC_CMD_SCOPE_READ, data, [this, epoch, offset, count](bool ok, int status, const QByteArray &reply) {
+        if (epoch != m_scope.epoch || !m_scope.active) return;
+        if (!ok) {
+            if (status == VC_ERR_BUSY && m_scope.clock.elapsed() < 1500) {
+                QTimer::singleShot(5, this, [this, epoch] { scopeRead(epoch); });
+            } else scopeFail(tr("读取采样失败，状态码 %1（超时或设备错误）").arg(status));
+            return;
+        }
+        const auto *p = reinterpret_cast<const uint8_t *>(reply.constData());
+        if (reply.size() != VC_SCOPE_BLOCK_HEADER + count*2 || vc_get_u32(p) != m_scope.meta.id ||
+            vc_get_u16(p+4) != offset || vc_get_u16(p+6) != m_scope.meta.count || m_scope.samples.size() != offset) {
+            scopeFail(tr("采样分块不连续或采集编号不匹配")); return;
+        }
+        for (unsigned i = 0; i < count; ++i) {
+            const unsigned sample = vc_get_u16(p + 8 + 2*i);
+            if (sample > 4095) { scopeFail(tr("ADC 采样值越界")); return; }
+            m_scope.samples.append(sample);
+        }
+        if (m_scope.samples.size() < m_scope.meta.count) { scopeRead(epoch); return; }
+        double sum = 0, lo = 4095, hi = 0;
+        for (const QVariant &sample : m_scope.samples) {
+            const double v = sample.toDouble(); sum += v; lo = std::min(lo, v); hi = std::max(hi, v);
+        }
+        const double mean = sum / m_scope.meta.count;
+        const double rate = double(m_scope.meta.timer_hz) / m_scope.meta.adc_div;
+        QList<double> crossings;
+        const double hyst = std::max(8.0, (hi-lo)*.05), threshold = mean+hyst;
+        bool armed = m_scope.samples.first().toDouble() < mean-hyst;
+        for (int i = 1; i < m_scope.samples.size(); ++i) {
+            const double a = m_scope.samples[i-1].toDouble(), b = m_scope.samples[i].toDouble();
+            if (b < mean-hyst) armed = true;
+            if (armed && a < threshold && b >= threshold) {
+                crossings.append(i - 1 + (threshold-a)/(b-a));
+                armed = false;
+            }
+        }
+        const double hz = crossings.size() >= 2 ? rate * (crossings.size()-1) / (crossings.last()-crossings.first()) : 0;
+        m_scopeFrame = {{QStringLiteral("samples"), m_scope.samples}, {QStringLiteral("rate"), rate},
+            {QStringLiteral("count"), m_scope.meta.count}, {QStringLiteral("id"), m_scope.meta.id},
+            {QStringLiteral("signalHz"), double(m_scope.meta.timer_hz)/m_scope.meta.dac_div/128.0},
+            {QStringLiteral("vddaMv"), m_scope.meta.vdda_mv}, {QStringLiteral("min"), lo}, {QStringLiteral("max"), hi},
+            {QStringLiteral("mean"), mean}, {QStringLiteral("measuredHz"), hz},
+            {QStringLiteral("transferMs"), m_scope.clock.nsecsElapsed()/1e6}};
+        m_scope.active = false;
+        m_scopeStatus = tr("已接收完整帧 · %1 点").arg(m_scope.meta.count);
+        emit scopeFrameChanged();
+        emit scopeStateChanged();
+        emit scopeFinished(true, m_scopeStatus);
     });
 }
 // [endregion]

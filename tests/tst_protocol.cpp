@@ -36,6 +36,22 @@ class TstProtocol : public QObject {
     Q_OBJECT
 
 private slots:
+    void scopeMetadata()
+    {
+        QVERIFY(vc_scope_config_valid(10000, 32));
+        QVERIFY(vc_scope_config_valid(200000, 2048));
+        QVERIFY(!vc_scope_config_valid(9999, 32));
+        QVERIFY(!vc_scope_config_valid(200001, 32));
+        QVERIFY(!vc_scope_config_valid(50000, 2049));
+        vc_scope_meta m{7, 84000000, 1680, 656, 2048, 3300}, decoded{};
+        uint8_t bytes[VC_SCOPE_META_SIZE];
+        QCOMPARE(vc_scope_meta_write(bytes, &m), size_t(VC_SCOPE_META_SIZE));
+        QCOMPARE(vc_scope_meta_read(&decoded, bytes, sizeof bytes), 0);
+        QCOMPARE(decoded.id, 7u); QCOMPARE(decoded.adc_div, 1680u); QCOMPARE(decoded.count, uint16_t(2048));
+        QCOMPARE(vc_scope_meta_read(&decoded, bytes, sizeof bytes - 1), -1);
+        vc_put_u32(bytes + 8, 0);
+        QCOMPARE(vc_scope_meta_read(&decoded, bytes, sizeof bytes), -1);
+    }
     void calendarValidation()
     {
         for (QDate d(2000, 1, 1); d.year() < 2100; d = d.addDays(1)) {

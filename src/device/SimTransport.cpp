@@ -146,6 +146,25 @@ void SimTransport::handle(const vc_frame &f)
         send(VC_RSP(f.type), f.seq, out);
         break;
     }
+    case VC_CMD_SCOPE_START: {
+        const uint32_t rate = f.len == 6 ? vc_get_u32(f.payload) : 0;
+        const uint16_t count = f.len == 6 ? vc_get_u16(f.payload+4) : 0;
+        if (!vc_scope_config_valid(rate, count)) {
+            send(VC_RSP(f.type), f.seq, QByteArray(1, char(VC_ERR_ARGS))); break;
+        }
+        if (m_scopePresent && m_scopeElapsed.nsecsElapsed()/1e9 <
+            .002 + double(m_scopeMeta.count)*m_scopeMeta.adc_div/m_scopeMeta.timer_hz) {
+            send(VC_RSP(f.type), f.seq, QByteArray(1, char(VC_ERR_BUSY))); break;
+        }
+        if (++m_scopeSerial == 0) ++m_scopeSerial;
+        m_scopeMeta = {m_scopeSerial, 84000000u, (84000000u+rate/2)/rate, 656, count, 3300};
+        m_scopePresent = true;
+        m_scopeElapsed.start();
+        QByteArray out(1 + VC_SCOPE_META_SIZE, 0);
+        vc_scope_meta_write(reinterpret_cast<uint8_t *>(out.data())+1, &m_scopeMeta);
+        send(VC_RSP(f.type), f.seq, out);
+        break;
+    }
     case VC_CMD_BEEP:
         if (f.len != 2) {
             send(VC_RSP(VC_CMD_BEEP), f.seq, QByteArray(1, char(VC_ERR_ARGS)));
@@ -154,6 +173,32 @@ void SimTransport::handle(const vc_frame &f)
         send(VC_RSP(VC_CMD_BEEP), f.seq, QByteArray(1, ok));
         send(VC_EVT_LOG, m_eventSeq++,
              QStringLiteral("模拟蜂鸣 %1 ms").arg(vc_get_u16(f.payload)).toUtf8());
+        break;
+    case VC_CMD_SCOPE_READ: {
+        if (f.len != 8 || !vc_get_u32(f.payload) || vc_get_u32(f.payload) != m_scopeMeta.id ||
+            !vc_get_u16(f.payload+6) || vc_get_u16(f.payload+6) > VC_SCOPE_CHUNK_SAMPLES ||
+            uint32_t(vc_get_u16(f.payload+4)) + vc_get_u16(f.payload+6) > m_scopeMeta.count) {
+            send(VC_RSP(f.type), f.seq, QByteArray(1, char(VC_ERR_ARGS))); break;
+        }
+        if (!m_scopePresent) { send(VC_RSP(f.type), f.seq, QByteArray(1, char(VC_ERR_EMPTY))); break; }
+        if (m_scopeElapsed.nsecsElapsed()/1e9 < .002 + double(m_scopeMeta.count)*m_scopeMeta.adc_div/m_scopeMeta.timer_hz) {
+            send(VC_RSP(f.type), f.seq, QByteArray(1, char(VC_ERR_BUSY))); break;
+        }
+        const unsigned offset = vc_get_u16(f.payload+4), count = vc_get_u16(f.payload+6);
+        QByteArray out(1 + VC_SCOPE_BLOCK_HEADER + count*2, 0);
+        auto *d = reinterpret_cast<uint8_t *>(out.data())+1;
+        vc_put_u32(d, m_scopeMeta.id); vc_put_u16(d+4, offset); vc_put_u16(d+6, m_scopeMeta.count);
+        for (unsigned i = 0; i < count; ++i) {
+            const unsigned phase = unsigned(double(offset+i)*m_scopeMeta.adc_div/m_scopeMeta.dac_div) % 128;
+            const auto value = uint16_t(qRound(2048 + 1600*qSin(2*M_PI*phase/128)));
+            vc_put_u16(d+8+2*i, value);
+        }
+        send(VC_RSP(f.type), f.seq, out);
+        break;
+    }
+    case VC_CMD_SCOPE_STOP:
+        if (!f.len) m_scopePresent = false;
+        send(VC_RSP(f.type), f.seq, QByteArray(1, char(f.len ? VC_ERR_ARGS : VC_OK)));
         break;
     case VC_CMD_SUB_TEL: {
         if (f.len != 2) {

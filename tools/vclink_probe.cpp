@@ -7,6 +7,8 @@
 #include <QTimer>
 #include <cstdio>
 #include <memory>
+#include <QFile>
+#include <QTextStream>
 
 static void say(const QString &s)
 {
@@ -67,6 +69,35 @@ int main(int argc, char *argv[])
             });
             link.flashFirmware(flashElf);
         };
+    }
+    if (argc > 2 && QByteArray(argv[2]) == "scope") {
+        auto frames = std::make_shared<int>(0);
+        auto rates = std::make_shared<QList<int>>(QList<int>{10000, 50000, 200000});
+        QObject::connect(&link, &DeviceLink::scopeFinished, &link, [&, frames, rates](bool ok, const QString &msg) {
+            if (!ok) { say(QStringLiteral("[scope ] FAIL: ") + msg); app.exit(7); return; }
+            const auto frame = link.scopeFrame();
+            say(QStringLiteral("[scope ] frame=%1 count=%2 rate=%3 Hz min=%4 max=%5 measured=%6 Hz total=%7 ms")
+                .arg(frame.value("id").toUInt()).arg(frame.value("count").toInt())
+                .arg(frame.value("rate").toDouble()).arg(frame.value("min").toInt()).arg(frame.value("max").toInt())
+                .arg(frame.value("measuredHz").toDouble(), 0, 'f', 2).arg(frame.value("transferMs").toDouble(), 0, 'f', 1));
+            if (argc > 3) {
+                QFile file(QString::fromLocal8Bit(argv[3]) + QStringLiteral("-%1.txt").arg(rates->at(*frames)));
+                if (!file.open(QIODevice::WriteOnly | QIODevice::Text)) { app.exit(8); return; }
+                QTextStream stream(&file);
+                for (const auto &sample : frame.value("samples").toList()) stream << sample.toInt() << '\n';
+            }
+            const double hz = frame.value("measuredHz").toDouble();
+            if (frame.value("count").toInt() != 2048 || hz < 950 || hz > 1050 ||
+                frame.value("min").toInt() > 800 || frame.value("max").toInt() < 3200) { app.exit(9); return; }
+            ++*frames;
+            if (*frames == rates->size()) {
+                link.stopScope(); // 本次已经完成，不会再次触发 scopeFinished
+                say(QStringLiteral("[scope ] PASS: three rates, complete blocks; %1")
+                    .arg(mode == "sim" ? QStringLiteral("simulated data") : QStringLiteral("board loopback")));
+                QTimer::singleShot(150, &app, [&] { app.exit(0); });
+            } else QTimer::singleShot(100, &link, [&, frames, rates] { link.startScope(rates->at(*frames), 2048); });
+        });
+        steps << [&, rates] { link.startScope(rates->first(), 2048); };
     }
     // clock：仅读时间 → 按本机时间对时 → 等待走时后读回；不运行后面的蜂鸣/吞吐步骤。
     if (argc > 2 && QByteArray(argv[2]) == "clock") {

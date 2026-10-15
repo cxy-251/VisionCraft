@@ -55,4 +55,8 @@ private:
     QByteArray m_recipe;   // 模拟 EEPROM 里的配方，开始是空的
     QDateTime m_rtcBase;
     QElapsedTimer m_rtcElapsed; // 走时用单调计时，不随电脑墙上时钟跳变
+    vc_scope_meta m_scopeMeta{};
+    quint32 m_scopeSerial = 0;
+    bool m_scopePresent = false;
+    QElapsedTimer m_scopeElapsed;
 };

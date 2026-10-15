@@ -91,6 +91,15 @@ int main(int argc, char *argv[])
                 link->connectRtt();
             else
                 link->connectSimulator();
+            // VC_SCOPE=1：在数据页截图/验证一帧板上回环，不启用连续采集。
+            if (qEnvironmentVariableIntValue("VC_SCOPE") == 1) {
+                auto scopeConnection = std::make_shared<QMetaObject::Connection>();
+                *scopeConnection = QObject::connect(link, &DeviceLink::stateChanged, link, [link, scopeConnection] {
+                    if (link->state() != DeviceLink::Connected) return;
+                    QObject::disconnect(*scopeConnection);
+                    QTimer::singleShot(250, link, [link] { link->startScope(50000, 2048); });
+                });
+            }
             // VC_SHELL=help;uptime：连上后依次在板子上执行这几条终端命令（截图用）
             const QStringList cmds = qEnvironmentVariable("VC_SHELL").split(QLatin1Char(';'), Qt::SkipEmptyParts);
             if (!cmds.isEmpty()) {

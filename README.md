@@ -38,6 +38,8 @@ tools/                vclink_probe（命令行测通信）、cubemx_generate.sh�
 
 下位机的现状、原计划与待办见 [扩充方案](firmware/station/扩充方案.md)；任务职责、队列、共享缓冲和阻塞关系见 [任务架构](firmware/station/任务架构.md)。
 
+「数据」页已接通 PA4 的 DAC→ADC2 回环波形：无需跳线，可单帧或连续逐帧采集，暂停后放大、平移查看。采样与分块传输由正式固件完成；模拟通道会明确显示“模拟数据”。
+
 ## 构建与运行
 
 ### Steam Deck（SteamOS）

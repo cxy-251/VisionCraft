@@ -3,6 +3,29 @@
 
 #include <string.h>
 
+// [region scope]
+int vc_scope_config_valid(uint32_t rate, uint16_t count)
+{
+    return rate >= 10000u && rate <= 200000u && count >= 32u && count <= VC_SCOPE_MAX_SAMPLES;
+}
+size_t vc_scope_meta_write(uint8_t *dst, const vc_scope_meta *m)
+{
+    vc_put_u32(dst, m->id); vc_put_u32(dst+4, m->timer_hz);
+    vc_put_u32(dst+8, m->adc_div); vc_put_u32(dst+12, m->dac_div);
+    vc_put_u16(dst+16, m->count); vc_put_u16(dst+18, m->vdda_mv);
+    return VC_SCOPE_META_SIZE;
+}
+int vc_scope_meta_read(vc_scope_meta *m, const uint8_t *src, size_t len)
+{
+    if (len != VC_SCOPE_META_SIZE) return -1;
+    *m = (vc_scope_meta){vc_get_u32(src), vc_get_u32(src+4), vc_get_u32(src+8),
+        vc_get_u32(src+12), vc_get_u16(src+16), vc_get_u16(src+18)};
+    if (!m->id || !m->timer_hz || m->timer_hz > 200000000u || !m->adc_div ||
+        !m->dac_div || m->dac_div > 65536u) return -1;
+    return vc_scope_config_valid(m->timer_hz / m->adc_div, m->count) ? 0 : -1;
+}
+// [endregion]
+
 // [region datetime]
 int vc_datetime_valid(const vc_datetime *t)
 {

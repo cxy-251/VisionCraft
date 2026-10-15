@@ -1,0 +1,40 @@
+A05 上位机延伸：一维频谱分析，2026-10-15
+基线 ff50705；仅改上位机，不烧录、不连接调试器、不操作 SD，不打断用户正在进行的采集。
+输入：完整帧的实际 Fs、N 和原始 ADC 码。去均值、周期 Hann 窗、OpenCV cv::dft、单边幅值归一化。
+交流 RMS 在去均值后、加窗前计算；不换算为电压，不将谱峰栅格冒充精密测频。
+非整数周期有栅栏损失，低频/DC 和 Nyquist 附近还可能有窗瓣重叠；没有幅值校准、插值或补零。
+实板数据来自 A05 已归档的 scope-stream-200k.txt；本轮不宣称重新做了硬件测量。
+下列计时为本次 Steam Deck 桌面测试窗口，不是最坏延迟保证。
+
+==== 1. 计算验证
+********* Start testing of TstScopeAnalysis *********
+Config: Using QtTest library 6.9.1, Qt 6.9.1 (x86_64-little_endian-lp64 shared (dynamic) release build; by GCC 15.1.1 20250425), steamos 3.8.16
+PASS   : TstScopeAnalysis::initTestCase()
+QINFO  : TstScopeAnalysis::coherentToneAndDcOffset() coherent tone: peak 976.563 Hz, amplitude 1000.029 ADC, AC RMS 707.128 ADC
+PASS   : TstScopeAnalysis::coherentToneAndDcOffset()
+PASS   : TstScopeAnalysis::constantAndNyquist()
+PASS   : TstScopeAnalysis::noncoherentAndTwoTones()
+PASS   : TstScopeAnalysis::invalidFrameDoesNotKeepOldSpectrum()
+QINFO  : TstScopeAnalysis::savedBoardFrame() saved board frame: N=2048 Fs=200000, bin 97.65625 Hz, peak 976.56250 Hz, amplitude 1566.097 ADC, AC RMS 1149.672 ADC; 100 analyses 41.389 ms
+PASS   : TstScopeAnalysis::savedBoardFrame()
+PASS   : TstScopeAnalysis::cleanupTestCase()
+Totals: 7 passed, 0 failed, 0 skipped, 0 blacklisted, 61ms
+********* Finished testing of TstScopeAnalysis *********
+
+==== 2. 原生 QML 界面验证
+连续至少三帧后暂停、保留整帧及频谱、4倍时间缩放和平移、切换全频段/主峰视口、离页停止。
+截图为模拟通道；在临时设置目录运行。
+********* Start testing of TstScopeUi *********
+Config: Using QtTest library 6.9.1, Qt 6.9.1 (x86_64-little_endian-lp64 shared (dynamic) release build; by GCC 15.1.1 20250425), steamos 3.8.16
+PASS   : TstScopeUi::initTestCase()
+PASS   : TstScopeUi::capturePauseZoomAndLeave()
+PASS   : TstScopeUi::cleanupTestCase()
+Totals: 3 passed, 0 failed, 0 skipped, 0 blacklisted, 2231ms
+********* Finished testing of TstScopeUi *********
+
+==== 3. 复现
+source scripts/steamdeck-env.sh
+nice -n 19 cmake --build build --target VisionCraft tst_scope_analysis tst_scope_ui -j2
+XDG_CONFIG_HOME=/tmp/vc-spectrum-config QT_QPA_PLATFORM=offscreen QT_QUICK_BACKEND=software ctest --test-dir build --output-on-failure -R '^(tst_scope_analysis|tst_scope_ui|tst_handbook_refs|tst_layering)$'
+计算可独立运行 ./build/tests/tst_scope_analysis；实板帧由测试直接从已归档文本加载。
+打开新版程序的数据页，频谱随每张完整帧更新；暂停后仍可切换频率视口。

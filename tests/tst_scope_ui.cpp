@@ -1,4 +1,7 @@
 #include "DeviceLink.h"
+#include "ScopeAnalysis.h"
+#include <memory>
+#include <cmath>
 #include <QtTest>
 #include <QQmlComponent>
 #include <QQmlEngine>
@@ -24,6 +27,8 @@ private slots:
         qmlRegisterSingletonInstance("VisionCraft", 1, 0, "DeviceLink", &link);
         qmlRegisterSingletonType(QUrl::fromLocalFile(QStringLiteral(VC_SOURCE_DIR "/qml/Theme.qml")),
                                  "VisionCraft", 1, 0, "Theme");
+        ScopeAnalysis analysis;
+        qmlRegisterSingletonInstance("VisionCraft", 1, 0, "ScopeAnalysis", &analysis);
         QQmlEngine engine;
         QQmlComponent component(&engine, QUrl::fromLocalFile(QStringLiteral(VC_SOURCE_DIR "/qml/data/ScopePanel.qml")));
         QTRY_VERIFY_WITH_TIMEOUT(component.status() != QQmlComponent::Loading, 3000);
@@ -33,8 +38,8 @@ private slots:
         QVERIFY(panel);
         QQuickWindow window;
         panel->setParentItem(window.contentItem());
-        panel->setWidth(1100); panel->setHeight(620);
-        window.resize(1100, 620); window.show();
+        panel->setWidth(1100); panel->setHeight(940);
+        window.resize(1100, 940); window.show();
         link.connectSimulator();
         QTRY_COMPARE(link.state(), DeviceLink::Connected);
         auto *button = panel->findChild<QObject *>("scopeContinuous");
@@ -49,11 +54,26 @@ private slots:
         QVERIFY(!link.scopeBusy());
         const auto frame = link.scopeFrame();
         const int frames = panel->property("frames").toInt();
+        const auto beforeZoomSpectrum = panel->property("spectrum").toMap();
         QVERIFY(zoom->setProperty("value", 4.0));
         QVERIFY(pan->setProperty("value", .5));
         QTest::qWait(250);
         QCOMPARE(panel->property("frames").toInt(), frames);
         QCOMPARE(link.scopeFrame(), frame);
+        const auto spectrum = panel->property("spectrum").toMap();
+        QCOMPARE(spectrum, beforeZoomSpectrum);
+        QVERIFY(spectrum.value("valid").toBool());
+        QVERIFY(std::abs(spectrum.value("peakHz").toDouble() - 1000) < spectrum.value("binHz").toDouble());
+        auto *range = panel->findChild<QObject *>("scopeSpectrumRange");
+        QVERIFY(range);
+        QVERIFY(QMetaObject::invokeMethod(range, "clicked"));
+        QVERIFY(panel->property("fullSpectrum").toBool());
+        QCOMPARE(panel->property("spectrum").toMap(), spectrum);
+        QVERIFY(QMetaObject::invokeMethod(range, "clicked"));
+        QVERIFY(!panel->property("fullSpectrum").toBool());
+        QTest::qWait(100);
+        const QString snapshot = qEnvironmentVariable("VC_SCOPE_TEST_SNAPSHOT");
+        if (!snapshot.isEmpty()) QVERIFY(window.grabWindow().save(snapshot));
         QTemporaryDir screenshots;
         QVERIFY(window.grabWindow().save(screenshots.filePath("paused-zoom.png")));
         QVERIFY(QMetaObject::invokeMethod(button, "clicked"));

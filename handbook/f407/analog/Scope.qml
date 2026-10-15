@@ -35,6 +35,22 @@ Section {
     Pitfall {
         text: qsTr("200 kS/s 是帧内采样速率，不是屏幕刷新率，也不是持续回传速率。ADC 采满后已停，RTT 读回和下一帧启动之间有空档。当前固定约 1 kHz 信号、10–200 kS/s、32–2048 点；没有实现连续无缝流、任意外部探头输入、触发电平或绝对电压校准。")
     }
+    KeyPoints {
+        label: qsTr("上位机分析：OpenCV 一维 DFT")
+        points: [
+            qsTr("ScopeAnalysis 只接收完整帧，不接触通信或硬件。先减去整帧均值，计算未加窗的交流 RMS，再乘周期 Hann 窗，交给 cv::dft。Qt 显示单边线性幅度谱，单位是 ADC 码，不是功率或电压。"),
+            qsTr("幅值用窗函数系数之和归一化；正频率乘二，DC 和偶数长度的 Nyquist 点不乘二。恒定输入没有交流主峰；奇数长度的末频点仍是普通正频率。主峰搜索排除 DC。"),
+            qsTr("不补零、不插值估频：横轴栅格间隔就是 Fs/N。默认看主峰附近，也能切换到采样率一半的全频段；时域缩放和平移不改变分析的整帧。暂停保留相同频谱；分析器遇到无效输入返回空结果，通信层继续保留最后完整帧。"),
+            qsTr("复用 A05 保存的实板 200 kS/s、2048 点原始帧，栅格间隔 97.65625 Hz，主峰栅格为 976.56250 Hz；这不与约 1000 Hz 的过零估计矛盾。非整数周期和窗函数会影响峰值幅度，不能把栅格主峰当作精密频率或电压校准。")
+        ]
+    }
+    Figure {
+        files: ["handbook/f407/analog/scope-spectrum.png"]
+        captions: [qsTr("原生 Qt 控件验证：模拟通道暂停后放大时间轴，频谱仍分析完整 2048 点；本图不是新增实板测量")]
+    }
+    CodeRef { file: "src/app/ScopeAnalysis.cpp"; region: "spectrum" }
+    CodeRef { file: "qml/data/ScopePanel.qml"; region: "spectrum" }
+    CodeRef { file: "handbook/f407/analog/scope-spectrum-test.txt"; caption: qsTr("合成信号、已存实板帧与界面验证；未占用当前设备连接") }
     Para {
         text: qsTr("以下保留历史裸寄存器实验和旧数据，未在本轮重跑。旧脚本曾使用 0x2001A000 起的固定 RAM，当时固件变量较少；当前这些地址已经不能视为空闲。脚本现在检测到 DAC 被固件启用就拒绝运行。正式回归使用 scope_link_probe.py 或 Qt 数据页。")
     }

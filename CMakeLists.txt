@@ -168,6 +168,8 @@ qt_add_qml_module(VisionCraft
         src/demos/opencv/ThresholdDemo.cpp
         src/device/DeviceLink.h
         src/device/DeviceLink.cpp
+        src/app/ScopeAnalysis.h
+        src/app/ScopeAnalysis.cpp
         src/app/ImageView.h
         src/app/ImageView.cpp
         src/app/StationController.h

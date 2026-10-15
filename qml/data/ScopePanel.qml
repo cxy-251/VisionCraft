@@ -13,6 +13,8 @@ Rectangle {
     readonly property bool connected: DeviceLink.state === DeviceLink.Connected
     readonly property var frame: DeviceLink.scopeFrame
     readonly property var samples: frame.samples || []
+    readonly property var spectrum: ScopeAnalysis.spectrum(frame)
+    property bool fullSpectrum: false
     property bool continuous: false
     property var rates: [10000, 20000, 50000, 100000, 200000]
     property int frames: 0
@@ -156,6 +158,72 @@ Rectangle {
                 + (panel.refreshHz > 0 ? qsTr(" · 最近刷新 %1 帧/s").arg(panel.refreshHz.toFixed(1)) : "")
                 : qsTr("纵轴为原始 12 位 ADC 码；横轴按实际采样间隔计算。暂停后可放大、平移最后完整帧。")
         }
+        // [region spectrum]
+        RowLayout {
+            Layout.fillWidth: true
+            Text { text: qsTr("频谱 · OpenCV DFT"); color: Theme.text; font.pixelSize: 14 }
+            Item { Layout.fillWidth: true }
+            ScopeAction {
+                objectName: "scopeSpectrumRange"
+                text: panel.fullSpectrum ? qsTr("查看主峰附近") : qsTr("查看全频段")
+                enabled: panel.spectrum.valid
+                onClicked: panel.fullSpectrum = !panel.fullSpectrum
+            }
+        }
+        Rectangle {
+            Layout.fillWidth: true; implicitHeight: 180; radius: 6; color: Theme.codeBg
+            Canvas {
+                id: frequencyPlot
+                objectName: "scopeSpectrumPlot"
+                anchors.fill: parent
+                onWidthChanged: requestPaint()
+                onHeightChanged: requestPaint()
+                Connections {
+                    target: panel
+                    function onSpectrumChanged() { frequencyPlot.requestPaint() }
+                    function onFullSpectrumChanged() { frequencyPlot.requestPaint() }
+                }
+                Connections { target: Theme; function onDarkChanged() { frequencyPlot.requestPaint() } }
+                onPaint: {
+                    const ctx = getContext("2d")
+                    ctx.reset()
+                    const result = panel.spectrum
+                    const left = 48, right = width - 14, top = 14, bottom = height - 30
+                    ctx.font = "11px sans-serif"; ctx.fillStyle = Theme.textMuted
+                    if (!result.valid) { ctx.fillText(result.error, left+20, top+40); return }
+                    const maxHz = panel.fullSpectrum ? result.nyquistHz
+                        : Math.min(result.nyquistHz, Math.max(5000, result.peakHz*4))
+                    const scale = Math.max(1, result.peakAmplitude * 1.15)
+                    ctx.strokeStyle = Theme.border; ctx.lineWidth = 1
+                    for (let i = 0; i <= 4; ++i) {
+                        const x = left+(right-left)*i/4, y = bottom-(bottom-top)*i/4
+                        ctx.beginPath(); ctx.moveTo(x,top); ctx.lineTo(x,bottom); ctx.stroke()
+                        ctx.beginPath(); ctx.moveTo(left,y); ctx.lineTo(right,y); ctx.stroke()
+                        ctx.fillText((maxHz*i/4/1000).toFixed(1) + " kHz", Math.min(x,right-60),bottom+20)
+                        ctx.fillText((scale*i/4).toFixed(0),7,y+4)
+                    }
+                    ctx.strokeStyle = Theme.accent; ctx.lineWidth = 1.5
+                    ctx.beginPath()
+                    // 只绘制当前视口中的实际 DFT 栅格；不插值出额外频率分辨率。
+                    for (let k = 0; k < result.hz.length && result.hz[k] <= maxHz; ++k) {
+                        const x = left+result.hz[k]/maxHz*(right-left)
+                        const y = bottom-Math.min(scale,result.amplitudes[k])/scale*(bottom-top)
+                        if (k === 0) ctx.moveTo(x,y); else ctx.lineTo(x,y)
+                    }
+                    ctx.stroke()
+                }
+            }
+        }
+        Text {
+            objectName: "scopeSpectrumSummary"
+            Layout.fillWidth: true; wrapMode: Text.Wrap; color: Theme.textMuted; font.pixelSize: 12
+            text: panel.spectrum.valid
+                ? qsTr("主峰栅格 %1 · 栅格间隔 %2 Hz · 交流 RMS %3 ADC 码\n去均值 + Hann 窗 · 单边峰值幅度（ADC 码）· 使用整帧；时间缩放不改变频谱")
+                    .arg(panel.spectrum.hasPeak ? panel.spectrum.peakHz.toFixed(1) + " Hz" : qsTr("无交流分量"))
+                    .arg(panel.spectrum.binHz.toFixed(2)).arg(panel.spectrum.acRms.toFixed(2))
+                : qsTr("收到完整帧后分析频谱；全频段上限为采样率的一半。")
+        }
+        // [endregion]
     }
     component ScopeChoice: ComboBox {
         palette.button: Theme.surfaceAlt

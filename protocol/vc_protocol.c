@@ -3,6 +3,38 @@
 
 #include <string.h>
 
+// [region datetime]
+int vc_datetime_valid(const vc_datetime *t)
+{
+    static const uint8_t days[] = {31,28,31,30,31,30,31,31,30,31,30,31};
+    if (t->year < 2000 || t->year > 2099 || t->month < 1 || t->month > 12 ||
+        t->hour > 23 || t->minute > 59 || t->second > 59) return 0;
+    const unsigned leap = t->year % 4 == 0; /* 此范围内包含 2000，不包含 2100 */
+    const unsigned limit = days[t->month - 1] + (t->month == 2 && leap);
+    if (t->day < 1 || t->day > limit) return 0;
+    unsigned elapsed = 0;
+    for (unsigned y = 2000; y < t->year; ++y) elapsed += 365 + (y % 4 == 0);
+    for (unsigned m = 1; m < t->month; ++m) elapsed += days[m-1] + (m == 2 && leap);
+    elapsed += t->day - 1;
+    return t->weekday == (elapsed + 5) % 7 + 1; /* 2000-01-01 是周六 */
+}
+
+size_t vc_datetime_write(uint8_t *dst, const vc_datetime *t)
+{
+    vc_put_u16(dst, t->year);
+    dst[2] = t->month; dst[3] = t->day; dst[4] = t->hour;
+    dst[5] = t->minute; dst[6] = t->second; dst[7] = t->weekday;
+    return VC_DATETIME_SIZE;
+}
+
+int vc_datetime_read(vc_datetime *t, const uint8_t *src, size_t len)
+{
+    if (len != VC_DATETIME_SIZE) return -1;
+    *t = (vc_datetime){vc_get_u16(src), src[2], src[3], src[4], src[5], src[6], src[7]};
+    return vc_datetime_valid(t) ? 0 : -1;
+}
+// [endregion]
+
 /* ---------------- 校验 ---------------- */
 
 uint8_t vc_crc8(const uint8_t *data, size_t len)

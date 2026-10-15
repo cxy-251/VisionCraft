@@ -7,9 +7,28 @@ Section {
 
     Why {
         text: qsTr("检测记录要带时间戳。上位机连着的时候可以由电脑对时，但开发板自己运行时（比如上位机没开），只能靠 RTC 记时间。"
-                 + "这块板子没有装纽扣电池，所以一个问题是：外部 32.768 kHz 晶振（LSE）到底能不能起振、走得准不准。"
-                 + "工位固件还没有配置 RTC（上位机的「对时」命令目前返回「不认识的命令」）。本节用调试器直接配置 RTC，分别用 LSE 和内部 RC 振荡器（LSI）驱动，量走时误差，最后复位备份域，恢复原状。")
+                 + "正式固件现在已使用 LSE，并接通上位机对时和读回。下方先说明当前实现，后半节保留历史裸寄存器走时实验；当时未装纽扣电池，本次没有做断电或电池验证。")
     }
+
+    KeyPoints {
+        label: qsTr("当前正式实现：A04")
+        points: [
+            qsTr("station.ioc 启用 LSE 和 RTC，分频 127/255。CubeMX 生成硬件初始化；RTC 初始化后若 DR0 有本功能的完整对时标记，则跳过默认日期写入，软件复位保留日历。"),
+            qsTr("SET_TIME 保持原有八字节格式，接收 2000–2099 的本地日历，并校验实际日期、闰年及 ISO 星期。GET_TIME 新增为 0x0C，返回有效标志、时钟源和八字节日历；未校时的日历字段全零，读取失败返回 IO。"),
+            qsTr("上位机连接时先读时间；设备页可见时每秒读回，点击「按电脑本地时间对时」才写入。成功后再次读回，断连清除旧显示。RTC 不保存时区，也不自动处理夏令时；这是秒级日历同步，不承诺亚秒精度。"),
+            qsTr("RTC 读写共用一个带优先级继承的互斥锁。写入前清有效标记，日期和时间都写成功才置位；读取始终先 GetTime、再 GetDate，避免影子寄存器锁导致读数停住。"),
+            qsTr("实板验证了未校时状态、非法输入、闰日/月末/跨年、重复设置、软件复位、RTT 重连和连续四十次读取。断电保持、LSE 启动故障和长时间精度未在本轮验证。启动仍使用 CubeMX 的 LSE 失败处理，不能把运行时 IO 应答当成启动故障降级保证。")
+        ]
+    }
+    CodeRef { file: "protocol/vc_protocol.h"; region: "datetime" }
+    CodeRef { file: "firmware/station/Core/Src/rtc.c"; region: "preserve-calendar" }
+    CodeRef { file: "firmware/station/App/clock.c"; region: "set" }
+    CodeRef { file: "firmware/station/App/clock.c"; region: "read" }
+    CodeRef { file: "firmware/station/App/link.c"; region: "clock" }
+    CodeRef { file: "src/device/DeviceLink.cpp"; region: "clock" }
+    CodeRef { file: "handbook/f407/analog/clock-sync-test.txt"; from: "==== 0"; to: "==== 6"; caption: qsTr("当前固件实板回归与资源") }
+    CodeRef { file: "handbook/f407/analog/clock-sync-test.txt"; from: "==== 6"; caption: qsTr("Qt 链路、桌面测试和复现边界") }
+    Para { text: qsTr("以下为历史独立实验，当时正式固件尚未启用 RTC。旧 rtc_probe.tcl 会复位备份域，现在检测到 RTC 已启用就拒绝运行；当前功能回归使用 clock_probe.py，不要用旧脚本覆盖正在走时的日历。历史 ppm 数值保留，本轮未重新测量。") }
 
     CodeRef { file: "tools/rtc_probe.tcl"; region: "backup-access" }
     CodeRef { file: "tools/rtc_probe.tcl"; region: "start-lse" }
@@ -22,7 +41,7 @@ Section {
             qsTr("打开 LSE，等 LSERDY；在 RCC_BDCR 里用 RTCSEL 选时钟源、RTCEN 打开 RTC。RTCSEL 一旦选定，只有复位整个备份域（BDRST）才能改。"),
             qsTr("RTC 寄存器自己还有一层写保护：往 RTC_WPR 依次写 0xCA、0x53 解锁；进入初始化模式（INIT），等 INITF，设分频和时间，再退出。"),
             qsTr("两级分频：32768 Hz ÷ 128 ÷ 256 = 1 Hz。LSI 标称 32 kHz，所以第二级用 250。时间、日期都是 BCD 码（0x12 表示 12）。"),
-            qsTr("在 CubeMX 里对应的是：RCC 里启用 LSE 晶振、时钟配置里把 RTC 时钟源选成 LSE、再打开 RTC 外设（选项名以 CubeMX 界面为准）；生成的初始化代码做的就是上面这几步。本节没有改 station.ioc。")
+            qsTr("在 CubeMX 里对应的是：RCC 里启用 LSE 晶振、时钟配置里把 RTC 时钟源选成 LSE、再打开 RTC 外设。历史裸寄存器实验没改 station.ioc；当前 A04 已通过 .ioc 配置并重新生成。")
         ]
     }
 
@@ -60,11 +79,10 @@ Section {
     Try {
         task: qsTr("按 +136 ppm 计算，工位每天开机 10 小时、关机时 RTC 靠主电源维持不了（没有电池），一周下来时间会差多少？要让它一直准，有哪些办法？")
         answerNote: qsTr("没有电池时，关机 RTC 就停了，每次开机都从复位值开始，谈不上「差多少」，必须重新对时；开机的 10 小时里，每天差 10 × 3600 × 136 × 10⁻⁶ ≈ 4.9 秒。"
-                       + "办法：装纽扣电池保住备份域；上位机连接时自动对时（本程序协议里预留的「对时」命令就是为此）；或者用 RTC 的平滑校准寄存器 RTC_CALR，按测出的 +136 ppm 把它调慢。这是根据本节测量结果的计算，没有单独实验。")
+                       + "办法：装纽扣电池保住备份域；定期通过上位机对时；或者用 RTC 的平滑校准寄存器 RTC_CALR，按测出的 +136 ppm 把它调慢。当前只实现手动对时；误差计算及平滑校准没有新增实验。")
     }
 
     InSystem {
-        text: qsTr("上位机协议里已经有「对时」命令，固件目前回复「不认识的命令」（见「二进制协议：帧、校验与重同步」；固件 App/link.c 里 SET_TIME 落进了 default 分支）。按本节结果，固件可以用 LSE 驱动 RTC：上位机每次连接时下发当前时间，固件之后的检测记录就带上时间戳；"
-                 + "一天约 12 秒的偏差，在每次连接都对时的前提下完全够用。")
+        text: qsTr("App/clock.c 提供读写，LinkTask 处理 SET_TIME/GET_TIME，StationTask 在设备页每秒显示。Qt DeviceLink 与 SimTransport 使用同一套日历校验。现有检测结果帧和记录尚未增加 RTC 时间戳；那是后续功能，不属于本次对时完成范围。")
     }
 }

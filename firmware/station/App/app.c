@@ -1,6 +1,7 @@
 #include "app.h"
 #include "eeprom.h"
 #include "perf.h"
+#include "clock.h"
 
 #include "cmsis_os2.h"
 #include "stm32f4xx.h"
@@ -18,6 +19,7 @@ void app_init(void)
     s_txMutex = osMutexNew(NULL);
     g_beepQueue = osMessageQueueNew(4, sizeof(uint16_t), NULL);
     eeprom_init();
+    app_clock_init();
 }
 
 // [region send]

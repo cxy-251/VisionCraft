@@ -1,7 +1,10 @@
 # 用调试器配置 RTC：先看外部 32.768 kHz 晶振（LSE）能不能起振，再分别用 LSE、内部 RC（LSI）驱动 RTC，
 # 和电脑的时钟对比走时误差。最后复位备份域，恢复成原来的样子（备份域原本就是复位状态）。
 #   openocd -f interface/stlink.cfg -f target/stm32f4x.cfg -c init -c "set RTC_SECONDS 120" -f tools/rtc_probe.tcl -c exit
-# 工位固件不用 RTC。
+# 历史裸寄存器实验，会复位备份域；正式工位固件已启用 RTC，使用 clock_probe.py 回归。
+if {([lindex [read_memory 0x40023870 32 1] 0] & (1 << 15)) != 0} {
+    error "RTC 已启用，停止会复位备份域的历史实验；请使用 tools/clock_probe.py"
+}
 
 proc rd {a} { return [read_memory $a 32 1] }
 set RCC_BDCR 0x40023870; set RCC_CSR 0x40023874; set PWR_CR 0x40007000

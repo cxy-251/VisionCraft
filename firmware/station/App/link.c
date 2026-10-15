@@ -2,6 +2,7 @@
 #include "app.h"
 #include "fault.h"
 #include "perf.h"
+#include "clock.h"
 
 #include "main.h"
 #include "cmsis_os2.h"
@@ -127,7 +128,27 @@ static void handle(const vc_frame *f)
     }
     // [endregion]
 
-    default:   /* 包括 SET_TIME：RTC 还没配置 */
+    // [region clock]
+    case VC_CMD_SET_TIME: {
+        vc_datetime t;
+        reply(f->type, f->seq, vc_datetime_read(&t, f->payload, f->len) == 0 ?
+              app_clock_set(&t) : VC_ERR_ARGS, NULL, 0);
+        break;
+    }
+    case VC_CMD_GET_TIME: {
+        app_clock clock;
+        uint8_t data[VC_CLOCK_SIZE] = {0};
+        const uint8_t rc = f->len ? VC_ERR_ARGS : app_clock_read(&clock);
+        if (rc == VC_OK) {
+            data[0] = clock.valid; data[1] = clock.source;
+            vc_datetime_write(data + 2, &clock.time);
+        }
+        reply(f->type, f->seq, rc, data, rc == VC_OK ? sizeof data : 0);
+        break;
+    }
+    // [endregion]
+
+    default:
         if (VC_IS_CMD(f->type))
             reply(f->type, f->seq, VC_ERR_UNKNOWN, NULL, 0);
         break;

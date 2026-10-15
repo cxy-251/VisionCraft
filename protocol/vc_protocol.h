@@ -50,6 +50,7 @@ enum vc_type {
     VC_CMD_RECIPE_GET  = 0x09, /* 应答负载见 vc_recipe；板子上没有有效配方时状态码为 VC_ERR_EMPTY */
     VC_CMD_RECIPE_SET  = 0x0A, /* 负载见 vc_recipe，写进板子的 EEPROM */
     VC_CMD_SHELL       = 0x0B, /* 负载：一行命令（ASCII，最长 63 字节）；应答负载：输出的文字，行之间用 \n 分隔 */
+    VC_CMD_GET_TIME    = 0x0C, /* 空请求；应答：valid(1) source(1) + vc_datetime(8)，未校时时日历为零 */
 
     /* EVT：事件 */
     VC_EVT_HELLO     = 0x40, /* 板子启动完成，负载同 vc_info */
@@ -137,6 +138,20 @@ typedef struct {
     uint32_t rx_errors;        /* 板子丢弃的坏帧数 */
 } vc_tel_env;
 #define VC_TEL_ENV_SIZE (2u + 2u + 2u + 4u + 4u + 4u)
+
+// [region datetime]
+/* 无时区的本地日历；2000..2099，weekday 为 ISO 周一=1..周日=7。 */
+typedef struct {
+    uint16_t year;
+    uint8_t month, day, hour, minute, second, weekday;
+} vc_datetime;
+#define VC_DATETIME_SIZE 8u
+#define VC_CLOCK_SIZE (2u + VC_DATETIME_SIZE)
+enum { VC_CLOCK_NONE = 0, VC_CLOCK_LSE = 1 };
+int vc_datetime_valid(const vc_datetime *t); /* 检查实际日期、闰年和星期一致性 */
+size_t vc_datetime_write(uint8_t *dst, const vc_datetime *t);
+int vc_datetime_read(vc_datetime *t, const uint8_t *src, size_t len);
+// [endregion]
 
 /* ---------------- 小端读写 ---------------- */
 // [region endian]

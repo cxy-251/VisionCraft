@@ -1,6 +1,7 @@
 #include "SimTransport.h"
 
 #include <QtMath>
+#include <QTimeZone>
 #include <cstring>
 
 SimTransport::SimTransport(QObject *parent)
@@ -119,6 +120,32 @@ void SimTransport::handle(const vc_frame &f)
     case VC_CMD_GET_INFO:
         send(VC_RSP(VC_CMD_GET_INFO), f.seq, QByteArray(1, ok) + infoPayload());
         break;
+    case VC_CMD_SET_TIME: {
+        vc_datetime t;
+        if (vc_datetime_read(&t, f.payload, f.len) != 0) {
+            send(VC_RSP(f.type), f.seq, QByteArray(1, char(VC_ERR_ARGS)));
+            break;
+        }
+        // 无时区日历：用 UTC 容器做日历加秒，不引入主机夏令时跳变。
+        m_rtcBase = QDateTime(QDate(t.year, t.month, t.day), QTime(t.hour, t.minute, t.second), QTimeZone::UTC);
+        m_rtcElapsed.start();
+        send(VC_RSP(f.type), f.seq, QByteArray(1, ok));
+        break;
+    }
+    case VC_CMD_GET_TIME: {
+        if (f.len) { send(VC_RSP(f.type), f.seq, QByteArray(1, char(VC_ERR_ARGS))); break; }
+        QByteArray out(1 + VC_CLOCK_SIZE, 0);
+        out[2] = VC_CLOCK_LSE;
+        if (m_rtcBase.isValid()) {
+            const auto now = m_rtcBase.addSecs(m_rtcElapsed.elapsed() / 1000);
+            vc_datetime t{uint16_t(now.date().year()), uint8_t(now.date().month()), uint8_t(now.date().day()),
+                uint8_t(now.time().hour()), uint8_t(now.time().minute()), uint8_t(now.time().second()), uint8_t(now.date().dayOfWeek())};
+            out[1] = vc_datetime_valid(&t);
+            if (out[1]) vc_datetime_write(reinterpret_cast<uint8_t *>(out.data()) + 3, &t);
+        }
+        send(VC_RSP(f.type), f.seq, out);
+        break;
+    }
     case VC_CMD_BEEP:
         if (f.len != 2) {
             send(VC_RSP(VC_CMD_BEEP), f.seq, QByteArray(1, char(VC_ERR_ARGS)));

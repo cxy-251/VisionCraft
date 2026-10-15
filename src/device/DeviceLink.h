@@ -28,6 +28,7 @@ class DeviceLink : public QObject {
     Q_PROPERTY(QVariantMap info READ info NOTIFY infoChanged)
     Q_PROPERTY(QVariantMap telemetry READ telemetry NOTIFY telemetryChanged)
     Q_PROPERTY(QVariantMap stats READ stats NOTIFY statsChanged)
+    Q_PROPERTY(QVariantMap deviceClock READ deviceClock NOTIFY deviceClockChanged)
 
 public:
     enum State { Disconnected, Connecting, Connected };
@@ -44,6 +45,7 @@ public:
     QString statusText() const { return m_statusText; }
     QVariantMap info() const { return m_info; }
     QVariantMap telemetry() const { return m_telemetry; }
+    QVariantMap deviceClock() const { return m_deviceClock; }
     QVariantMap stats() const;
 
     // ---- 连接 ----
@@ -58,6 +60,7 @@ public:
     Q_INVOKABLE int getInfo();
     Q_INVOKABLE int beep(int durationMs);
     Q_INVOKABLE int setTimeNow();
+    Q_INVOKABLE int getTime();
     Q_INVOKABLE int subscribeTelemetry(int periodMs);
     Q_INVOKABLE int sendResult(bool ok, int defect, int inspectMs, int total, int ng);
 
@@ -90,6 +93,7 @@ signals:
     void statusTextChanged();
     void infoChanged();
     void telemetryChanged();
+    void deviceClockChanged();
     void statsChanged();
     void eventReceived(const QVariantMap &event);
     void commandFinished(const QString &command, bool ok, const QString &summary);
@@ -125,6 +129,8 @@ private:
     QString m_statusText;
     QVariantMap m_info;
     QVariantMap m_telemetry;
+    QVariantMap m_deviceClock;
+    bool m_clockPending = false;
 
     vc_decoder m_decoder;
     uint8_t m_nextSeq = 1;

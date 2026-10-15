@@ -6,6 +6,7 @@
 #include <QCoreApplication>
 #include <QTimer>
 #include <cstdio>
+#include <memory>
 
 static void say(const QString &s)
 {
@@ -65,6 +66,28 @@ int main(int argc, char *argv[])
                 }, Qt::SingleShotConnection);
             });
             link.flashFirmware(flashElf);
+        };
+    }
+    // clock：仅读时间 → 按本机时间对时 → 等待走时后读回；不运行后面的蜂鸣/吞吐步骤。
+    if (argc > 2 && QByteArray(argv[2]) == "clock") {
+        auto synced = std::make_shared<bool>(false);
+        QObject::connect(&link, &DeviceLink::deviceClockChanged, &link, [&] {
+            const auto c = link.deviceClock();
+            say(QStringLiteral("[clock ] available=%1 valid=%2 %3").arg(c.value("available").toBool())
+                .arg(c.value("valid").toBool()).arg(c.value("text", c.value("error")).toString()));
+        });
+        QObject::connect(&link, &DeviceLink::commandFinished, &link,
+            [synced](const QString &cmd, bool ok, const QString &) { if (cmd == "SET_TIME") *synced = ok; });
+        steps << [&] { link.getTime(); QTimer::singleShot(300, next); };
+        steps << [&] { link.setTimeNow(); QTimer::singleShot(1300, next); };
+        steps << [&, synced] {
+            QObject::connect(&link, &DeviceLink::deviceClockChanged, &link, [&, synced] {
+                const auto c = link.deviceClock();
+                const bool ok = *synced && c.value("available").toBool() && c.value("valid").toBool();
+                say(ok ? QStringLiteral("[clock ] PASS: SET_TIME + GET_TIME") : QStringLiteral("[clock ] FAIL"));
+                app.exit(ok ? 0 : 6);
+            }, Qt::SingleShotConnection);
+            link.getTime();
         };
     }
     // 第二个参数 image：发一张四色方块缩略图（左上红、右上绿、左下蓝、右下白），然后退出
@@ -137,7 +160,7 @@ int main(int argc, char *argv[])
     }
     steps << [&] { link.ping(); QTimer::singleShot(500, next); };
     steps << [&] { link.beep(80); QTimer::singleShot(500, next); };
-    steps << [&] { link.setTimeNow(); QTimer::singleShot(500, next); };   // 预期：RTC 未配置，返回「不认识的命令」
+    steps << [&] { link.setTimeNow(); QTimer::singleShot(500, next); };
     steps << [&] { link.subscribeTelemetry(250); QTimer::singleShot(1600, next); };
     steps << [&] { link.subscribeTelemetry(0); QTimer::singleShot(300, next); };
     for (int size : {16, 256, 1000}) {

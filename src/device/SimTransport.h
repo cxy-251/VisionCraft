@@ -6,6 +6,7 @@
 #include <QElapsedTimer>
 #include <QList>
 #include <QTimer>
+#include <QDateTime>
 
 // 软件模拟的 F407：实现和真固件相同的协议，没接板子也能开发、演示和测试整条链路。
 // 收到的字节延迟一小段时间再处理，模拟真实链路的往返时间。
@@ -52,4 +53,6 @@ private:
     uint8_t m_eventSeq = 0;
     int m_latencyMs = 2;
     QByteArray m_recipe;   // 模拟 EEPROM 里的配方，开始是空的
+    QDateTime m_rtcBase;
+    QElapsedTimer m_rtcElapsed; // 走时用单调计时，不随电脑墙上时钟跳变
 };

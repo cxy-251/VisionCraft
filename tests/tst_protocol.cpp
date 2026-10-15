@@ -36,6 +36,29 @@ class TstProtocol : public QObject {
     Q_OBJECT
 
 private slots:
+    void calendarValidation()
+    {
+        for (QDate d(2000, 1, 1); d.year() < 2100; d = d.addDays(1)) {
+            vc_datetime t{uint16_t(d.year()), uint8_t(d.month()), uint8_t(d.day()),
+                          23, 59, 59, uint8_t(d.dayOfWeek())};
+            QVERIFY(vc_datetime_valid(&t));
+            uint8_t encoded[VC_DATETIME_SIZE];
+            vc_datetime_write(encoded, &t);
+            vc_datetime decoded{};
+            QCOMPARE(vc_datetime_read(&decoded, encoded, sizeof encoded), 0);
+            QCOMPARE(decoded.year, t.year);
+            QCOMPARE(decoded.day, t.day);
+            t.weekday = t.weekday % 7 + 1;
+            QVERIFY(!vc_datetime_valid(&t));
+        }
+        vc_datetime t{2026, 2, 29, 0, 0, 0, 7};
+        QVERIFY(!vc_datetime_valid(&t));
+        t = {2024, 4, 31, 0, 0, 0, 3}; QVERIFY(!vc_datetime_valid(&t));
+        t = {2100, 1, 1, 0, 0, 0, 5}; QVERIFY(!vc_datetime_valid(&t));
+        t = {2024, 2, 29, 24, 0, 0, 4}; QVERIFY(!vc_datetime_valid(&t));
+        uint8_t data[8]{};
+        QCOMPARE(vc_datetime_read(&t, data, 7), -1);
+    }
     void crcKnownValues()
     {
         // CRC-16/CCITT-FALSE 的标准校验值：对 "123456789" 计算结果是 0x29B1

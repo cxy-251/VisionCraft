@@ -1,0 +1,77 @@
+A04 RTC 与上位机对时，2026-10-15
+
+==== 0. 构建与范围
+基线 5d5bc66 后的 A04；CubeMX 修改 .ioc 并生成 RTC/LSE，USB HID 补丁已重打。
+Release FLASH 472656 / 1048576 B；RAM 119064 / 131072 B；CCM 60416 / 65536 B；EXTSRAM 950532 / 1048576 B。
+较 A03：Flash +3196 B，RAM +40 B；RTC 互斥锁使用 FreeRTOS 堆 88 B，任务数未改变。
+未进入 FILES，没有任何 SD 操作；不使用历史 rtc_probe.tcl，不复位整个备份域。
+当前 RTC：LSE，127/255 分频，秒级本地日历，支持 2000..2099；不存时区，不校准 ppm。
+
+==== 1. Initial RTC: None ====
+DR0=0 -> valid=0 source=LSE calendar=zeros
+==== 2. Reject invalid input, preserve valid calendar ====
+SET_TIME ea070a0f0c2238 -> ARGS
+SET_TIME ea07021d00000007 -> ARGS
+SET_TIME ea07041f00000004 -> ARGS
+SET_TIME 3408010100000005 -> ARGS
+SET_TIME ea070a0f18000004 -> ARGS
+SET_TIME ea070a0f0c223805 -> ARGS
+GET_TIME bad length -> ARGS; retained=2026-10-15 12:34:56
+==== 3. Leap day, month/year rollover ====
+2024-02-28 23:59:59 -> 2024-02-29 00:00:01 weekday=4
+2025-02-28 23:59:59 -> 2025-03-01 00:00:01 weekday=6
+2026-12-31 23:59:59 -> 2027-01-01 00:00:01 weekday=5
+==== 4. Reset retention and RTT reconnection ====
+reset: 2028-02-29 12:00:00 -> 2028-02-29 12:00:04
+reconnect: 2028-02-29 12:00:05
+==== 5. Resource measurements ====
+TASK         S PRIO STACK-FREE
+IDLE         r    0       428
+Tmr Svc      B    2       896
+USBH_Queue   B   24       740
+envTask      B   16      1316
+linkTask     B   32      1672
+stationTask  R   24      3996
+freertos heap  free 18816  min 18816
+lvgl pool      used 30420  peak 31628  of 45056
+reset_flags=0x14000000
+PASS: invalid state/arguments, Gregorian rollovers, ticking, reset retention, RTT reconnection, 40 reads; no storage
+RESTORED local host time: 2026-10-15 19:41:48
+
+==== 6. Qt DeviceLink 实板链路
+XDG_CONFIG_HOME=/tmp/vc-a04/config ./build/tools/vclink_probe rtt clock
+[clock ] available=0 valid=0
+[link  ] 启动 OpenOCD
+[link  ] 已连上 OpenOCD，检查芯片在运行什么
+[link  ] 找到 RTT 控制块，打开数据通道
+[link  ] 已连接：ST-Link（RTT）
+[ok    ] 固件 0.1.0，编译于 Oct 15 2026 19:39:31，芯片 UID 17002E001351363530353037
+[clock ] available=1 valid=1 2026-10-15 19:43:32
+[ok    ] SUB_TEL  订阅遥测（1000 ms） 完成（5.7 ms）
+[tel   ] 温度 43.78 °C  光照 3.4 %  VDDA 3286 mV  板子收帧 49 / 坏帧 0
+[clock ] available=1 valid=1 2026-10-15 19:43:32
+[ok    ] 已写入板子时间 2026-10-15 19:43:33
+[clock ] available=1 valid=1 2026-10-15 19:43:33
+[tel   ] 温度 44.38 °C  光照 3.3 %  VDDA 3289 mV  板子收帧 52 / 坏帧 0
+[clock ] available=1 valid=1 2026-10-15 19:43:34
+[clock ] PASS: SET_TIME + GET_TIME
+[clock ] available=0 valid=0
+
+==== 7. 桌面、范围与复现
+tst_protocol：以 QDate 交叉校验 2000..2099 每个日期与星期、错误日期/时间/长度拒绝。
+tst_devicelink：未校时→SET_TIME→GET_TIME→走时→断连清空；UNKNOWN、IO 与畸形成功应答显示错误。
+tst_protocol、tst_devicelink、tst_layering 通过；修正手册 region 标记后 tst_handbook_refs 通过。
+GUI 共享页面使用 --device-only，未运行后续文件页脚本。
+
+  返回，点 DEVICE                          当前页 DEVICE       点击  5 次，这一步写了 1534240 个像素
+  停 3 秒（运行时间每秒刷新）      当前页 DEVICE       点击  5 次，这一步写了  30072 个像素
+PASS: DEVICE 六任务、定时刷新、缩减隐藏、快照失败与恢复、重复进入；未进入文件页
+
+实板复现：source scripts/steamdeck-env.sh 后，本机编译/烧录当前 Release 固件；
+PYTHONDONTWRITEBYTECODE=1 python3 tools/clock_probe.py --output /tmp/vc-clock
+该脚本临时写测试日期、清本功能 DR0 有效标记，最终恢复电脑当前本地时间。
+首次启动读到未校时；另以 DR0=0 验证未校时输出，未拔电模拟备份电源丢失。
+软件复位保留日历与 RTC TCP 重连均通过；备份电池现状及真实断电保持未验证。
+写入成功仅表示 HAL 两次设置均成功，有效标记在最后写；读回另验证日历。
+LSE 启动仍是 CubeMX 生成的时钟初始化路径，失败会进入 Error_Handler；本轮未注入晶振故障。
+检测结果帧/记录尚未加入 RTC 时间戳；没有自动连接时对时，点击按钮才写入。

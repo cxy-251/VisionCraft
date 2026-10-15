@@ -2,6 +2,7 @@
 #include "pages.h"
 
 #include "app.h"
+#include "clock.h"
 #include "lv_port.h"
 #include "fault.h"
 #include "lv_ui.h"
@@ -13,6 +14,7 @@ static lv_obj_t *s_screen, *s_uptime, *s_heap, *s_tasks, *s_lvmem;
 LV_FONT_DECLARE(vc_font_mono_16)
 static lv_obj_t *s_taskRows[APP_TASK_MAX], *s_taskCells[APP_TASK_MAX][4], *s_taskError;
 static uint32_t s_lastUpdate;
+static lv_obj_t *s_clock;
 app_task_snapshot g_device_tasks;    /* 调试器读取，和屏幕显示同一份快照 */
 volatile int32_t g_device_tasks_rc;
 volatile uint32_t g_device_task_updates, g_device_task_cycles, g_device_task_peak_cycles;
@@ -141,6 +143,7 @@ static void device_build(void)
     s_tasks = row(run, "任务数", "--");
     s_heap = row(run, "FreeRTOS 剩余堆", "--");
     s_lvmem = row(run, "LVGL 内存池", "--");
+    s_clock = row(run, "本地时间", "未校时");
     tasks_build();
 
     lv_obj_t *fw = group("固件");
@@ -161,6 +164,17 @@ static void device_build(void)
 
 static void update(uint32_t now)
 {
+    app_clock clock;
+    const uint8_t rc = app_clock_read(&clock);
+    char date[24];
+    if (rc != VC_OK) ui_set_text(s_clock, "RTC 读取失败");
+    else if (!clock.valid) ui_set_text(s_clock, "未校时");
+    else {
+        lv_snprintf(date, sizeof date, "%04u-%02u-%02u %02u:%02u:%02u",
+            clock.time.year, clock.time.month, clock.time.day,
+            clock.time.hour, clock.time.minute, clock.time.second);
+        ui_set_text(s_clock, date);
+    }
     char line[40];
     const uint32_t s = now / 1000u;
     lv_snprintf(line, sizeof line, "%uh %um %us", (unsigned)(s / 3600u), (unsigned)(s / 60u % 60u), (unsigned)(s % 60u));

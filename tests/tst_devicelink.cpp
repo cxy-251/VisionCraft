@@ -3,6 +3,29 @@
 
 #include <QtTest>
 
+class ClockErrorSim : public SimTransport {
+public:
+    explicit ClockErrorSim(uint8_t status) : m_status(status) {}
+    void write(const QByteArray &bytes) override
+    {
+        vc_decoder d; vc_decoder_init(&d);
+        vc_frame f{};
+        for (const char b : bytes) {
+            if (vc_decoder_feed(&d, uint8_t(b), &f) && f.type == VC_CMD_GET_TIME) {
+                QByteArray response(VC_MAX_FRAME, 0);
+                const size_t n = vc_encode(reinterpret_cast<uint8_t *>(response.data()), response.size(),
+                    VC_RSP(f.type), f.seq, &m_status, 1);
+                response.resize(qsizetype(n));
+                QTimer::singleShot(0, this, [this, response] { emit bytesReceived(response); });
+                return;
+            }
+        }
+        SimTransport::write(bytes);
+    }
+private:
+    uint8_t m_status;
+};
+
 class TstDeviceLink : public QObject {
     Q_OBJECT
 
@@ -46,18 +69,37 @@ private slots:
     }
 
     // [region sim-matches-firmware]
-    // 模拟器要和真固件说一样的话：固件还没配 RTC，对时返回「不认识的命令」，模拟器也必须这样
+    // 正式固件已接入 RTC，模拟器同样从未校时开始，对时后能读回并走时。
     void setTimeAnswersLikeFirmware()
     {
         DeviceLink link;
         connectAndSettle(link);
+        QTRY_VERIFY(link.deviceClock().value("available").toBool());
+        QCOMPARE(link.deviceClock().value("valid").toBool(), false);
         QSignalSpy finished(&link, &DeviceLink::commandFinished);
         QVERIFY(link.setTimeNow() > 0);
         QTRY_COMPARE(finished.size(), 1);
-        QCOMPARE(finished.at(0).at(1).toBool(), false);
-        QVERIFY(finished.at(0).at(2).toString().contains(QString::number(VC_ERR_UNKNOWN)));
+        QCOMPARE(finished.at(0).at(1).toBool(), true);
+        QTRY_VERIFY(link.deviceClock().value("valid").toBool());
+        const QString before = link.deviceClock().value("text").toString();
+        QTest::qWait(1100);
+        QVERIFY(link.getTime() > 0);
+        QTRY_VERIFY(link.deviceClock().value("text").toString() != before);
+        link.disconnectDevice();
+        QVERIFY(link.deviceClock().isEmpty());
     }
     // [endregion]
+
+    void clockReadErrors()
+    {
+        for (uint8_t status : {VC_ERR_UNKNOWN, VC_ERR_IO, VC_OK}) {
+            DeviceLink link;
+            link.connectWith(new ClockErrorSim(status));
+            QTRY_VERIFY(link.deviceClock().contains("available"));
+            QVERIFY(!link.deviceClock().value("available").toBool());
+            QVERIFY(!link.deviceClock().value("error").toString().isEmpty());
+        } // VC_OK + 无数据是畸形应答，同样不能展示有效时间
+    }
 
     void unknownCommandReportsStatus()
     {

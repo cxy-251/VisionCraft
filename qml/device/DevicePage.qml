@@ -9,6 +9,12 @@ Item {
 
     readonly property bool connected: DeviceLink.state === DeviceLink.Connected
     readonly property bool busy: DeviceLink.state === DeviceLink.Connecting
+    Timer {
+        interval: 1000
+        repeat: true
+        running: page.visible && page.connected
+        onTriggered: DeviceLink.getTime()
+    }
 
     // 遥测历史（画趋势线用）
     property var tempHistory: []
@@ -175,6 +181,9 @@ Item {
                         model: [
                             [qsTr("固件版本"), DeviceLink.info.firmware],
                             [qsTr("编译时间"), DeviceLink.info.build],
+                            [qsTr("板子时间（本地日历）"), !page.connected ? "—" :
+                                DeviceLink.deviceClock.available ? DeviceLink.deviceClock.text :
+                                (DeviceLink.deviceClock.error || qsTr("读取中…"))],
                             [qsTr("协议版本"), DeviceLink.info.protocol],
                             [qsTr("芯片 UID"), DeviceLink.info.uid],
                             [qsTr("通道"), DeviceLink.transportName]
@@ -205,7 +214,7 @@ Item {
                     ActionButton { text: "PING"; enabled: page.connected; onClicked: DeviceLink.ping() }
                     ActionButton { text: qsTr("蜂鸣 100 ms"); enabled: page.connected; onClicked: DeviceLink.beep(100) }
                     ActionButton { text: qsTr("读一次信息"); enabled: page.connected; onClicked: DeviceLink.getInfo() }
-                    ActionButton { text: qsTr("对时"); enabled: page.connected; onClicked: DeviceLink.setTimeNow() }
+                    ActionButton { text: qsTr("按电脑本地时间对时"); enabled: page.connected; onClicked: DeviceLink.setTimeNow() }
                     ActionButton {
                         // 连上时 DeviceLink 已自动订阅每秒一条；点一下在 1 s → 200 ms → 停止 之间切换
                         id: telButton

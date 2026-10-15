@@ -1,5 +1,6 @@
 /* 模拟器里的「板子其余部分」：固件页面用到的 app_* 函数和 HAL_GetTick，返回可控的假数据 */
 #include "app.h"
+#include "clock.h"
 #include "fault.h"
 #include "main.h"
 #include <string.h>
@@ -64,6 +65,11 @@ volatile uint32_t g_reset_flags = RCC_CSR_PORRSTF | RCC_CSR_PINRSTF;
 /* 终端页的命令在模拟器里不执行（要用到 FreeRTOS、DWT、外部 SRAM），只回一行说明，用来看界面 */
 #include "shell.h"
 void shell_exec(const char *line, shell_out out, void *ctx) { (void)line; out("(simulator: commands run on the board)", ctx); }
+uint8_t app_clock_read(app_clock *out)
+{
+    *out = (app_clock){1, VC_CLOCK_LSE, {2026, 10, 15, 12, 0, (uint8_t)(HAL_GetTick()/1000u%60u), 4}};
+    return VC_OK;
+}
 const char *shell_complete(const char *prefix) { (void)prefix; return 0; }
 /* 上位机的命令行：模拟器里没有链路 */
 int app_take_shell(char cmd[64], uint8_t *seq) { (void)cmd; (void)seq; return 0; }

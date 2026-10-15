@@ -44,7 +44,7 @@ Section {
     KeyPoints {
         label: qsTr("读结果")
         points: [
-            qsTr("命令层面完全一致：PING、蜂鸣成功，对时都返回状态码 2（不认识的命令——固件还没配置 RTC）。"),
+            qsTr("这份历史对照中 PING、蜂鸣成功，对时都返回状态码 2；当时固件未配置 RTC。当前 A04 已实现对时和读回，模拟器及测试同步更新，最新实测见 F407 的 RTC 一节。"),
             qsTr("性能完全不同：模拟器每个往返都是 4 ms 多一点，和数据大小无关，1000 字节的包吞吐高达 1.7 MB/s；真板子经 ST-Link 只有 84 KB/s，1000 字节一个往返要 90 多毫秒。"
                  + "模拟器只模拟了延迟，没有模拟带宽。所以它适合验证逻辑对不对，不能用来估计性能。")
         ]
@@ -52,9 +52,9 @@ Section {
 
     Pitfall {
         text: qsTr("第一次比较时，对时在模拟器上是成功的，在真板子上是失败的：模拟器回答「好的」，固件回答「不认识」。原来的测试还断言模拟器上对时必须成功——测试守护的是模拟器的错误行为。"
-                 + "修复是让模拟器像固件一样拒绝，测试也改成断言「和固件一致」。以后固件真的实现了对时，模拟器和这个测试要一起改：")
+                 + "当时修复是让模拟器像固件一样拒绝。现在固件实现了对时，模拟器和下面的测试已一起改为验证未校时、成功写入、读回及走时；原始旧输出保留为历史证据：")
         CodeRef { file: "tests/tst_devicelink.cpp"; region: "sim-matches-firmware" }
-        CodeRef { file: "firmware/station/App/link.c"; from: "default:   /\\* 包括 SET_TIME"; to: "break;" }
+        CodeRef { file: "firmware/station/App/link.c"; region: "clock" }
     }
 
     Para {

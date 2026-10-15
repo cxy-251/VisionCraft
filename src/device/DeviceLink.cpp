@@ -52,6 +52,10 @@ void DeviceLink::setState(State s)
     if (m_state == s)
         return;
     m_state = s;
+    if (s != Connected) {
+        m_deviceClock.clear();
+        emit deviceClockChanged();
+    }
     emit stateChanged();
 }
 
@@ -99,6 +103,7 @@ void DeviceLink::connectWith(Transport *transport)
         emit logLine(QStringLiteral("link"), m_statusText);
         m_timeoutTimer.start();
         getInfo();
+        getTime();
         subscribeTelemetry(1000);   // 默认每秒一条遥测：「数据」页的历史曲线靠它
     });
     connect(transport, &Transport::failed, this, [this](const QString &why) {
@@ -311,6 +316,7 @@ QString DeviceLink::commandName(uint8_t type)
     case VC_CMD_PING: return QStringLiteral("PING");
     case VC_CMD_GET_INFO: return QStringLiteral("GET_INFO");
     case VC_CMD_SET_TIME: return QStringLiteral("SET_TIME");
+    case VC_CMD_GET_TIME: return QStringLiteral("GET_TIME");
     case VC_CMD_BEEP: return QStringLiteral("BEEP");
     case VC_CMD_SUB_TEL: return QStringLiteral("SUB_TEL");
     case VC_CMD_RESULT: return QStringLiteral("RESULT");
@@ -390,8 +396,43 @@ int DeviceLink::setTimeNow()
     d[5] = uint8_t(now.time().minute());
     d[6] = uint8_t(now.time().second());
     d[7] = uint8_t(now.date().dayOfWeek());   // 1 = 周一 … 7 = 周日，与 STM32 RTC 一致
-    return simpleCommand(VC_CMD_SET_TIME, p, tr("对时 %1").arg(now.toString(QStringLiteral("HH:mm:ss"))));
+    return request(VC_CMD_SET_TIME, p, [this, now](bool ok, int status, const QByteArray &) {
+        const QString summary = ok ? tr("已写入板子时间 %1").arg(now.toString(QStringLiteral("yyyy-MM-dd HH:mm:ss")))
+                                   : tr("对时失败，状态码 %1").arg(status);
+        emit logLine(ok ? QStringLiteral("ok") : QStringLiteral("error"), summary);
+        emit commandFinished(QStringLiteral("SET_TIME"), ok, summary);
+        getTime();
+    });
 }
+
+// [region clock]
+int DeviceLink::getTime()
+{
+    if (m_state != Connected || m_clockPending) return -1;
+    m_clockPending = true;
+    return request(VC_CMD_GET_TIME, {}, [this](bool ok, int status, const QByteArray &data) {
+        m_clockPending = false;
+        vc_datetime t{};
+        const bool shape = data.size() == VC_CLOCK_SIZE && uint8_t(data[0]) <= 1 &&
+                           uint8_t(data[1]) == VC_CLOCK_LSE;
+        const bool valid = shape && data[0] == 1;
+        const bool calendar = !valid || vc_datetime_read(&t,
+            reinterpret_cast<const uint8_t *>(data.constData()) + 2, VC_DATETIME_SIZE) == 0;
+        if (!ok || !shape || !calendar) {
+            m_deviceClock = {{QStringLiteral("available"), false},
+                             {QStringLiteral("error"), status == VC_ERR_UNKNOWN ? tr("固件不支持读取时间") : tr("读取板子时间失败")}};
+        } else {
+            const QDate date(t.year, t.month, t.day);
+            const QTime time(t.hour, t.minute, t.second);
+            m_deviceClock = {{QStringLiteral("available"), true}, {QStringLiteral("valid"), valid},
+                {QStringLiteral("source"), QStringLiteral("LSE")},
+                {QStringLiteral("text"), valid ? date.toString(QStringLiteral("yyyy-MM-dd")) + QLatin1Char(' ') +
+                    time.toString(QStringLiteral("HH:mm:ss")) : tr("未校时")}};
+        }
+        emit deviceClockChanged();
+    });
+}
+// [endregion]
 
 int DeviceLink::subscribeTelemetry(int periodMs)
 {

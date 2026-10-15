@@ -9,6 +9,8 @@ void eeprom_init(void);                                          /* 建互斥锁
 int eeprom_read(uint8_t addr, uint8_t *dst, size_t len);          /* 成功返回 0 */
 int eeprom_write(uint8_t addr, const uint8_t *src, size_t len);   /* 成功返回 0，会阻塞到写完（每页约 5 ms） */
 
+/* 普通写入仅允许 0..247；248..255 为自检保留页。范围、空指针、空长度或锁失败返回 -1。 */
+
 /* 配方：地址 0 开始，'V' 'C' 版本 数据(8) 校验 共 12 字节 */
 #include "vc_protocol.h"
 int recipe_load(vc_recipe *r);          /* 没有有效配方返回 -1 */

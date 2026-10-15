@@ -86,6 +86,7 @@ target_sources(${CMAKE_PROJECT_NAME} PRIVATE
     App/lcd_font.c
     App/station_ui.c
     App/eeprom.c
+    App/eeprom_diag.c
     App/gui.c
     App/page_home.c
     App/page_station.c

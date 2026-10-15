@@ -19,7 +19,7 @@ import time
 ROOT = Path(__file__).resolve().parents[1]
 METRICS = ("loop_gap touch_gap gui_gap background gui_work input_mark shell_wait shell_exec "
            "image_wait image_work tx_wait_link tx_wait_station tx_wait_env "
-           "tx_hold_link tx_hold_station tx_hold_env controlled_work").split()
+           "tx_hold_link tx_hold_station tx_hold_env controlled_work eeprom_step").split()
 FLOW = "beep_high beep_drop shell_busy result_overwrite image_busy mouse_high inject_high".split()
 NAMES = ("g_perf_stats g_perf_flow g_perf_reset g_perf_epoch g_perf_input_request "
          "g_perf_work_ms g_perf_work_active g_gui_inject g_gui_title g_reset_flags "

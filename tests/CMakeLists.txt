@@ -106,3 +106,15 @@ target_include_directories(tst_scope_analysis PRIVATE ${PROJECT_SOURCE_DIR}/src/
 target_compile_definitions(tst_scope_analysis PRIVATE VC_SOURCE_DIR="${PROJECT_SOURCE_DIR}")
 target_link_libraries(tst_scope_analysis PRIVATE Qt6::Core Qt6::Qml Qt6::Test ${OpenCV_LIBS})
 add_test(NAME tst_scope_analysis COMMAND tst_scope_analysis)
+
+# 编译实际下位机诊断状态机与 EEPROM 驱动；假设备注入部分写入/NACK/恢复失败。
+qt_add_executable(tst_eeprom_diag tst_eeprom_diag.cpp ${PROJECT_SOURCE_DIR}/firmware/station/App/eeprom_diag.c)
+target_include_directories(tst_eeprom_diag PRIVATE ${PROJECT_SOURCE_DIR}/firmware/station/App ${PROJECT_SOURCE_DIR}/protocol)
+target_link_libraries(tst_eeprom_diag PRIVATE Qt6::Core Qt6::Test)
+add_test(NAME tst_eeprom_diag COMMAND tst_eeprom_diag)
+
+qt_add_executable(tst_eeprom_driver tst_eeprom_driver.cpp
+    ${PROJECT_SOURCE_DIR}/firmware/station/App/eeprom.c ${PROJECT_SOURCE_DIR}/protocol/vc_protocol.c)
+target_include_directories(tst_eeprom_driver PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/eeprom_stubs ${PROJECT_SOURCE_DIR}/firmware/station/App ${PROJECT_SOURCE_DIR}/protocol)
+target_link_libraries(tst_eeprom_driver PRIVATE Qt6::Core Qt6::Test)
+add_test(NAME tst_eeprom_driver COMMAND tst_eeprom_driver)

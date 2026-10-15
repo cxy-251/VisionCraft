@@ -1,0 +1,110 @@
+A02 EEPROM 末页自检，2026-10-15
+基线 f543a5f。本机 Release 编译、OpenOCD 烧录并 Verify OK，正式固件保留。
+FLASH 478052 / 1048576 B；RAM 124456 / 131072 B；CCM 60416 / 65536 B；EXTSRAM 950532 / 1048576 B。
+较 A05：Flash +1360 B，片内 RAM +56 B；无新增任务/队列/动态分配。EEPROM 原互斥锁改用优先级继承。
+执行条件：目前无额外 USB 口，A06 串口实连暂缓；此项无需接线。未访问 SD，未进入 FILES。
+只测试 EEPROM 最后一页 248..255，原始8字节先保存；全部256字节比较在主机内存完成，不归档业务参数内容。
+普通写禁止进入该保留页；读写拒绝越界/空指针/空长度。互斥锁等待20 ms，单次 HAL 读写10 ms；ACK单次1试/2 ms，按10 ms预算检查截止并 osDelay(1)。
+这些是各等待预算，不是完整函数/任务/故障的硬实时上界；多页写仍由原接口同步拆页。
+自检每轮最多一个 EEPROM 操作；写失败也可能已改变芯片，因此仍尝试恢复。
+
+==== 1. 实板回归
+==== 1. Reserved page and command validation ====
+page 248..255 before: ff ff ff ff 0b 0b ff 55
+PASS: no automatic writes; invalid actions rejected; no failed restore
+==== 2. Full patterns, busy and repeat ====
+eetest #1 done pass page 248..255
+patterns 4/4 restored 1 pending 0
+error 0 restore_error 0 elapsed 124 ms
+eetest #2 done pass page 248..255
+patterns 4/4 restored 1 pending 0
+error 0 restore_error 0 elapsed 140 ms
+==== 3. Cancel restores original page ====
+eetest #3 done cancelled page 248..255
+patterns 0/4 restored 1 pending 0
+error 0 restore_error 0 elapsed 26 ms
+==== 4. Concurrent scope, telemetry, PING and input marks ====
+eetest #4 done pass page 248..255
+patterns 4/4 restored 1 pending 0
+error 0 restore_error 0 elapsed 125 ms
+TASK         S PRIO STACK-FREE
+IDLE         r    0       428
+Tmr Svc      B    2       896
+USBH_Queue   B   24       756
+envTask      r   16      1308
+linkTask     B   32      1672
+stationTask  R   24      3996
+freertos heap  free 18816  min 18816
+lvgl pool      used 30420  peak 31628  of 45056
+PASS: full 256-byte EEPROM unchanged; four patterns twice, cancel, concurrent scope and telemetry; final DEVICE
+
+==== 2. 并发计时窗口
+loop_gap             count= 35 peak= 14.0004 ms
+touch_gap            count= 17 peak= 27.0004 ms
+gui_gap              count= 17 peak= 27.8097 ms
+background           count= 36 peak=  3.9174 ms
+gui_work             count= 18 peak=  0.0105 ms
+input_mark           count=  3 peak=  9.0132 ms
+shell_wait           count= 12 peak=  8.0754 ms
+shell_exec           count= 12 peak=  3.7515 ms
+tx_wait_link         count= 22 peak=  0.0018 ms
+tx_wait_station      count= 12 peak=  0.0018 ms
+tx_wait_env          count=  8 peak=  0.0016 ms
+tx_hold_link         count= 22 peak=  0.2704 ms
+tx_hold_station      count= 12 peak=  0.1116 ms
+tx_hold_env          count=  8 peak=  0.0163 ms
+eeprom_step          count= 11 peak=  3.7861 ms
+PING {"count": 3, "median_ms": 6.421, "p95_ms": 6.637, "max_ms": 6.637}
+窗口包括3帧50 kS/s、1024点 PA4 采集、50 ms 遥测、输入轮询标记与远程终端。
+自检11步：备份1次，四种测试码各写/读，共8步，恢复写/读2步。标记3个全部处理。
+无 RTT 丢字节、无看门狗复位；页为 DEVICE。输入标记不是触摸到像素的延迟。
+FreeRTOS 堆最小18816 B，StationTask剩余3996 B，LinkTask探针1672 B；随后真实 Qt GET_INFO/终端路径最少1576 B（见截图）。
+LVGL峰值31628 / 45056 B；未重跑历史文件页等内存峰值，也未制造物理 I2C 断线。
+
+==== 3. 实际驱动的桌面故障注入
+********* Start testing of TstEepromDiag *********
+Config: Using QtTest library 6.9.1, Qt 6.9.1 (x86_64-little_endian-lp64 shared (dynamic) release build; by GCC 15.1.1 20250425), steamos 3.8.16
+PASS   : TstEepromDiag::initTestCase()
+PASS   : TstEepromDiag::passAndRepeat()
+PASS   : TstEepromDiag::backupFailureNeverWrites()
+PASS   : TstEepromDiag::partialWriteFailureStillRestores()
+PASS   : TstEepromDiag::patternFailure(read-io)
+PASS   : TstEepromDiag::patternFailure(read-mismatch)
+PASS   : TstEepromDiag::restoreFailureRetainsBackup(partial-restore-write)
+PASS   : TstEepromDiag::restoreFailureRetainsBackup(restore-read-io)
+PASS   : TstEepromDiag::restoreFailureRetainsBackup(restore-read-mismatch)
+PASS   : TstEepromDiag::cancellation(before-backup)
+PASS   : TstEepromDiag::cancellation(after-pattern-write)
+PASS   : TstEepromDiag::wrappedClock()
+PASS   : TstEepromDiag::cleanupTestCase()
+Totals: 13 passed, 0 failed, 0 skipped, 0 blacklisted, 1ms
+********* Finished testing of TstEepromDiag *********
+
+********* Start testing of TstEepromDriver *********
+Config: Using QtTest library 6.9.1, Qt 6.9.1 (x86_64-little_endian-lp64 shared (dynamic) release build; by GCC 15.1.1 20250425), steamos 3.8.16
+PASS   : TstEepromDriver::initTestCase()
+PASS   : TstEepromDriver::splitPagesAndReadBack()
+PASS   : TstEepromDriver::rejectInvalidAndReservedRangesBeforeIo()
+PASS   : TstEepromDriver::onlyDiagnosticCanWriteLastPage()
+PASS   : TstEepromDriver::lockFailureDoesNotTouchBus()
+PASS   : TstEepromDriver::nackDeadlineAndUnlock(normal-clock)
+PASS   : TstEepromDriver::nackDeadlineAndUnlock(wrapped-clock)
+PASS   : TstEepromDriver::failedWriteStopsLaterPages()
+PASS   : TstEepromDriver::cleanupTestCase()
+Totals: 9 passed, 0 failed, 0 skipped, 0 blacklisted, 1ms
+********* Finished testing of TstEepromDriver *********
+
+测试直接编译正式 eeprom_diag.c/eeprom.c，仅总线/RTOS适配为假对象。
+覆盖：备份读失败禁止写、部分写入后报错仍恢复、读失败/值不符、恢复写失败/读失败/不符、保留备份并拒绝新测试、恢复重试、前/后取消、Tick回绕。
+驱动覆盖跨页拆分、边界和保留区、锁失败不操作总线、NACK截止与解锁、失败后不写后续页。
+真实板上只验证正常/取消/忙/重复/并发与逐字节恢复；这些故障没有在硬件上强制制造。
+错误码：0=无，1=备份读，2=测试写，3=测试读，4=码值不符，5=恢复I/O，6=恢复值不符。
+备份只存在RAM；中途断电不能承诺恢复保留页，配方/设置不占此页。
+
+==== 4. 复现
+source scripts/steamdeck-env.sh
+nice -n 19 cmake --build build --target tst_eeprom_diag tst_eeprom_driver -j2
+XDG_CONFIG_HOME=/tmp/vc-ee-config ctest --test-dir build --output-on-failure -R '^tst_eeprom_(diag|driver)$'
+本机编译/烧录正式固件后：PYTHONDONTWRITEBYTECODE=1 python3 tools/eeprom_diag_probe.py --output /tmp/vc-ee-board
+手工：远程终端或板上终端输入 eetest start，稍后 eetest 查结果；取消用 eetest cancel，恢复失败用 eetest retry。
+此功能由显式命令触发，不做周期写入；SPI Flash 及统一存储诊断界面仍是 A02 待办。

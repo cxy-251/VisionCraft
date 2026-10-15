@@ -5,6 +5,27 @@ Section {
     title: qsTr("EEPROM：I2C 与掉电保存")
     lead: qsTr("工位的检测配方存在板上一颗 256 字节的 AT24C02 里，断电不丢。读写它要过 I2C 总线，写的时候有两条容易踩的规矩：按页写、写完要等。")
 
+    KeyPoints {
+        label: qsTr("当前正式功能：末页分步自检")
+        points: [
+            qsTr("终端 eetest 查看状态；eetest start 启动、eetest cancel 取消、eetest retry 重试失败的恢复。仅测试 248–255 这一个保留页；配方 0–11、设置 32–38 保持原样，普通 eeprom_write 也禁止写保留页。"),
+            qsTr("StationTask 每轮最多完成一次 EEPROM 操作：备份 → 写入/校验 00、FF、AA、55 → 写回原值 → 读回确认。没有新增任务或队列；取消也会进入恢复流程。开始前备份失败就不写，部分写入后报错仍尝试恢复。"),
+            qsTr("恢复未确认时保留 RAM 备份，拒绝启动下一次测试；retry 只重做恢复。不在开机时自动运行，也不周期性写入。断电会丢失 RAM 备份，保留页可能留下测试码，所以此页不存业务参数。"),
+            qsTr("实板重复/取消/并发验证后，全部 256 字节与测试前一致。与 3 帧波形、50 ms 遥测和 PING 并发的本轮窗口中，自检单步峰值约 3.79 ms，GUI 调用间隔峰值约 27.81 ms；不是所有故障和负载下的上界。")
+        ]
+    }
+    Figure {
+        files: ["handbook/f407/storage/eeprom-selftest.png"]
+        captions: [qsTr("Qt 远程终端读取实板结果：四种测试码通过，原页已恢复；截图只查状态，没有再写一次 EEPROM")]
+    }
+    CodeRef { file: "firmware/station/App/eeprom_diag.h"; from: "AT24C02"; to: "^#endif" }
+    CodeRef { file: "firmware/station/App/eeprom_diag.c"; region: "lifecycle" }
+    CodeRef { file: "firmware/station/App/eeprom_diag.c"; region: "steps" }
+    CodeRef { file: "firmware/station/App/eeprom.c"; region: "reserved-page" }
+    CodeRef { file: "firmware/station/App/shell.c"; region: "eetest" }
+    CodeRef { file: "handbook/f407/storage/eeprom-selftest.txt"; caption: qsTr("实板、桌面故障注入、资源与验证边界") }
+    Para { text: qsTr("以下保留早期调试器实验和原始输出；本轮未重跑这些寄存器脚本。当前自检通过正式 HAL 驱动和任务调度完成，不接触 SD 卡。") }
+
     Why {
         text: qsTr("单片机的 RAM 断电就清空。要记住的东西——配方、校准值、设备编号——得放进能掉电保存的存储器。"
                  + "AT24C02 容量很小，但接线只要两根、读写简单，正适合存几十个字节的参数。"

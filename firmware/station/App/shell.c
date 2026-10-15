@@ -5,6 +5,7 @@
 #include "app.h"
 #include "perf.h"
 #include "eeprom.h"
+#include "eeprom_diag.h"
 #include "fault.h"
 #include "fs.h"
 #include "photo.h"
@@ -286,6 +287,29 @@ static void cmd_ee(shell_io *io, int argc, char **argv)
     }
 }
 
+// [region eetest]
+static void cmd_eetest(shell_io *io, int argc, char **argv)
+{
+    if (argc > 2) { say(io, "usage: eetest [start|cancel|retry]"); return; }
+    if (argc == 2) {
+        if (!strcmp(argv[1], "start")) {
+            if (ee_diag_start(HAL_GetTick()) != 0) { say(io, "eetest busy; restore pending data before restart"); return; }
+        } else if (!strcmp(argv[1], "cancel")) ee_diag_cancel();
+        else if (!strcmp(argv[1], "retry")) {
+            if (ee_diag_retry() != 0) { say(io, "eetest no failed restore to retry"); return; }
+        } else { say(io, "usage: eetest [start|cancel|retry]"); return; }
+    }
+    static const char *const phases[] = {"idle", "backup", "write", "verify", "restore", "restore-verify", "done", "restore-failed"};
+    static const char *const results[] = {"none", "running", "pass", "fail", "cancelled"};
+    say(io, "eetest #%lu %s %s page 248..255", (unsigned long)g_ee_diag.id,
+        phases[g_ee_diag.phase], results[g_ee_diag.result]);
+    say(io, "patterns %lu/4 restored %u pending %u", (unsigned long)g_ee_diag.patterns,
+        g_ee_diag.restored, g_ee_diag.saved_valid);
+    say(io, "error %lu restore_error %lu elapsed %lu ms", (unsigned long)g_ee_diag.error,
+        (unsigned long)g_ee_diag.restore_error, (unsigned long)g_ee_diag.elapsed_ms);
+}
+// [endregion]
+
 static void cmd_reboot(shell_io *io, int argc, char **argv)
 {
     (void)argc; (void)argv;
@@ -315,6 +339,7 @@ static const struct {
     {"recipe", cmd_recipe, "recipe stored in eeprom"},
     {"last", cmd_last, "last reset cause and fault record"},
     {"settings", cmd_settings, "current settings"},
+    {"eetest", cmd_eetest, "eetest [start|cancel|retry]: reserved page test"},
     {"ee", cmd_ee, "ee <addr> [len]: dump eeprom bytes"},
     {"reboot", cmd_reboot, "software reset"},
 };

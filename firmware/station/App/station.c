@@ -13,6 +13,7 @@
 #include "fault.h"
 #include "settings.h"
 #include "perf.h"
+#include "eeprom_diag.h"
 
 extern osMessageQueueId_t g_beepQueue;
 
@@ -227,6 +228,11 @@ void StationTask(void *argument)
         const uint32_t bgStart = gui_cycles();
         pages_background(now);          /* 取走上位机的结果 / 缩略图、记录传感器历史 */
         perf_observe(PERF_BACKGROUND, gui_cycles() - bgStart);
+        if (ee_diag_active()) {
+            const uint32_t step = gui_cycles();
+            ee_diag_poll(HAL_GetTick());
+            perf_observe(PERF_EEPROM_STEP, gui_cycles() - step);
+        }
         if (now - lastGui >= 20u) {     /* 页面刷新 + 重画变了的控件 */
             lastGui = now;
             const uint32_t t = gui_cycles();

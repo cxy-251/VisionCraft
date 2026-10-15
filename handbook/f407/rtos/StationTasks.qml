@@ -3,11 +3,11 @@ import VisionCraft
 
 Section {
     title: qsTr("工位固件的任务划分")
-    lead: qsTr("三个任务、一个队列、一把锁。这一节讲工位固件为什么这样拆分，任务之间怎么传东西。")
+    lead: qsTr("三个应用任务，加 USB 主机库任务和 FreeRTOS 系统任务。按当前固件说明任务职责、数据交接，以及哪些慢操作仍会阻塞界面。")
 
     Why {
         text: qsTr("板子要同时做好几件节奏不同的事：每毫秒看一次有没有上位机发来的数据；每 10 毫秒扫一次按键；"
-                 + "每 250 毫秒刷新屏幕；每 500 毫秒采一次传感器，而 ADC 转换本身要等。全写在一个死循环里，"
+                 + "目标每 20 毫秒处理界面刷新；每 500 毫秒采一次传感器，而 ADC 转换本身要等。全写在一个死循环里，"
                  + "最慢的那件事会拖住所有事：采 ADC 的那几毫秒里，上位机的命令就没人理。"
                  + "FreeRTOS 把它们拆成几个各自循环的任务，由调度器按优先级轮流执行，谁在等就让出 CPU。")
     }
@@ -17,12 +17,13 @@ Section {
     CodeRef { file: "firmware/station/Core/Src/freertos.c"; from: "^const osThreadAttr_t linkTask_attributes"; to: "^};" }
 
     KeyPoints {
-        label: qsTr("三个任务")
+        label: qsTr("应用任务与库任务")
         points: [
-            qsTr("LinkTask，优先级「高于普通」(32)：收上位机的帧、执行命令、回应答。优先级最高，保证命令来了马上处理；没数据时 osDelay(1) 让出 CPU。"),
-            qsTr("StationTask，「普通」(24)：扫按键、控制蜂鸣器、画屏幕。屏幕只有它一个任务画。"),
-            qsTr("EnvTask，「低于普通」(16)：采温度、光照、电压，按订阅周期发遥测。ADC 转换慢，放最低，被谁打断都没关系。"),
-            qsTr("栈大小 512 是「字」不是字节：生成的代码里写的是 512 * 4。")
+            qsTr("LinkTask，优先级「高于普通」(32)，栈 2048 字节：收帧、执行协议命令、回应答。应用任务中优先级最高；无数据时 osDelay(1)。EEPROM 操作和发送锁等待仍可能耗时，不能只凭优先级推断响应延迟。"),
+            qsTr("StationTask，「普通」(24)，栈 8192 字节：按键、触摸、鼠标、蜂鸣器、页面、读卡和图片解码、终端命令、健康检查和喂狗。LVGL 控件只有它操作。"),
+            qsTr("EnvTask，「低于普通」(16)，栈 1536 字节：采温度、光照、电压，更新快照并按订阅周期发遥测。高优先级任务可以抢占它，采样与上报时序仍需测量。"),
+            qsTr(".ioc 中的栈深 512 经 CubeMX 转成 .stack_size = 512 * 4。CMSIS 属性是字节，不要和 FreeRTOS 原生接口的 word 数混用。"),
+            qsTr("USBH_Queue 是 USB 库创建的普通优先级任务，栈 1024 字节；另有 IDLE 和 Tmr Svc。实际 LinkTask 在 App/link.c；USB 主机由 StationTask 调用 mouse_init 启动，不能把生成文件末尾的弱 LinkTask 当成实际入口。")
         ]
     }
 
@@ -50,11 +51,24 @@ Section {
     }
     CodeRef { file: "firmware/station/App/env.c"; region: "latest" }
 
+    KeyPoints {
+        label: qsTr("后续功能增加的数据交接")
+        points: [
+            qsTr("结果使用只保留最新值的单槽；图片通过接收、就绪、绘制等状态交接同一个缓冲；远程命令使用一个待执行槽，StationTask 取出执行并按原序号回包。这些不全是逐条排队的消息队列。"),
+            qsTr("鼠标报告从 USB 库任务通过 32 项队列交给 StationTask，满时计数并丢弃。鼠标回调属于任务上下文，不是硬件中断。"),
+            qsTr("SD 卡读操作由 StationTask 发起，DMA 完成或出错中断释放信号量。CPU 可以执行其他任务，但等待的 StationTask 自身不能同时刷新界面、处理触摸或喂狗。JPEG 解码和长终端命令也仍在这里执行。"),
+            qsTr("三个应用任务报到，由 StationTask 检查并喂狗。它自己卡住时可能来不及写故障记录，只留下看门狗复位标志。是否需要工作任务，先测输入延迟、最长阻塞、队列积压和内存，再决定如何拆分。")
+        ]
+    }
+    CodeRef { file: "firmware/station/App/app.c"; region: "shell" }
+    CodeRef { file: "firmware/station/App/mouse.c"; region: "callback" }
+    CodeRef { file: "firmware/station/App/sdcard.c"; region: "data-complete" }
+
     Pitfall {
         text: qsTr("旧版固件在串口中断里直接执行终端命令。命令里有忙等的蜂鸣（几百毫秒）、HAL_Delay、甚至 vTaskDelay，"
                  + "而串口中断的优先级（6）比系统节拍 SysTick（15，数字越大越低）高：中断执行期间系统时间停止前进，"
                  + "HAL_Delay 永远等不到头，vTaskDelay 根本不允许在中断里调用。原则是：中断里只收数据、放进队列，"
-                 + "处理交给任务。工位固件干脆不用通信中断——RTT 是轮询的。")
+                 + "处理交给任务。当前 RTT 接收采用轮询；SDIO、DMA、USB 等仍有中断，调用 RTOS 接口时需要分别检查优先级。")
     }
 
     Pitfall {
@@ -72,15 +86,13 @@ Section {
     }
 
     Try {
-        task: qsTr("现在栈溢出没有检查：任务的栈用超了会悄悄踩坏别的内存。在 .ioc 里把 FreeRTOS 的 configCHECK_FOR_STACK_OVERFLOW 设成 2，"
-                 + "重新生成，实现 vApplicationStackOverflowHook，在里面让蜂鸣器长响。然后故意把 envTask 的栈改成 64 试试。")
-        answerNote: qsTr("方法 2 会在每次任务切换时检查栈末尾的 16 个字节有没有被改写。钩子函数在调度器上下文里执行，"
-                       + "不能再调用会阻塞的 FreeRTOS 函数，直接操作 GPIO 拉高蜂鸣器引脚、然后死循环即可。"
-                       + "EnvTask 调用 HAL 的 ADC 函数和 vc_tel_env_write，64 个字（256 字节）的栈很快就会溢出。")
+        task: qsTr("当前 configCHECK_FOR_STACK_OVERFLOW=2 已启用。先用 ps、free 记录栈余量和内存池，再连续打开照片、执行终端命令进行比较。为什么不能只凭本轮最小余量就宣布所有路径都不会溢出？")
+        answerNote: qsTr("高水位只覆盖已执行过的路径，更深调用、错误处理和并发时序可能使用更多栈。本轮文件页验证中 StationTask 最少剩余 2668 字节，分配 8192 字节，结论仅覆盖本轮路径。当前溢出钩子会记录任务并复位，故障注入见「看门狗、栈溢出与 HardFault 现场」，无需重新开启检查。")
     }
+    CodeRef { file: "firmware/station/Core/Inc/FreeRTOSConfig.h"; match: "define configCHECK_FOR_STACK_OVERFLOW" }
+    CodeRef { file: "handbook/f407/gui/files-browser-test.txt"; from: "==== 8"; to: "==== 9"; caption: qsTr("本轮读图、断连恢复与任务内存测量") }
 
     InSystem {
-        text: qsTr("这三个任务的实现分别在 App/link.c、App/station.c、App/env.c。上位机「设备」页的往返时间（5~7 ms）"
-                 + "主要取决于 OpenOCD 的轮询间隔，而 LinkTask 高优先级、空闲时每毫秒查一次缓冲区，保证它不是瓶颈。")
+        text: qsTr("三个应用任务分别在 App/link.c、App/station.c、App/env.c。上位机「设备」页历史测得的往返时间（5~7 ms）与当时 OpenOCD 轮询间隔有关；当前仍需结合命令耗时、发送锁等待和实际负载评估，不能作为所有场景的延迟保证。")
     }
 }

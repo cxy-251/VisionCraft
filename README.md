@@ -1,6 +1,7 @@
 # VisionCraft
 
-一套上位机 + 下位机协同的**视觉检测工位**，以及围绕它写成的**学习手册**。
+以 **Qt、OpenCV 上位机学习**为主线的实践项目，配套可运行示例与学习手册。
+视觉检测工位是贯穿示例；下位机配合通信、采集和控制，同时用于学习 FreeRTOS，当前 STM32 开发板是其中一部分。
 
 - **上位机**：C++17 / Qt 6（QML 界面）/ OpenCV 4，Linux 与 Windows
 - **下位机**：正点原子探索者 STM32F407ZGT6 + 4.3 寸屏，STM32CubeMX 生成的 HAL + FreeRTOS 工程
@@ -34,6 +35,8 @@ examples/             手册引用的独立示例程序
 tests/                单元测试（协议、通信链路、检测准确率、手册演示）
 tools/                vclink_probe（命令行测通信）、cubemx_generate.sh（命令行重新生成固件）
 ```
+
+下位机的现状、原计划与待办见 [扩充方案](firmware/station/扩充方案.md)；任务职责、队列、共享缓冲和阻塞关系见 [任务架构](firmware/station/任务架构.md)。
 
 ## 构建与运行
 

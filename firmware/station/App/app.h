@@ -58,6 +58,22 @@ void     app_chip_uid(uint32_t uid[3]);
 uint32_t app_free_heap(void);
 uint32_t app_task_count(void);
 
+// [region task-snapshot]
+#define APP_TASK_MAX 10u
+typedef struct {
+    char name[16];
+    uint32_t priority;
+    uint32_t stack_free_bytes;   /* 高水位换算成字节：运行以来从未用到过的最小余量 */
+    char state;                  /* R 运行、r 就绪、B 阻塞、S 挂起、D 删除、? 未知 */
+} app_task_info;
+typedef struct {
+    uint32_t count, total;
+    app_task_info tasks[APP_TASK_MAX];
+} app_task_snapshot;
+/* 任务上下文调用。复制名称并按名字排序；0 成功，-1 容量不足/快照失败（count=0）。 */
+int app_snapshot_tasks(app_task_snapshot *out);
+// [endregion]
+
 /* 屏幕（station_ui.c，只由 StationTask 调用） */
 void ui_init(void);
 void ui_update(void);

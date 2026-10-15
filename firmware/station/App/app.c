@@ -163,3 +163,40 @@ void app_image_done(void)
 void app_chip_uid(uint32_t uid[3]) { memcpy(uid, (const void *)UID_BASE, 12); }   /* 芯片出厂烧录的 96 位唯一 ID */
 uint32_t app_free_heap(void) { return (uint32_t)xPortGetFreeHeapSize(); }
 uint32_t app_task_count(void) { return (uint32_t)uxTaskGetNumberOfTasks(); }
+
+// [region task-snapshot]
+int app_snapshot_tasks(app_task_snapshot *out)
+{
+    TaskStatus_t raw[APP_TASK_MAX];
+    static const char states[] = "RrBSD";
+    out->count = 0;
+    /* uxTaskGetSystemState 自己也会暂停调度；外层保留暂停到名字拷完，
+     * 避免恢复调度后任务被删除、pcTaskName 指向的内存被释放。不能在这里分配/等待。 */
+    vTaskSuspendAll();
+    out->total = (uint32_t)uxTaskGetNumberOfTasks();
+    const UBaseType_t n = out->total <= APP_TASK_MAX
+                            ? uxTaskGetSystemState(raw, APP_TASK_MAX, NULL) : 0;
+    for (UBaseType_t i = 0; i < n; ++i) {
+        app_task_info *t = &out->tasks[i];
+        strncpy(t->name, raw[i].pcTaskName, sizeof t->name - 1);
+        t->name[sizeof t->name - 1] = 0;
+        t->priority = (uint32_t)raw[i].uxCurrentPriority;
+        t->stack_free_bytes = (uint32_t)raw[i].usStackHighWaterMark * sizeof(StackType_t);
+        const unsigned state = (unsigned)raw[i].eCurrentState;
+        t->state = state < sizeof states - 1 ? states[state] : '?';
+    }
+    xTaskResumeAll();
+    /* 内核的任务链表顺序会变化；小数组按名称排序，刷新时行的位置不跳动。 */
+    for (UBaseType_t i = 1; i < n; ++i) {
+        const app_task_info t = out->tasks[i];
+        UBaseType_t j = i;
+        while (j && strcmp(out->tasks[j - 1].name, t.name) > 0) {
+            out->tasks[j] = out->tasks[j - 1];
+            --j;
+        }
+        out->tasks[j] = t;
+    }
+    out->count = (uint32_t)n;
+    return n ? 0 : -1;
+}
+// [endregion]

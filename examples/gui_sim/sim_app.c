@@ -10,7 +10,19 @@ uint32_t HAL_GetTick(void) { return g_now; }
 const char app_build_stamp[] = "Oct 05 2026 12:00:00";
 void app_chip_uid(uint32_t uid[3]) { uid[0] = 0x00410037; uid[1] = 0x31365105; uid[2] = 0x30303837; }
 uint32_t app_free_heap(void) { return 11872; }
-uint32_t app_task_count(void) { return 5; }
+int g_sim_tasks_mode;           /* 0 正常，1 快照失败，2 缩减列表：验证隐藏旧行 */
+uint32_t app_task_count(void) { return g_sim_tasks_mode == 1 ? 11u : g_sim_tasks_mode == 2 ? 3u : 6u; }
+int app_snapshot_tasks(app_task_snapshot *out)
+{
+    static const app_task_info tasks[] = {
+        {"IDLE", 0, 428, 'r'}, {"Tmr Svc", 2, 896, 'B'}, {"USBH_Queue", 24, 740, 'B'},
+        {"envTask", 16, 1308, 'B'}, {"linkTask", 32, 1736, 'B'}, {"stationTask", 24, 2668, 'R'},
+    };
+    out->total = app_task_count();
+    out->count = g_sim_tasks_mode == 1 ? 0u : out->total;
+    memcpy(out->tasks, tasks, out->count * sizeof tasks[0]);
+    return g_sim_tasks_mode == 1 ? -1 : 0;
+}
 
 uint32_t app_rx_frames(void) { return 1234; }
 uint32_t app_rx_errors(void) { return 0; }

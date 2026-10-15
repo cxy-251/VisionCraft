@@ -1,0 +1,84 @@
+任务明细 A01：2026-10-15
+
+==== 0. 范围与构建
+遵循用户要求，本轮不操作 SD 卡，不进入 FILES，不执行存储命令或插拔测试。
+验证页面为 HOME、DEVICE、TERMINAL；终端仅执行 ps、free。
+固件 Release 与 example_gui_sim 构建通过，已烧录并校验。
+FLASH 468424 / 1048576 B；RAM 118688 / 131072 B；CCM 60416 / 65536 B；EXTSRAM 950532 / 1048576 B。
+较文件页收尾基线：Flash +5692 B，RAM +512 B；未新增任务或 RTOS 队列。
+
+==== 1. DEVICE snapshot ====
+  IDLE state=r priority=0 stack_free=428 B (allocated=512 B)
+  Tmr Svc state=B priority=2 stack_free=896 B (allocated=1024 B)
+  USBH_Queue state=r priority=24 stack_free=740 B (allocated=1024 B)
+  envTask state=B priority=16 stack_free=1324 B (allocated=1536 B)
+  linkTask state=B priority=32 stack_free=1736 B (allocated=2048 B)
+  stationTask state=R priority=24 stack_free=4012 B (allocated=8192 B)
+3-second update delta=3; snapshot peak=104681 cycles
+==== 2. Leave and recreate DEVICE ====
+  IDLE state=r priority=0 stack_free=428 B (allocated=512 B)
+  Tmr Svc state=B priority=2 stack_free=896 B (allocated=1024 B)
+  USBH_Queue state=B priority=24 stack_free=740 B (allocated=1024 B)
+  envTask state=r priority=16 stack_free=1324 B (allocated=1536 B)
+  linkTask state=B priority=32 stack_free=1736 B (allocated=2048 B)
+  stationTask state=R priority=24 stack_free=4012 B (allocated=8192 B)
+cycle 0: LVGL used=29908 peak=31080
+  IDLE state=r priority=0 stack_free=428 B (allocated=512 B)
+  Tmr Svc state=B priority=2 stack_free=896 B (allocated=1024 B)
+  USBH_Queue state=B priority=24 stack_free=740 B (allocated=1024 B)
+  envTask state=r priority=16 stack_free=1324 B (allocated=1536 B)
+  linkTask state=B priority=32 stack_free=1736 B (allocated=2048 B)
+  stationTask state=R priority=24 stack_free=4012 B (allocated=8192 B)
+cycle 1: LVGL used=29812 peak=31080
+  IDLE state=r priority=0 stack_free=428 B (allocated=512 B)
+  Tmr Svc state=B priority=2 stack_free=896 B (allocated=1024 B)
+  USBH_Queue state=B priority=24 stack_free=740 B (allocated=1024 B)
+  envTask state=r priority=16 stack_free=1324 B (allocated=1536 B)
+  linkTask state=B priority=32 stack_free=1736 B (allocated=2048 B)
+  stationTask state=R priority=24 stack_free=4012 B (allocated=8192 B)
+cycle 2: LVGL used=29812 peak=31080
+  IDLE state=r priority=0 stack_free=428 B (allocated=512 B)
+  Tmr Svc state=B priority=2 stack_free=896 B (allocated=1024 B)
+  USBH_Queue state=B priority=24 stack_free=740 B (allocated=1024 B)
+  envTask state=r priority=16 stack_free=1308 B (allocated=1536 B)
+  linkTask state=B priority=32 stack_free=1736 B (allocated=2048 B)
+  stationTask state=R priority=24 stack_free=4012 B (allocated=8192 B)
+cycle 3: LVGL used=29812 peak=31080
+==== 3. Shared ps / free interface ====
+type a command, or tap one below
+> ps
+TASK         S PRIO STACK-FREE
+IDLE         r    0       428
+Tmr Svc      B    2       896
+USBH_Queue   B   24       740
+envTask      r   16      1308
+linkTask     B   32      1736
+stationTask  R   24      4012
+> free
+freertos heap  free 18904  min 18904
+lvgl pool      used 11644  peak 31080  of 45056
+
+==== 4. Final state ====
+page=DEVICE uptime=28641 updates=23 rc=0
+LVGL used=29812 peak=31080 snapshot peak=104681 cycles
+PASS: DEVICE task rows, byte units, stable ordering, limited refresh, recreation, ps/free; no file page or storage command
+
+==== 5. 桌面 DEVICE 回归（假任务数据）
+==== 4. 设备页 ====
+  返回，点 DEVICE                          当前页 DEVICE       点击  5 次，这一步写了 1534240 个像素
+  停 3 秒（运行时间每秒刷新）      当前页 DEVICE       点击  5 次，这一步写了  16320 个像素
+PASS: DEVICE 六任务、定时刷新、缩减隐藏、快照失败与恢复、重复进入；未进入文件页
+
+==== 6. 测量说明与复现
+实板当前六任务；校验名称排序、优先级、栈余量为 4 的倍数且不超过已分配栈。
+三秒刷新次数为 3。四次离开重建后 LVGL used 为 29908、29812、29812、29812 B，未持续增长。
+LVGL 峰值 31080 / 45056 B；StationTask 最小剩余栈 4012 / 8192 B；FreeRTOS 最小剩余堆 18904 B。
+以上只覆盖本轮页面和诊断命令；未重跑历史文件页或读图路径，不据此替换其历史峰值。
+快照采集峰值 104681 个 DWT 周期，168 MHz 下约 623.1 us；包含可能的抢占，不等于精确 CPU 占用率。
+uxTaskGetSystemState 会扫描栈高水位并暂停调度；包装层保留暂停直到名字复制完成，然后恢复调度再排序。
+原始指针不跨快照保留；最多十任务，超出容量/失败时不展示旧行。
+快照失败、缩减列表、错误后恢复使用桌面受控数据验证，没有在真板创建额外任务。
+
+实板：tools/tasks_probe.sh（解析当前 ELF 的地址，复位后仅测试设备页和 ps/free）。
+桌面：QT_QPA_PLATFORM=offscreen ./build/examples/gui_sim/example_gui_sim /tmp/截图目录 --device-only
+桌面目录需要提前创建；此模式在 DEVICE 检查后退出，不执行后面的文件页脚本。

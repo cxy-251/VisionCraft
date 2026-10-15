@@ -63,6 +63,7 @@ void gui_draw_tile(const gui_widget *w);   /* 首页图标 */
 void gui_line(int x0, int y0, int x1, int y1, uint16_t color);   /* 宽 2 像素的线段，画曲线用 */
 
 /* 统计：给测试和调试器看 */
+uint32_t gui_cycles(void);              /* 板上 DWT 周期数；模拟器有替代实现 */
 extern volatile uint32_t g_gui_clicks;     /* 一共触发了多少次点击 */
 extern volatile uint32_t g_gui_redraws;    /* 一共重画了多少个控件 */
 extern const char *volatile g_gui_title;  /* 当前页面的标题 */

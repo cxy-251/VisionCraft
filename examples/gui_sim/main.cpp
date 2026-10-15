@@ -27,6 +27,9 @@ extern volatile uint32_t g_paint_strokes, g_paint_points, g_paint_max_gap;
 
 extern volatile uint32_t g_term_inject_seq;
 extern volatile uint32_t g_files_loads, g_files_views, g_files_thumbs, g_files_binds;
+extern app_task_snapshot g_device_tasks;
+extern volatile uint32_t g_device_task_updates;
+extern int g_sim_tasks_mode;
 extern int g_sim_result_fresh, g_sim_image_fresh, g_sim_image_done;
 }
 
@@ -38,6 +41,15 @@ static unsigned visible_images(lv_obj_t *obj)
     for (unsigned i = 0; i < lv_obj_get_child_count(obj); ++i)
         n += visible_images(lv_obj_get_child(obj, i));
     return n;
+}
+
+static bool visible_label(lv_obj_t *obj, const char *text)
+{
+    if (lv_obj_check_type(obj, &lv_label_class) && lv_obj_is_visible(obj) &&
+        std::strcmp(lv_label_get_text(obj), text) == 0) return true;
+    for (unsigned i = 0; i < lv_obj_get_child_count(obj); ++i)
+        if (visible_label(lv_obj_get_child(obj, i), text)) return true;
+    return false;
 }
 
 static void save(const char *name)
@@ -105,6 +117,24 @@ int main(int argc, char *argv[])
     step("返回，点 DEVICE");                                   save("gui-device");
     run(3000);
     step("停 3 秒（运行时间每秒刷新）");
+    if (argc > 2 && std::strcmp(argv[2], "--device-only") == 0) {
+        save("gui-device-tasks");
+        if (g_device_tasks.count != 6 || g_device_task_updates < 4 ||
+            !visible_label(lv_screen_active(), "stationTask")) return 1;
+        g_sim_tasks_mode = 2; run(1200);
+        if (g_device_tasks.count != 3 || visible_label(lv_screen_active(), "stationTask")) return 1;
+        g_sim_tasks_mode = 1; run(1200);
+        save("gui-device-tasks-error");
+        if (g_device_tasks.count != 0 || !visible_label(lv_screen_active(), "任务快照不可用") ||
+            visible_label(lv_screen_active(), "IDLE")) return 1;
+        g_sim_tasks_mode = 0; run(1200);
+        if (g_device_tasks.count != 6 || !visible_label(lv_screen_active(), "stationTask") ||
+            visible_label(lv_screen_active(), "任务快照不可用")) return 1;
+        for (int i = 0; i < 3; ++i) { tap(40, 38); tap(392, 190); run(1200); }
+        if (!visible_label(lv_screen_active(), "stationTask")) return 1;
+        std::printf("PASS: DEVICE 六任务、定时刷新、缩减隐藏、快照失败与恢复、重复进入；未进入文件页\n");
+        return 0;
+    }
 
     std::printf("\n==== 5. LVGL 页 ====\n");
     tap(40, 38);

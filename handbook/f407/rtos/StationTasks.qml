@@ -85,12 +85,26 @@ Section {
         CodeRef { file: "firmware/station/Core/Inc/FreeRTOSConfig.h"; match: "define configLIBRARY_MAX_SYSCALL_INTERRUPT_PRIORITY" }
     }
 
+    Para {
+        text: qsTr("设备页现在和终端 ps 共用任务快照：显示任务名、状态、优先级和运行以来最小剩余栈（字节）。快照最多十任务，名称先复制再按名字排序，界面每秒更新；容量不足或采集失败时隐藏旧行，明确显示错误。")
+    }
+    CodeRef { file: "firmware/station/App/app.h"; region: "task-snapshot" }
+    CodeRef { file: "firmware/station/App/app.c"; region: "task-snapshot" }
+    CodeRef { file: "firmware/station/App/page_device.c"; region: "tasks" }
+    Figure {
+        files: ["handbook/f407/rtos/figures/device-tasks.png"]
+        columns: 1
+        captions: [qsTr("桌面模拟器的设备页，使用假任务数据；实板测量见下方记录")]
+    }
+    CodeRef { file: "handbook/f407/rtos/task-monitor-test.txt"; from: "==== 0"; to: "==== 5"; caption: qsTr("实板：快照、刷新频率、重复进入、ps/free 与内存") }
+    CodeRef { file: "handbook/f407/rtos/task-monitor-test.txt"; from: "==== 5"; caption: qsTr("桌面错误分支回归与测量边界") }
+
     Try {
-        task: qsTr("当前 configCHECK_FOR_STACK_OVERFLOW=2 已启用。先用 ps、free 记录栈余量和内存池，再连续打开照片、执行终端命令进行比较。为什么不能只凭本轮最小余量就宣布所有路径都不会溢出？")
-        answerNote: qsTr("高水位只覆盖已执行过的路径，更深调用、错误处理和并发时序可能使用更多栈。本轮文件页验证中 StationTask 最少剩余 2668 字节，分配 8192 字节，结论仅覆盖本轮路径。当前溢出钩子会记录任务并复位，故障注入见「看门狗、栈溢出与 HardFault 现场」，无需重新开启检查。")
+        task: qsTr("当前 configCHECK_FOR_STACK_OVERFLOW=2 已启用。先用 ps、free 记录栈余量和内存池，再反复进入设备页、执行不涉及存储的终端命令进行比较。为什么不能只凭本轮最小余量就宣布所有路径都不会溢出？")
+        answerNote: qsTr("高水位只覆盖已执行过的路径，更深调用、错误处理和并发时序可能使用更多栈。历史文件页验证最少剩余 2668 字节；本次设备页验证最少剩余 4012 字节，分配 8192 字节，各自只覆盖对应路径。本次未重跑读卡测试。当前溢出钩子会记录任务并复位，故障注入见「看门狗、栈溢出与 HardFault 现场」，无需重新开启检查。")
     }
     CodeRef { file: "firmware/station/Core/Inc/FreeRTOSConfig.h"; match: "define configCHECK_FOR_STACK_OVERFLOW" }
-    CodeRef { file: "handbook/f407/gui/files-browser-test.txt"; from: "==== 8"; to: "==== 9"; caption: qsTr("本轮读图、断连恢复与任务内存测量") }
+    CodeRef { file: "handbook/f407/gui/files-browser-test.txt"; from: "==== 8"; to: "==== 9"; caption: qsTr("历史文件页测量，保留作路径比较，本项未重跑") }
 
     InSystem {
         text: qsTr("三个应用任务分别在 App/link.c、App/station.c、App/env.c。上位机「设备」页历史测得的往返时间（5~7 ms）与当时 OpenOCD 轮询间隔有关；当前仍需结合命令耗时、发送锁等待和实际负载评估，不能作为所有场景的延迟保证。")

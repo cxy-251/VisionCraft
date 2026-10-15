@@ -50,13 +50,18 @@ static void cmd_uptime(shell_io *io, int argc, char **argv)
 static void cmd_ps(shell_io *io, int argc, char **argv)
 {
     (void)argc; (void)argv;
-    TaskStatus_t t[10];
-    const UBaseType_t n = uxTaskGetSystemState(t, 10, NULL);
-    static const char state[] = "RrBSD";   /* 运行、就绪、阻塞、挂起、已删除 */
+    app_task_snapshot snapshot;
+    if (app_snapshot_tasks(&snapshot) != 0) {
+        say(io, "task snapshot unavailable (%lu tasks, capacity %u)",
+            (unsigned long)snapshot.total, (unsigned)APP_TASK_MAX);
+        return;
+    }
     say(io, "%-12s %s %4s %9s", "TASK", "S", "PRIO", "STACK-FREE");
-    for (UBaseType_t i = 0; i < n; ++i)
-        say(io, "%-12s %c %4lu %9lu", t[i].pcTaskName, state[t[i].eCurrentState < 5 ? t[i].eCurrentState : 4],
-            (unsigned long)t[i].uxCurrentPriority, (unsigned long)t[i].usStackHighWaterMark * 4u);
+    for (uint32_t i = 0; i < snapshot.count; ++i) {
+        const app_task_info *t = &snapshot.tasks[i];
+        say(io, "%-12s %c %4lu %9lu", t->name, t->state,
+            (unsigned long)t->priority, (unsigned long)t->stack_free_bytes);
+    }
 }
 
 static void cmd_free(shell_io *io, int argc, char **argv)

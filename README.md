@@ -38,6 +38,8 @@ tools/                vclink_probe（命令行测通信）、cubemx_generate.sh�
 
 下位机的现状、原计划与待办见 [扩充方案](firmware/station/扩充方案.md)；任务职责、队列、共享缓冲和阻塞关系见 [任务架构](firmware/station/任务架构.md)。
 
+设备页和远程终端 `diag` 已统一板载 SRAM、EEPROM 保留页、SPI Flash 卷外保留扇区的分步自检，写入型测试会恢复并校验原值；`flash` 查看只读识别与布局。无需额外连线，不访问 SD。验收和恢复限制见 [板载诊断记录](handbook/f407/storage/board-diagnostics-test.txt)。
+
 「数据」页已接通 PA4 的 DAC→ADC2 回环波形：无需跳线，可单帧或连续逐帧采集，暂停后放大、平移查看。采样与分块传输由正式固件完成；上位机用 OpenCV 计算 Hann 窗单边频谱，显示主峰栅格、频率间隔和交流 RMS。模拟通道会明确显示“模拟数据”。
 
 ## 构建与运行

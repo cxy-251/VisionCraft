@@ -5,6 +5,23 @@ Section {
     title: qsTr("全部换成 LVGL：传感器页和设备页")
     lead: qsTr("首页上的工位、传感器、设备三页都改用 LVGL，界面风格统一了。原来手画的三页没有删，收进 CLASSIC 图标后面的二级首页，前几节讲的代码都还在运行。")
 
+    KeyPoints {
+        label: qsTr("当前设备页：统一板载诊断")
+        points: [
+            qsTr("任务表下方新增 SRAM、EEPROM、Flash 三种自检及取消、重试恢复按钮；状态每100 ms检查一次，任务/运行信息每秒刷新。界面和终端 diag 共用同一个状态机与互斥检查，离开页面后后台继续推进，重新进入仍显示结果。"),
+            qsTr("SRAM只测末尾64 KiB暂存区；EEPROM只测248–255保留页；Flash只测现有12 MiB卷外的最后4 KiB。取消写入型测试也需等待原值恢复；发生待恢复状态时禁用新测试，提供重试恢复。"),
+            qsTr("实板发现：预建十行任务控件会使44 KiB池在页面重建后的字形绘制中分配失败，继而看门狗复位。改为按实际任务数建行后，六任务设备页连续重进10次通过，峰值33636字节；未增大内存池。模拟器128 KiB池曾通过，说明桌面画面不能代替实板资源验证。")
+        ]
+    }
+    Figure {
+        files: ["handbook/f407/gui/figures/device-diagnostics.png"]
+        captions: [qsTr("桌面模拟器的诊断卡片，状态与内存都是假数据；实板结果见下方验收记录")]
+    }
+    CodeRef { file: "firmware/station/App/page_device.c"; region: "diagnostics" }
+    CodeRef { file: "firmware/station/App/diagnostics.c"; region: "ownership" }
+    CodeRef { file: "handbook/f407/storage/board-diagnostics-test.txt"; from: "==== 6\\."; to: "==== 桌面测试"; caption: qsTr("实板重进、内存和失败定位") }
+    Para { text: qsTr("以下图片和用量保留为早期三页统一时的历史记录；当前诊断和任务明细增加了控件，当前资源以上方验收为准。") }
+
     Why {
         text: qsTr("上一节只换了工位页，首页上点进去，有的页面是圆角卡片和中文，有的是方块点阵英文。把剩下两页也换掉，界面就一致了。"
                  + "手写版留着有两个用处：前几节「事件与控件」「首页与页面」「重画的代价」讲的都是它们，代码要能对着看、能在板子上跑；同样的数据两种做法并排，正好对比代价。")

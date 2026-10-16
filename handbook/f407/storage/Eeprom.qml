@@ -5,6 +5,8 @@ Section {
     title: qsTr("EEPROM：I2C 与掉电保存")
     lead: qsTr("工位的检测配方存在板上一颗 256 字节的 AT24C02 里，断电不丢。读写它要过 I2C 总线，写的时候有两条容易踩的规矩：按页写、写完要等。")
 
+    Para { text: qsTr("当前也可在设备页「板载诊断」或终端 diag start eeprom 启动；diag cancel / diag retry 与 eetest 共用同一份状态和互斥检查。统一诊断与 Flash、SRAM 的实板验收见「SPI Flash」及「全部换成 LVGL」。") }
+
     KeyPoints {
         label: qsTr("当前正式功能：末页分步自检")
         points: [

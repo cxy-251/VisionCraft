@@ -1,6 +1,6 @@
 # 用调试器直接操作 RNG：打开时钟和外设，读一批随机数写进文件，再恢复原状。
 #   openocd -f interface/stlink.cfg -f target/stm32f4x.cfg -c init -c "set RNG_OUT /tmp/rng.txt" -f tools/rng_probe.tcl -c exit
-# 工位固件不用 RNG，这里临时打开、用完关掉，不影响固件运行。RNG 的 48 MHz 时钟来自 PLLQ（固件已配置为 48 MHz）。
+# 历史独立实验使用临时 RNG；当前正式固件已拥有外设，下面保护会拒绝接管。RNG 的 48 MHz 时钟来自 PLLQ（固件已配置为 48 MHz）。
 
 set RCC_AHB2ENR 0x40023834
 set RNG_CR 0x50060800

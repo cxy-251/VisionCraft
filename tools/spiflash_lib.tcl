@@ -1,6 +1,6 @@
 # SPI1 + W25Q128 的基本操作，被 spiflash_probe.tcl、spiflash_dump.tcl 共用。
 # 用法：source 这个文件 → spiflash_open → 各种操作 → spiflash_close（把动过的寄存器写回原值）
-# PB3 SCK、PB4 MISO、PB5 MOSI、PB14 片选。工位固件不用 SPI1。
+# PB3 SCK、PB4 MISO、PB5 MOSI、PB14 片选。历史独立实验；当前 SPI1 已由正式固件管理，open 会拒绝接管。
 
 proc rd {a} { return [read_memory $a 32 1] }
 set GPIOB 0x40020400

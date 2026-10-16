@@ -139,10 +139,17 @@ int main(int argc, char *argv[])
             if(g_diag_kind!=unsigned(kind)) return 1;
         }
         if(g_sram_diag.result!=DIAG_PASS || !g_ee_diag.restored || !g_flash_diag.restored) return 1;
-        lv_obj_scroll_to_view_recursive(find_label(lv_screen_active(),"仅测保留区；不访问SD卡"),LV_ANIM_OFF);run(200);
+        lv_obj_update_layout(lv_screen_active());
+        auto *flashRowLabel = find_label(lv_screen_active(), "Flash 保留扇区");
+        if(!flashRowLabel) return 1;
+        lv_area_t card;
+        lv_obj_get_coords(lv_obj_get_parent(lv_obj_get_parent(flashRowLabel)), &card);
+        lv_obj_scroll_to_y(lv_screen_active(), lv_obj_get_scroll_y(lv_screen_active())+card.y1-60, LV_ANIM_OFF);
+        run(200);
         save("gui-device-diagnostics");
         tap(40,38);tap(392,190);run(200);
         if(!find_label(lv_screen_active(),"Flash自检")) return 1;
+        if(g_sram_diag.result!=DIAG_PASS || !g_ee_diag.restored || !g_flash_diag.restored) return 1;
         std::printf("PASS: diagnostics buttons through pointer events, simulated results retained on recreation; no storage I/O\n");
         return 0;
     }

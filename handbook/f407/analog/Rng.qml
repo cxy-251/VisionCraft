@@ -5,6 +5,21 @@ Section {
     title: qsTr("真随机数 RNG")
     lead: qsTr("F407 里有一个硬件随机数发生器：用芯片内部模拟电路的噪声产生随机位，每次读 32 位。和软件伪随机数不同，它不能由一个种子推算出来。")
 
+    KeyPoints {
+        label: qsTr("正式固件：游戏种子与可复现测试")
+        points: [
+            qsTr("station.ioc 已启用 RNG，由 CubeMX 生成 MX_RNG_Init；random_word 调用 HAL_RNG_GenerateRandomNumber，失败时输出清零并增加错误计数，调用方不会继续使用陈旧样本。无需引脚或外部设备。"),
+            qsTr("game_new_seed 默认使用硬件样本；失败时回退到原来的时基种子。设置 g_game_seed 后直接使用固定种子，不读取硬件，所以扫雷、贪吃蛇、俄罗斯方块和桌面测试仍能复现。这里用于游戏，不作密码用途保证。"),
+            qsTr("终端 rng 取一个32位样本，rng stats 只查看累计成功/错误。正式固件实测32次取数，32个不同样本，错误0；测试还覆盖固定种子优先、硬件成功和失败回退。这个小样本不能证明随机质量。"),
+            qsTr("RNG 外设由正式固件拥有；旧 rng_probe.tcl 在发现时钟已启用时拒绝修改寄存器，避免关闭正在使用的外设。下面4096次采样和统计来自历史独立实验，本轮未重跑。")
+        ]
+    }
+    CodeRef { file: "firmware/station/App/random.c" }
+    CodeRef { file: "firmware/station/App/game.c"; from: "void game_new_seed"; to: "uint32_t game_rand" }
+    CodeRef { file: "tests/tst_game_seed.cpp" }
+    CodeRef { file: "handbook/f407/storage/board-diagnostics-test.txt"; from: "==== 5\\."; to: "==== 6\\."; caption: qsTr("正式固件实板取数、脚本保护及通信检查") }
+    Para { text: qsTr("以下为启用前的副本生成及裸寄存器实验。单项增加136字节Flash、16字节RAM是当时副本差值，不能当作本次全部集成的资源增量。") }
+
     Why {
         text: qsTr("单片机上的 rand() 是伪随机数：同样的种子，每次上电得到同样的序列。抽检工件、生成通信里的随机数、给加密算法做种子，都需要不可预测的数。"
                  + "单片机上电时没有时钟、没有用户输入，几乎找不到靠得住的种子，硬件 RNG 就是为此准备的。"
@@ -72,7 +87,7 @@ Section {
     }
 
     InSystem {
-        text: qsTr("工位固件目前没有用到 RNG。上位机生成测试工件时用的是带固定种子的伪随机数（src/vision/PartGenerator 的构造函数接收一个 seed），这样每次生成的工件都一样，检测结果才能复现——这种场合要的恰恰是「可预测」。"
-                 + "以后如果固件需要不可预测的数（比如随机抽检、通信会话号），就在 CubeMX 里打开 RNG，按本节生成的代码调用 HAL_RNG_GenerateRandomNumber。")
+        text: qsTr("工位固件现在用硬件 RNG 给游戏生成种子。上位机生成测试工件时用的是带固定种子的伪随机数（src/vision/PartGenerator 的构造函数接收一个 seed），这样每次生成的工件都一样，检测结果才能复现——这种场合要的恰恰是「可预测」。"
+                 + "上位机测试工件仍保留固定种子；正式固件的种子接口和测试见本节开头，历史统计不构成安全用途认证。")
     }
 }

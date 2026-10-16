@@ -5,10 +5,28 @@ Section {
     title: qsTr("SPI Flash")
     lead: qsTr("板上的 W25Q128 是 16 MB 的 SPI Flash：断电不丢、容量大、便宜，但写之前要先擦除，而且擦除的最小单位是 4 KB。")
 
+    KeyPoints {
+        label: qsTr("正式固件：只读识别与卷外自检")
+        points: [
+            qsTr("station.ioc 已配置 SPI1：PB3/PB4/PB5、PB14 片选，模式0、10.5 MHz；同总线 NRF 片选 PG7 保持高电平。使用板载连线，不需要外接模块。初始化仅识别 JEDEC ID 和读取卷头；终端 flash 查看容量与布局，flash read 地址 长度读取1–32字节。"),
+            qsTr("本板读到 EF4018、16 MiB；原有 FAT 卷占12 MiB。程序检查卷头后只开放卷外最后4 KiB（0xFFF000）给诊断；未知布局或卷覆盖尾部就保持只读。没有格式化、挂载或切换这个卷，FILES 仍保持原实现。"),
+            qsTr("设备页「板载诊断」或 diag start flash 显式启动：备份4096字节 → 擦除/查空 → 按页写模式并校验 → 擦除/写回原值 → 逐字节及CRC确认。每轮最多一页传输或一次忙状态查询；diag cancel 也先恢复，diag retry 仅重试未完成的恢复。"),
+            qsTr("实板完整自检、擦除后的取消和重启均通过，原扇区CRC32为453a85a0，恢复后相同。与12帧50 kS/s波形并发窗口中，诊断单步峰值0.556 ms、GUI调用间隔峰值24.20 ms；这不是最坏时延保证。")
+        ]
+    }
+    Pitfall {
+        text: qsTr("恢复备份在RAM里，断电会丢失；自检区不存业务数据，也不自动周期性测试。恢复失败时保持上电，执行 diag retry；确认恢复前不能复位、重新烧录或启动新测试。旧寄存器脚本已在改寄存器前拒绝接管正式固件的 SPI1。")
+    }
+    CodeRef { file: "firmware/station/App/nor.c"; from: "int nor_reserve_from_fat"; to: "static int writable" }
+    CodeRef { file: "firmware/station/App/spiflash.c" }
+    CodeRef { file: "firmware/station/App/flash_diag.c"; region: "steps" }
+    CodeRef { file: "handbook/f407/storage/board-diagnostics-test.txt"; caption: qsTr("正式固件实板验收、故障注入、内存与边界") }
+    Para { text: qsTr("以下保留早期裸寄存器实验及其原始输出。本轮没有重跑这些脚本；当前 SPI1 由 StationTask 和正式驱动拥有。") }
+
     Why {
         text: qsTr("「EEPROM：I2C 与掉电保存」里的 AT24C02 只有 256 字节，存几个配方参数还行。要存字库、图片、几千条检测记录，就得用 SPI Flash。"
                  + "它的读写规则和 RAM 很不一样，不了解就会写出「数据写进去了，读出来却不对」的代码。"
-                 + "工位固件不用 SPI1。本节用调试器直接操作 SPI1 的寄存器，和芯片一条条命令地对话；实验只在最后一个 4 KB 扇区里做，做之前先整扇区备份，做完写回。")
+                 + "早期固件尚未集成 SPI1，以下历史实验用调试器直接操作 SPI1 的寄存器，和芯片一条条命令地对话；实验只在最后一个 4 KB 扇区里做，做之前先整扇区备份，做完写回。")
     }
 
     CodeRef { file: "tools/spiflash_lib.tcl"; region: "spi" }
@@ -74,6 +92,6 @@ Section {
     }
 
     InSystem {
-        text: qsTr("工位固件目前把配方存在 AT24C02 里，不用 SPI Flash。如果以后要在板子上保存检测记录或缺陷截图，就用这片 Flash，并通过文件系统（下一节）管理，而不是直接按地址读写——直接读写就要自己处理上面所有的擦除、分页、寿命问题。")
+        text: qsTr("配方仍存在 AT24C02；SPI Flash 现已集成识别、只读访问和卷外保留区自检。文件系统挂载、记录持久化及卷切换尚未接入正式固件；下一节保留读取既有 FAT 的历史实验，不代表当前已经启用写文件。")
     }
 }

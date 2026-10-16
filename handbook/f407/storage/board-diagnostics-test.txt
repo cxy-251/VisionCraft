@@ -1,0 +1,334 @@
+板载统一诊断验收，2026-10-16
+功能阶段提交 635b763；设备页内存修复 97a83cf（本记录对应修复后的固件）。
+执行边界：只使用既有板载器件和 ST-Link/RTT，不增加连线，不连接外设，不操作 SD，不进入 FILES。
+
+==== 构建与烧录
+source scripts/steamdeck-env.sh
+nice -n 19 cmake --build firmware/station/build/Release -j2
+openocd -f interface/stlink.cfg -f target/stm32f4x.cfg -c init -c 'program firmware/station/build/Release/station.elf verify reset' -c exit
+[0/2] Re-checking globbed directories...
+[1/12] cd /home/deck/Games/claude/VisionCraft/firmware/station/build/Release && /home/deck/Applications/cmake/usr/bin/cmake -DOUT=/home/deck/Games/claude/VisionCraft/firmware/station/build/Release/build_stamp.c -P /home/deck/Games/claude/VisionCraft/firmware/station/cmake/build_stamp.cmake
+[2/12] Building C object CMakeFiles/station.dir/Core/Src/rng.c.obj
+[3/12] Building C object CMakeFiles/station.dir/Core/Src/main.c.obj
+[4/12] Building C object CMakeFiles/station.dir/build_stamp.c.obj
+[5/12] Building C object CMakeFiles/station.dir/Core/Src/spi.c.obj
+[6/12] Building C object CMakeFiles/station.dir/App/random.c.obj
+[7/12] Building C object CMakeFiles/station.dir/App/spiflash.c.obj
+[8/12] Building C object CMakeFiles/station.dir/lvgl_port/vc_font_big_72.c.obj
+[9/12] Building C object CMakeFiles/station.dir/lvgl_port/vc_font_mono_16.c.obj
+[10/12] Building C object CMakeFiles/station.dir/App/page_device.c.obj
+[11/12] Linking C executable station.elf
+Memory region         Used Size  Region Size  %age Used
+             RAM:      121648 B       128 KB     92.81%
+          CCMRAM:       63512 B        64 KB     96.91%
+         EXTSRAM:      954628 B         1 MB     91.04%
+           FLASH:      489460 B         1 MB     46.68%
+   text	   data	    bss	    dec	    hex	filename
+ 487712	   1740	1138048	1627500	 18d56c	/home/deck/Games/claude/VisionCraft/firmware/station/build/Release/station.elf
+
+Open On-Chip Debugger 0.12.0
+Licensed under GNU GPL v2
+For bug reports, read
+	http://openocd.org/doc/doxygen/bugs.html
+Info : auto-selecting first available session transport "hla_swd". To override use 'transport select <transport>'.
+Info : The selected transport took over low-level target control. The results might differ compared to plain JTAG/SWD
+Info : clock speed 2000 kHz
+Info : STLINK V2J37S7 (API v2) VID:PID 0483:3748
+Info : Target voltage: 3.164272
+Info : [stm32f4x.cpu] Cortex-M4 r0p1 processor detected
+Info : [stm32f4x.cpu] target has 6 breakpoints, 4 watchpoints
+Info : starting gdb server for stm32f4x.cpu on 3333
+Info : Listening on port 3333 for gdb connections
+Info : Unable to match requested speed 2000 kHz, using 1800 kHz
+Info : Unable to match requested speed 2000 kHz, using 1800 kHz
+[stm32f4x.cpu] halted due to debug-request, current mode: Thread
+xPSR: 0x01000000 pc: 0x0800ab28 msp: 0x20020000
+Info : Unable to match requested speed 8000 kHz, using 4000 kHz
+Info : Unable to match requested speed 8000 kHz, using 4000 kHz
+** Programming Started **
+Info : device id = 0x10076413
+Info : flash size = 1024 KiB
+** Programming Finished **
+** Verify Started **
+** Verified OK **
+** Resetting Target **
+Info : Unable to match requested speed 2000 kHz, using 1800 kHz
+Info : Unable to match requested speed 2000 kHz, using 1800 kHz
+
+==== 实板完整验收
+python3 tools/lower_probe.py --output /tmp/vc-lower/board-final
+==== 1. Read-only identification, layout and preserved data ====
+flash id ef4018 capacity 16777216 init 0 status 00 rc 0
+volume 12582912 diag fff000 +4096
+volume=12 MiB; diagnostic sector outside volume; original CRC32=453a85a0
+PASS invalid reads rejected; no format or mount
+==== 2. SRAM / EEPROM and mutual exclusion ====
+diag command rc 0 active 0 kind 2
+sram result 2 phase 2 offset 16384 bad 0
+eeprom result 2 pending 0 restored 1
+flash result 0 phase 0 offset 0
+flash error 0 restore_error 0 pending 0 restored 0
+flash crc 00000000 restored 00000000 elapsed 0 ms
+RAM 121648/131072 CCM 63512/65536 external 954628/983040 +64K scratch
+==== 3. Flash erase/program/restore with concurrent acquisition ====
+{"phase": "flash-diagnostic-and-scope", "stats": {"loop_gap": {"count": 144, "last_ms": 10.9996, "peak_ms": 20.9699, "over20ms": 1}, "touch_gap": {"count": 72, "last_ms": 24.9996, "peak_ms": 24.9996, "over20ms": 52}, "gui_gap": {"count": 72, "last_ms": 24.2001, "peak_ms": 24.2001, "over20ms": 69}, "background": {"count": 145, "last_ms": 0.2874, "peak_ms": 1.5622, "over20ms": 0}, "gui_work": {"count": 73, "last_ms": 0.0394, "peak_ms": 10.0388, "over20ms": 0}, "input_mark": {"count": 12, "last_ms": 7.0952, "peak_ms": 9.0131, "over20ms": 0}, "shell_wait": {"count": 14, "last_ms": 3.0521, "peak_ms": 4.066, "over20ms": 0}, "shell_exec": {"count": 14, "last_ms": 0.1322, "peak_ms": 1.3193, "over20ms": 0}, "image_wait": {"count": 0, "last_ms": 0.0, "peak_ms": 0.0, "over20ms": 0}, "image_work": {"count": 0, "last_ms": 0.0, "peak_ms": 0.0, "over20ms": 0}, "tx_wait_link": {"count": 85, "last_ms": 0.0016, "peak_ms": 0.0017, "over20ms": 0}, "tx_wait_station": {"count": 14, "last_ms": 0.0017, "peak_ms": 0.0017, "over20ms": 0}, "tx_wait_env": {"count": 30, "last_ms": 0.0016, "peak_ms": 0.0016, "over20ms": 0}, "tx_hold_link": {"count": 85, "last_ms": 0.0079, "peak_ms": 0.2886, "over20ms": 0}, "tx_hold_station": {"count": 14, "last_ms": 0.0499, "peak_ms": 0.1866, "over20ms": 0}, "tx_hold_env": {"count": 30, "last_ms": 0.0177, "peak_ms": 0.0285, "over20ms": 0}, "controlled_work": {"count": 0, "last_ms": 0.0, "peak_ms": 0.0, "over20ms": 0}, "diagnostic_step": {"count": 140, "last_ms": 0.5359, "peak_ms": 0.5557, "over20ms": 0}}, "flow": {"beep_high": 0, "beep_drop": 0, "shell_busy": 0, "result_overwrite": 0, "image_busy": 0, "mouse_high": 0, "inject_high": 0}, "ping": {"count": 12, "median_ms": 5.852, "p95_ms": 7.363, "max_ms": 7.363}, "telemetry": 122, "ps": "TASK         S PRIO STACK-FREE\nIDLE         r    0       428\nTmr Svc      B    2       896\nUSBH_Queue   B   24       756\nenvTask      r   16      1276\nlinkTask     B   32      1672\nstationTask  R   24      3996", "free": "freertos heap  free 18816  min 18816\nlvgl pool      used 32272  peak 33408  of 45056", "memory": {"g_lv_mem_used": 32272, "g_lv_mem_peak": 33408, "g_mouse_dropped": 0, "s_dropped": 0, "g_reset_flags": 335544320, "uwTick": 11601}}
+diag command rc 0 active 0 kind 3
+sram result 2 phase 2 offset 16384 bad 0
+eeprom result 2 pending 0 restored 1
+flash result 2 phase 13 offset 0
+flash error 0 restore_error 0 pending 0 restored 1
+flash crc 453a85a0 restored 453a85a0 elapsed 1455 ms
+RAM 121648/131072 CCM 63512/65536 external 954628/983040 +64K scratch
+==== 4. Cancel after erase has begun; restore and restart ====
+diag command rc 0 active 0 kind 3
+sram result 2 phase 2 offset 16384 bad 0
+eeprom result 2 pending 0 restored 1
+flash result 4 phase 13 offset 0
+flash error 0 restore_error 0 pending 0 restored 1
+flash crc 453a85a0 restored 453a85a0 elapsed 802 ms
+RAM 121648/131072 CCM 63512/65536 external 954628/983040 +64K scratch
+diag command rc 0 active 0 kind 3
+sram result 2 phase 2 offset 16384 bad 0
+eeprom result 2 pending 0 restored 1
+flash result 2 phase 13 offset 0
+flash error 0 restore_error 0 pending 0 restored 1
+flash crc 453a85a0 restored 453a85a0 elapsed 1472 ms
+RAM 121648/131072 CCM 63512/65536 external 954628/983040 +64K scratch
+==== 5. Hardware entropy, legacy guards and strict image blocks ====
+RNG 32 samples, 32 distinct; rng good 32 errors 0
+SPI1 已由正式固件管理，请使用 flash/diag 命令，禁止旧脚本覆盖
+RNG 已由正式固件管理，请使用 rng 命令
+PASS image wrap/gap/duplicate rejected; complete frame recovered
+PASS ten 1023-byte PING echoes and three full-size images, CRC checked on every frame
+==== 6. DEVICE reconstruction and memory ====
+cycle 1: DEVICE used=32464 peak=33636
+cycle 2: DEVICE used=32444 peak=33636
+cycle 3: DEVICE used=32452 peak=33636
+cycle 4: DEVICE used=32440 peak=33636
+cycle 5: DEVICE used=32452 peak=33636
+cycle 6: DEVICE used=32428 peak=33636
+cycle 7: DEVICE used=32452 peak=33636
+cycle 8: DEVICE used=32440 peak=33636
+cycle 9: DEVICE used=32452 peak=33636
+cycle 10: DEVICE used=32440 peak=33636
+TASK         S PRIO STACK-FREE
+IDLE         r    0       428
+Tmr Svc      B    2       896
+USBH_Queue   B   24       756
+envTask      r   16      1276
+linkTask     B   32      1672
+stationTask  R   24      3996
+freertos heap  free 18816  min 18816
+lvgl pool      used 32440  peak 33636  of 45056
+PASS: board-only diagnostics; preserved EEPROM/Flash; no SD or new wires; final DEVICE
+
+==== 字节一致性与边界
+验收脚本写前将末扇区4096字节备份到主机；两次完整测试和擦除开始后的取消恢复均逐字节比较通过。
+Flash末扇区原先有历史测试字符串，并非空白；恢复后 CRC32 453a85a0。
+引导扇区512字节、12 MiB卷末256字节、EEPROM全部256字节前后比较一致。
+芯片容量16 MiB；现有FAT卷12 MiB；保留扇区0xFFF000..0xFFFFFF在卷外。
+生产初始化只识别芯片、读取卷头，不擦写、不格式化、不挂载该卷；布局未知或卷覆盖尾部则禁写。
+这不是全卷备份/校验，也不证明其他未读取地址一致；写入范围由实际驱动的区域检查及桌面全芯片比较覆盖。
+
+==== 内存与设备页失败定位
+原固件重进设备页复现看门狗；调试暂停 PC 0x08020bc6，addr2line: lv_draw_unit_draw_letter_internal。
+反汇编显示 lv_draw_buf_create_ex 返回空后进入 LV_ASSERT_MALLOC 死循环；无 HardFault 记录。
+桌面128 KiB池未暴露实板44 KiB池问题，因此不能用模拟器通过代替板上内存验证。
+改为按实际任务数创建任务行，不再预分配四个隐藏行；重进10次通过且诊断结果未丢失。
+修复后峰值33636/45056 B，最终32440 B；各次32428..32464 B，未观察持续增长。
+StationTask最低剩余3996/8192 B，LinkTask最低剩余1672/2048 B；FreeRTOS最小剩余堆18816/32768 B。
+CPU组帧/应答缓冲移到CCM；DMA采样缓冲仍在普通SRAM。RAM121648/131072 B；CCM63512/65536 B。
+外部静态区954628 B，尾部64 KiB显式留作诊断暂存；静态末尾距0x680F0000为28412 B，链接ASSERT防止重叠。
+上述资源与峰值仅覆盖本项非SD路径；历史文件页记录保留，未重新执行。
+
+==== 桌面测试
+Test project /home/deck/Games/claude/VisionCraft/build
+    Start  2: tst_protocol
+1/7 Test  #2: tst_protocol .....................   Passed    0.02 sec
+    Start  3: tst_devicelink
+2/7 Test  #3: tst_devicelink ...................   Passed    8.94 sec
+    Start 13: tst_eeprom_diag
+3/7 Test #13: tst_eeprom_diag ..................   Passed    0.04 sec
+    Start 14: tst_eeprom_driver
+4/7 Test #14: tst_eeprom_driver ................   Passed    0.01 sec
+    Start 15: tst_nor
+5/7 Test #15: tst_nor ..........................   Passed    0.02 sec
+    Start 16: tst_diagnostics
+6/7 Test #16: tst_diagnostics ..................   Passed    0.11 sec
+    Start 17: tst_game_seed
+7/7 Test #17: tst_game_seed ....................   Passed    0.01 sec
+
+100% tests passed, 0 tests failed out of 7
+
+Total Test time (real) =   9.18 sec
+Test project /home/deck/Games/claude/VisionCraft/build
+    Start 15: tst_nor
+1/2 Test #15: tst_nor ..........................   Passed    0.02 sec
+    Start 16: tst_diagnostics
+2/2 Test #16: tst_diagnostics ..................   Passed    0.13 sec
+
+100% tests passed, 0 tests failed out of 2
+
+Total Test time (real) =   0.15 sec
+
+NOR假设备覆盖：ID/容量、越界、跨页、写使能、保护位、传输错误释放片选、未知/整片FAT布局禁写。
+诊断假设备覆盖：SRAM、互斥、完整Flash恢复、取消、部分编程、校验错、恢复失败保留备份、重试、BUSY超时；比较整个假芯片不越区修改。
+固定种子忽略硬件RNG；硬件失败回退软件种子；图片测试覆盖溢出、间隙、重复和边界。
+错误注入来自桌面假设备；未切断板载总线、未做断电恢复实验。
+RAM备份不能跨断电保存；测试区不存业务数据，诊断不会自动启动或周期性写入。
+恢复失败应保持上电并执行 diag retry；成功前不能复位、重新烧录或开新测试。
+RNG32个数各不相同、HAL错误0只证明本次取数链路，不构成随机质量或密码安全认证。
+
+==== GUI模拟器（无设备访问）
+==== 1. 首页 ====
+  开机，显示首页                        当前页 VISIONCRAFT  点击  0 次，这一步写了 737088 个像素
+    ( 10, 10) 标题栏                0x1947
+    ( 88,150) STATION 图标的蓝色方块 0x231d
+    (240,150) SENSORS 图标的绿色方块 0x1509
+    (240,500) 背景                   0xb8cb
+  按下 STATION 图标（还没抬起）      当前页 VISIONCRAFT  点击  0 次，这一步写了  33888 个像素
+  在同一个图标上抬起 → 进入工位页 当前页 STATION      点击  1 次，这一步写了 748032 个像素
+
+==== 2. 工位页收到一条检测结果 ====
+  上位机发来 NG（划痕）和缩略图   当前页 STATION      点击  1 次，这一步写了 134400 个像素
+    缩略图的接收缓冲已归还 1 次
+  什么都没变，又过了 1 秒            当前页 STATION      点击  1 次，这一步写了   8856 个像素
+
+==== 3. 返回、取消、进传感器页 ====
+  点左上角返回键                        当前页 VISIONCRAFT  点击  2 次，这一步写了 745536 个像素
+  按下 SENSORS，拖出图标再抬起（取消） 当前页 VISIONCRAFT  点击  2 次，这一步写了  67776 个像素
+  在首页停 130 秒（传感器历史照样在记） 当前页 VISIONCRAFT  点击  2 次，这一步写了      0 个像素
+  点 SENSORS                                  当前页 SENSORS      点击  3 次，这一步写了 790368 个像素
+
+==== 4. 设备页 ====
+  返回，点 DEVICE                          当前页 DEVICE       点击  5 次，这一步写了 1534240 个像素
+  停 3 秒（运行时间每秒刷新）      当前页 DEVICE       点击  5 次，这一步写了  30072 个像素
+PASS: diagnostics buttons through pointer events, simulated results retained on recreation; no storage I/O
+==== 1. 首页 ====
+  开机，显示首页                        当前页 VISIONCRAFT  点击  0 次，这一步写了 737088 个像素
+    ( 10, 10) 标题栏                0x1947
+    ( 88,150) STATION 图标的蓝色方块 0x231d
+    (240,150) SENSORS 图标的绿色方块 0x1509
+    (240,500) 背景                   0xb8cb
+  按下 STATION 图标（还没抬起）      当前页 VISIONCRAFT  点击  0 次，这一步写了  33888 个像素
+  在同一个图标上抬起 → 进入工位页 当前页 STATION      点击  1 次，这一步写了 748032 个像素
+
+==== 2. 工位页收到一条检测结果 ====
+  上位机发来 NG（划痕）和缩略图   当前页 STATION      点击  1 次，这一步写了 134400 个像素
+    缩略图的接收缓冲已归还 1 次
+  什么都没变，又过了 1 秒            当前页 STATION      点击  1 次，这一步写了   8856 个像素
+
+==== 3. 返回、取消、进传感器页 ====
+  点左上角返回键                        当前页 VISIONCRAFT  点击  2 次，这一步写了 745536 个像素
+  按下 SENSORS，拖出图标再抬起（取消） 当前页 VISIONCRAFT  点击  2 次，这一步写了  67776 个像素
+  在首页停 130 秒（传感器历史照样在记） 当前页 VISIONCRAFT  点击  2 次，这一步写了      0 个像素
+  点 SENSORS                                  当前页 SENSORS      点击  3 次，这一步写了 790368 个像素
+
+==== 4. 设备页 ====
+  返回，点 DEVICE                          当前页 DEVICE       点击  5 次，这一步写了 1534240 个像素
+  停 3 秒（运行时间每秒刷新）      当前页 DEVICE       点击  5 次，这一步写了  30072 个像素
+PASS: DEVICE 六任务、定时刷新、缩减隐藏、快照失败与恢复、重复进入；未进入文件页
+
+截图使用桌面假数据，不能读作实板内存/RTC/自检耗时；实板结果以上方RTT记录为准。
+
+==== 最终相关测试
+Test project /home/deck/Games/claude/VisionCraft/build
+    Start  2: tst_protocol
+1/9 Test  #2: tst_protocol .....................   Passed    0.02 sec
+    Start  3: tst_devicelink
+2/9 Test  #3: tst_devicelink ...................   Passed    8.93 sec
+    Start 10: tst_handbook_refs
+3/9 Test #10: tst_handbook_refs ................   Passed    0.13 sec
+    Start 11: tst_layering
+4/9 Test #11: tst_layering .....................   Passed    0.02 sec
+    Start 13: tst_eeprom_diag
+5/9 Test #13: tst_eeprom_diag ..................   Passed    0.01 sec
+    Start 14: tst_eeprom_driver
+6/9 Test #14: tst_eeprom_driver ................   Passed    0.01 sec
+    Start 15: tst_nor
+7/9 Test #15: tst_nor ..........................   Passed    0.03 sec
+    Start 16: tst_diagnostics
+8/9 Test #16: tst_diagnostics ..................   Passed    0.25 sec
+    Start 17: tst_game_seed
+9/9 Test #17: tst_game_seed ....................   Passed    0.01 sec
+
+100% tests passed, 0 tests failed out of 9
+
+Total Test time (real) =   9.42 sec
+
+==== 不复位接入保护与最终复验
+验收工具入口随后增强为 attach(reset=False)：先读 active/pending，已有诊断或待恢复备份时退出，既不复位也不代用户取消；先保持上电恢复，再重新验收。
+在同一正式固件上以该入口再次完整执行六阶段（新目录，未覆盖前次记录），以下为该次实际输出。
+两轮结果及峰值分别保留；上文资源表取首次完整窗口与重进峰值33636 B，最终复验峰值33620 B，不将不同窗口拼成一次测量。
+==== 1. Read-only identification, layout and preserved data ====
+flash id ef4018 capacity 16777216 init 0 status 00 rc 0
+volume 12582912 diag fff000 +4096
+volume=12 MiB; diagnostic sector outside volume; original CRC32=453a85a0
+PASS invalid reads rejected; no format or mount
+==== 2. SRAM / EEPROM and mutual exclusion ====
+diag command rc 0 active 0 kind 2
+sram result 2 phase 2 offset 16384 bad 0
+eeprom result 2 pending 0 restored 1
+flash result 0 phase 0 offset 0
+flash error 0 restore_error 0 pending 0 restored 0
+flash crc 00000000 restored 00000000 elapsed 0 ms
+RAM 121648/131072 CCM 63512/65536 external 954628/983040 +64K scratch
+==== 3. Flash erase/program/restore with concurrent acquisition ====
+{"phase": "flash-diagnostic-and-scope", "stats": {"loop_gap": {"count": 144, "last_ms": 11.0, "peak_ms": 16.9996, "over20ms": 0}, "touch_gap": {"count": 72, "last_ms": 23.0, "peak_ms": 27.9995, "over20ms": 58}, "gui_gap": {"count": 72, "last_ms": 22.2414, "peak_ms": 28.0287, "over20ms": 70}, "background": {"count": 145, "last_ms": 0.2846, "peak_ms": 1.5593, "over20ms": 0}, "gui_work": {"count": 73, "last_ms": 0.0102, "peak_ms": 5.9004, "over20ms": 0}, "input_mark": {"count": 12, "last_ms": 9.3228, "peak_ms": 9.3228, "over20ms": 0}, "shell_wait": {"count": 16, "last_ms": 4.0517, "peak_ms": 9.0021, "over20ms": 0}, "shell_exec": {"count": 16, "last_ms": 0.1293, "peak_ms": 1.2842, "over20ms": 0}, "image_wait": {"count": 0, "last_ms": 0.0, "peak_ms": 0.0, "over20ms": 0}, "image_work": {"count": 0, "last_ms": 0.0, "peak_ms": 0.0, "over20ms": 0}, "tx_wait_link": {"count": 86, "last_ms": 0.0016, "peak_ms": 0.0017, "over20ms": 0}, "tx_wait_station": {"count": 16, "last_ms": 0.0017, "peak_ms": 0.0017, "over20ms": 0}, "tx_wait_env": {"count": 30, "last_ms": 0.0016, "peak_ms": 0.0016, "over20ms": 0}, "tx_hold_link": {"count": 86, "last_ms": 0.0079, "peak_ms": 0.2679, "over20ms": 0}, "tx_hold_station": {"count": 16, "last_ms": 0.0499, "peak_ms": 0.1908, "over20ms": 0}, "tx_hold_env": {"count": 30, "last_ms": 0.0165, "peak_ms": 0.0165, "over20ms": 0}, "controlled_work": {"count": 0, "last_ms": 0.0, "peak_ms": 0.0, "over20ms": 0}, "diagnostic_step": {"count": 140, "last_ms": 0.5297, "peak_ms": 0.5569, "over20ms": 0}}, "flow": {"beep_high": 0, "beep_drop": 0, "shell_busy": 0, "result_overwrite": 0, "image_busy": 0, "mouse_high": 0, "inject_high": 0}, "ping": {"count": 12, "median_ms": 5.492, "p95_ms": 7.3, "max_ms": 7.3}, "telemetry": 134, "ps": "TASK         S PRIO STACK-FREE\nIDLE         r    0       428\nTmr Svc      B    2       896\nUSBH_Queue   B   24       756\nenvTask      r   16      1308\nlinkTask     B   32      1680\nstationTask  R   24      3996", "free": "freertos heap  free 18816  min 18816\nlvgl pool      used 32412  peak 33588  of 45056", "memory": {"g_lv_mem_used": 32412, "g_lv_mem_peak": 33588, "g_mouse_dropped": 0, "s_dropped": 0, "g_reset_flags": 234881024, "uwTick": 753704}}
+diag command rc 0 active 0 kind 3
+sram result 2 phase 2 offset 16384 bad 0
+eeprom result 2 pending 0 restored 1
+flash result 2 phase 13 offset 0
+flash error 0 restore_error 0 pending 0 restored 1
+flash crc 453a85a0 restored 453a85a0 elapsed 1463 ms
+RAM 121648/131072 CCM 63512/65536 external 954628/983040 +64K scratch
+==== 4. Cancel after erase has begun; restore and restart ====
+diag command rc 0 active 0 kind 3
+sram result 2 phase 2 offset 16384 bad 0
+eeprom result 2 pending 0 restored 1
+flash result 4 phase 13 offset 0
+flash error 0 restore_error 0 pending 0 restored 1
+flash crc 453a85a0 restored 453a85a0 elapsed 791 ms
+RAM 121648/131072 CCM 63512/65536 external 954628/983040 +64K scratch
+diag command rc 0 active 0 kind 3
+sram result 2 phase 2 offset 16384 bad 0
+eeprom result 2 pending 0 restored 1
+flash result 2 phase 13 offset 0
+flash error 0 restore_error 0 pending 0 restored 1
+flash crc 453a85a0 restored 453a85a0 elapsed 1487 ms
+RAM 121648/131072 CCM 63512/65536 external 954628/983040 +64K scratch
+==== 5. Hardware entropy, legacy guards and strict image blocks ====
+RNG 32 samples, 32 distinct; rng good 32 errors 0
+SPI1 已由正式固件管理，请使用 flash/diag 命令，禁止旧脚本覆盖
+RNG 已由正式固件管理，请使用 rng 命令
+PASS image wrap/gap/duplicate rejected; complete frame recovered
+PASS ten 1023-byte PING echoes and three full-size images, CRC checked on every frame
+==== 6. DEVICE reconstruction and memory ====
+cycle 1: DEVICE used=32436 peak=33608
+cycle 2: DEVICE used=32428 peak=33608
+cycle 3: DEVICE used=32448 peak=33620
+cycle 4: DEVICE used=32436 peak=33620
+cycle 5: DEVICE used=32432 peak=33620
+cycle 6: DEVICE used=32428 peak=33620
+cycle 7: DEVICE used=32448 peak=33620
+cycle 8: DEVICE used=32436 peak=33620
+cycle 9: DEVICE used=32432 peak=33620
+cycle 10: DEVICE used=32428 peak=33620
+TASK         S PRIO STACK-FREE
+IDLE         r    0       428
+Tmr Svc      B    2       896
+USBH_Queue   B   24       756
+envTask      r   16      1276
+linkTask     B   32      1680
+stationTask  R   24      3996
+freertos heap  free 18816  min 18816
+lvgl pool      used 32428  peak 33620  of 45056
+PASS: board-only diagnostics; preserved EEPROM/Flash; no SD or new wires; final DEVICE
+
+==== 手册渲染与主机构建
+nice -n 19 cmake --build build --target VisionCraft tst_handbook_refs tst_layering -j2：成功。
+临时 XDG_CONFIG_HOME、QT_QPA_PLATFORM=offscreen、QT_QUICK_BACKEND=software；不改用户配置。
+SPI Flash、RNG、LVGL设备页三个正文截图检查通过，无QML运行错误；诊断卡片使用桌面模拟图并明确标注假数据。
+截图检查：/tmp/vc-lower/handbook-flash.png、handbook-rng.png、handbook-device.png。
+可复用诊断卡片图归档为 handbook/f407/gui/figures/device-diagnostics.png。
+所有提交仅在本地；未推送、未改版本号或发版。

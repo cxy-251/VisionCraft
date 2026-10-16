@@ -3,6 +3,8 @@
 #include "DeviceLink.h"
 
 #include <QDateTime>
+#include <QUuid>
+#include <cmath>
 #include <QtConcurrent/QtConcurrentRun>
 #include <opencv2/imgproc.hpp>
 
@@ -12,6 +14,9 @@ StationController::StationController(QObject *parent)
     connect(&m_watcher, &QFutureWatcher<Inspector::Result>::finished, this, &StationController::onInspected);
     m_lineTimer.setSingleShot(true);
     connect(&m_lineTimer, &QTimer::timeout, this, &StationController::inspectNow);
+    m_grabTimeout.setSingleShot(true);
+    m_grabTimeout.setInterval(5000);
+    connect(&m_grabTimeout,&QTimer::timeout,this,[this] { cancelCapture(); });
     nextPart();
 }
 
@@ -36,13 +41,16 @@ cv::Mat StationController::toMat(const QImage &image)
 
 void StationController::nextPart()
 {
+    if (m_busy || m_review.busy()) return;
     m_part = m_generator.next(m_defectRate, m_difficulty);
+    m_partDifficulty=m_difficulty;
     m_partImage = toQImage(m_part.image);
     emit partChanged();
 }
 
 void StationController::setRunning(bool on)
 {
+    if (on && m_review.busy()) return;
     if (m_running == on)
         return;
     m_running = on;
@@ -63,29 +71,44 @@ void StationController::setBusy(bool b)
 
 void StationController::inspectNow()
 {
-    if (m_busy)
+    if (m_busy || !m_review.beginCapture())
         return;
+    m_pendingTruth=int(m_part.truth);
+    m_pendingInspector=m_inspector;
+    m_pendingUtc=QDateTime::currentDateTimeUtc().toString(Qt::ISODateWithMs);
+    m_pendingSource=tr("工位QML截图 · 随机模拟件 · difficulty=%1").arg(m_partDifficulty);
+    m_captureRequested=true;
+    m_grabTimeout.start();
     setBusy(true);
-    emit grabRequested();   // QML 截图后调用 inspectGrab
+    emit grabRequested(++m_captureId);   // QML 截图后调用 inspectGrab
 }
 
-void StationController::inspectGrab(const QImage &screenshot)
+void StationController::inspectGrab(const QImage &screenshot, quint64 request)
 {
-    if (screenshot.isNull()) {
-        setBusy(false);
-        return;
-    }
+    if (!m_captureRequested || request!=m_captureId) return; // 重复/迟到的回调不能发起第二次检测
+    if (screenshot.isNull() || screenshot.size()!=QSize(480,360)) { cancelCapture(); return; }
+    m_captureRequested=false;
+    m_grabTimeout.stop();
+    m_pendingInput=screenshot.convertToFormat(QImage::Format_RGB888);
     // [region thread]
     const cv::Mat mat = toMat(screenshot);
-    const Inspector inspector = m_inspector;   // 按值捕获：线程里用的是一份拷贝，主线程改参数不会影响正在跑的检测
-    m_watcher.setFuture(QtConcurrent::run([inspector, mat] { return inspector.inspect(mat); }));
+    const Inspector inspector = m_pendingInspector;   // 按值捕获：线程里用的是一份拷贝，主线程改参数不会影响正在跑的检测
+    m_watcher.setFuture(QtConcurrent::run([inspector, mat] {
+        try { return inspector.inspect(mat); }
+        catch(const std::exception &e) { Inspector::Result result; result.error=QString::fromUtf8(e.what()); return result; }
+    }));
     // [endregion]
 }
 
 void StationController::onInspected()
 {
     const Inspector::Result r = m_watcher.result();
-    const vc_defect truth = m_part.truth;
+    if (!r.error.isEmpty() || r.annotated.empty()) {
+        m_review.cancelCapture(); setBusy(false);
+        if(m_running) m_lineTimer.start(m_intervalMs);
+        return;
+    }
+    const vc_defect truth = vc_defect(m_pendingTruth);
     const bool correct = r.defect == truth;
 
     m_total++;
@@ -114,6 +137,13 @@ void StationController::onInspected()
     m_history.prepend(m_lastResult);
     while (m_history.size() > 14)
         m_history.removeLast();
+    InspectionSession::Record record;
+    record.id=QUuid::createUuid().toString(QUuid::WithoutBraces);
+    record.utc=m_pendingUtc; record.source=m_pendingSource; record.truth=int(truth);
+    record.input=m_pendingInput; record.annotated=m_resultImage;
+    record.recipe=InspectionSession::paramsMap(m_pendingInspector.params);
+    record.result=InspectionSession::resultMap(r);
+    m_review.append(std::move(record));
     emit resultChanged();
     emit statsChanged();
 
@@ -124,10 +154,18 @@ void StationController::onInspected()
             m_link->sendImage(m_resultImage);
     }
 
-    nextPart();   // 传送带送下一件
     setBusy(false);
+    nextPart();   // 传送带送下一件
     if (m_running)
         m_lineTimer.start(m_intervalMs);
+}
+
+void StationController::cancelCapture(quint64 request)
+{
+    if (!m_captureRequested || (request && request!=m_captureId)) return;
+    m_captureRequested=false; m_grabTimeout.stop();
+    m_review.cancelCapture(); setBusy(false);
+    if(m_running) m_lineTimer.start(m_intervalMs);
 }
 
 QVariantMap StationController::stats() const
@@ -151,6 +189,7 @@ QVariantMap StationController::stats() const
 
 void StationController::resetStats()
 {
+    if(m_busy) return;
     m_total = m_ng = m_correct = 0;
     std::fill(&m_confusion[0][0], &m_confusion[0][0] + VC_DEFECT_COUNT * VC_DEFECT_COUNT, 0);
     m_history.clear();
@@ -204,21 +243,26 @@ QVariantMap StationController::recipe() const
 
 void StationController::applyRecipe(const QVariantMap &m)
 {
-    Inspector::Params &p = m_inspector.params;
-    p.surfaceThreshold = m.value(QStringLiteral("surfaceThreshold"), p.surfaceThreshold).toInt();
-    p.minDefectArea = m.value(QStringLiteral("minDefectArea"), p.minDefectArea).toInt();
-    p.maxCenterOffset = m.value(QStringLiteral("maxCenterOffset"), p.maxCenterOffset).toDouble();
-    p.minChipDepth = m.value(QStringLiteral("minChipDepth"), p.minChipDepth).toDouble();
-    p.scratchElongation = m.value(QStringLiteral("scratchElongation"), p.scratchElongation).toDouble();
+    Inspector::Params checked;
+    if(InspectionSession::parseParams(m,&checked)) m_inspector.params=checked;
 }
 
 void StationController::setRecipeValue(const QString &key, double value)
 {
     QVariantMap m = recipe();
+    if(!m.contains(key) || !std::isfinite(value)) return;
     m[key] = value;
-    applyRecipe(m);
+    Inspector::Params checked;
+    if(!InspectionSession::parseParams(m,&checked)) return;
+    m_inspector.params=checked;
     m_recipeSource = tr("已修改，未保存到板子");
     emit recipeChanged();
+}
+
+void StationController::resetRecipe()
+{
+    m_inspector.params=Inspector::Params{};
+    m_recipeSource=tr("默认值"); emit recipeChanged();
 }
 
 void StationController::saveRecipeToBoard()

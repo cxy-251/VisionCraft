@@ -9,7 +9,7 @@ constexpr double kPi = 3.14159265358979323846;
 }
 
 PartGenerator::PartGenerator(unsigned seed)
-    : m_rng(seed)
+    : m_rng(seed), m_noise(uint64_t(seed) + 1)
 {
 }
 
@@ -126,7 +126,7 @@ PartGenerator::Part PartGenerator::make(vc_defect defect, double difficulty)
     // ---- 成像噪声：轻微模糊 + 高斯噪声 ----
     cv::GaussianBlur(img, img, cv::Size(3, 3), 0.8);
     cv::Mat noise(img.size(), CV_16SC3);
-    cv::randn(noise, cv::Scalar::all(0), cv::Scalar::all(4));
+    m_noise.fill(noise, cv::RNG::NORMAL, cv::Scalar::all(0), cv::Scalar::all(4));
     cv::Mat img16;
     img.convertTo(img16, CV_16SC3);
     img16 += noise;

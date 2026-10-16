@@ -39,6 +39,8 @@ Section {
     CodeRef { file: "src/vision/PartGenerator.cpp"; region: "marks" }
     CodeRef { file: "src/vision/PartGenerator.cpp"; region: "noise" }
 
+    Para { text: qsTr("2026-10-16起，成像噪声也改为生成器实例内的随机状态。相同种子和调用顺序可在同一构建中复现像素；以下图库和百分比保留旧版实验记录，不与新固定样本混作同一测试窗口。当前复查流程见系统卷检测记录与参数对比。") }
+
     Para { text: qsTr("同一种缺陷在三个难度下的样子，和检测算法给出的判定（每格一张图，随机种子固定）：") }
     Figure {
         files: ["handbook/opencv/figures/gallery-scratch-0.jpg", "handbook/opencv/figures/gallery-scratch-5.jpg", "handbook/opencv/figures/gallery-scratch-10.jpg",

@@ -27,6 +27,7 @@ Inspector::Result Inspector::inspect(const cv::Mat &bgr, Steps *steps) const
     QElapsedTimer clock;
     clock.start();
     Result res;
+    if (bgr.empty() || bgr.type()!=CV_8UC3) { res.error=QStringLiteral("需要非空BGR三通道图像"); return res; }
     res.annotated = bgr.clone();
     const cv::Scalar red(60, 60, 240), green(90, 210, 90), yellow(40, 200, 240);
 
@@ -87,6 +88,8 @@ Inspector::Result Inspector::inspect(const cv::Mat &bgr, Steps *steps) const
     // （实测见 examples/opencv/fit_hull：40 像素缺口，直接拟合偏 4.6 像素；16 像素毛刺，外接圆偏 6.7 像素）
     std::vector<cv::Point> hull;
     cv::convexHull(contours[outer], hull);
+    if (hull.size()<5 || contours[hole].size()<5)
+        return finish(VC_DEFECT_MISSING);
     const cv::RotatedRect outerFit = cv::fitEllipse(hull);
     const cv::RotatedRect holeFit = cv::fitEllipse(contours[hole]);
     const cv::Point2f oc = outerFit.center, hc = holeFit.center;

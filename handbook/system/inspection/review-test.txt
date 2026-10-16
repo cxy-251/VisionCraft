@@ -1,0 +1,73 @@
+2026-10-16 computer-only inspection records and comparison.
+No board connection or storage access.
+********* Start testing of TstInspectionSession *********
+Config: Using QtTest library 6.9.1, Qt 6.9.1 (x86_64-little_endian-lp64 shared (dynamic) release build; by GCC 15.1.1 20250425), steamos 3.8.16
+PASS   : TstInspectionSession::initTestCase()
+PASS   : TstInspectionSession::deterministicImages()
+QINFO  : TstInspectionSession::cohortComparisonAndRoundTrip() PASS fixed corpus: 30 unchanged input images, default and threshold60 comparison, archive/reload parity
+QINFO  : TstInspectionSession::cohortComparisonAndRoundTrip() MEASURE original {"accuracy":1,"bad":24,"confusion":[[6,0,0,0,0,0],[0,6,0,0,0,0],[0,0,6,0,0,0],[0,0,0,6,0,0],[0,0,0,0,6,0],[0,0,0,0,0,0]],"correct":30,"escape":0,"escapeRate":0,"falseReject":0,"falseRejectRate":0,"good":6,"meanMs":5.895095866666666,"misclass":0,"total":30}
+QINFO  : TstInspectionSession::cohortComparisonAndRoundTrip() MEASURE threshold60 {"accuracy":0.6666666666666666,"bad":24,"confusion":[[6,0,0,0,0,0],[6,0,0,0,0,0],[0,0,6,0,0,0],[4,0,0,2,0,0],[0,0,0,0,6,0],[0,0,0,0,0,0]],"correct":20,"escape":10,"escapeRate":0.4166666666666667,"falseReject":0,"falseRejectRate":0,"good":6,"meanMs":7.404303299999998,"misclass":0,"total":30}
+PASS   : TstInspectionSession::cohortComparisonAndRoundTrip()
+libpng error: Read Error
+libpng error: Read Error
+PASS   : TstInspectionSession::rejectBadFilesWithoutReplacingRecords()
+PASS   : TstInspectionSession::metricsAndBoundedMemory()
+PASS   : TstInspectionSession::cleanupTestCase()
+Totals: 6 passed, 0 failed, 0 skipped, 0 blacklisted, 11424ms
+********* Finished testing of TstInspectionSession *********
+
+==== Existing inspector regression, generator with instance-owned noise
+********* Start testing of TstInspector *********
+Config: Using QtTest library 6.9.1, Qt 6.9.1 (x86_64-little_endian-lp64 shared (dynamic) release build; by GCC 15.1.1 20250425), steamos 3.8.16
+PASS   : TstInspector::initTestCase()
+
+难度 0.0
+真实\判定   合格  划痕  缺口  污点  偏心  缺失
+合格     200     0     0     0     0     0   准确率 100.0%
+划痕       0   200     0     0     0     0   准确率 100.0%
+缺口       0     0   200     0     0     0   准确率 100.0%
+污点       0     0     0   200     0     0   准确率 100.0%
+偏心       0     0     0     0   200     0   准确率 100.0%
+总体准确率 100.00%，平均每张 6.22 ms
+PASS   : TstInspector::confusionMatrix(容易)
+
+难度 0.5
+真实\判定   合格  划痕  缺口  污点  偏心  缺失
+合格     200     0     0     0     0     0   准确率 100.0%
+划痕       0   200     0     0     0     0   准确率 100.0%
+缺口       0     0   200     0     0     0   准确率 100.0%
+污点       0     0     0   200     0     0   准确率 100.0%
+偏心       0     0     0     0   200     0   准确率 100.0%
+总体准确率 100.00%，平均每张 4.30 ms
+PASS   : TstInspector::confusionMatrix(中等)
+
+难度 1.0
+真实\判定   合格  划痕  缺口  污点  偏心  缺失
+合格     200     0     0     0     0     0   准确率 100.0%
+划痕     161    39     0     0     0     0   准确率 19.5%
+缺口       0     0   200     0     0     0   准确率 100.0%
+污点       0     0     0   200     0     0   准确率 100.0%
+偏心      81     1     0     0   118     0   准确率 59.0%
+总体准确率 75.70%，平均每张 4.11 ms
+PASS   : TstInspector::confusionMatrix(困难)
+
+难度 0.8，表面阈值扫描（每类 120 件）
+阈值  判对率  漏检率  误报率
+  14   96.8%    0.6%   13.3%
+  16   99.0%    0.6%    2.5%
+  17   99.0%    0.8%    1.7%
+  18   98.3%    1.9%    0.8%
+  19   94.7%    6.7%    0.0%
+  20   89.0%   13.8%    0.0%
+  22   84.7%   19.2%    0.0%
+  25   80.5%   24.4%    0.0%
+  30   79.5%   25.6%    0.0%
+  40   79.5%   25.6%    0.0%
+  60   64.7%   44.2%    0.0%
+PASS   : TstInspector::thresholdSweep()
+PASS   : TstInspector::cleanupTestCase()
+Totals: 6 passed, 0 failed, 0 skipped, 0 blacklisted, 161084ms
+********* Finished testing of TstInspector *********
+
+==== Delivery scope
+The temporary new test sources were removed at the user's request. Existing project tests are retained. No further tests or screenshots were run after that instruction. Final product build completed; no board connection or SD access.

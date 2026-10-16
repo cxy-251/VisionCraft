@@ -120,6 +120,7 @@ qt_add_qml_module(VisionCraft
         qml/device/DevicePage.qml
         qml/device/RuntimePanel.qml
         qml/station/StationPage.qml
+        qml/station/ReviewPanel.qml
         qml/data/DataPage.qml
         qml/data/TimeChart.qml
         qml/data/ScopePanel.qml
@@ -176,6 +177,8 @@ qt_add_qml_module(VisionCraft
         src/app/ScopeAnalysis.cpp
         src/app/ImageView.h
         src/app/ImageView.cpp
+        src/app/InspectionSession.h
+        src/app/InspectionSession.cpp
         src/app/StationController.h
         src/app/StationController.cpp
 )

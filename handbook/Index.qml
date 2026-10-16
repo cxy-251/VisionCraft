@@ -311,6 +311,7 @@ HandbookIndex {
             title: qsTr("检测")
             Entry { title: qsTr("模拟产线"); file: "handbook/system/inspection/PartLine.qml" }
             Entry { title: qsTr("检测管线"); file: "handbook/system/inspection/Pipeline.qml" }
+            Entry { title: qsTr("检测记录、错判回看与参数对比"); file: "handbook/system/inspection/Review.qml" }
         }
     }
 }

@@ -27,6 +27,7 @@ Qt 6 + OpenCV 上位机（`src/`、`qml/`），STM32F407ZG 工位固件（`firmw
 - 需要人动手的（看屏、按键、插线）一次问清楚。
 
 ## 手册
+- 工位已增加电脑端记录与参数对比（2026-10-16）：Station.review由InspectionSession持有，最近60条实际输入图/答案/配方/原判定，可生成固定种子样本并在同图上重测；.vcinspect.json保存原记录及已有对比，64 MiB上限。ReviewPanel显示漏检/误报/类型误判和分母；不连接板子、不写板上存储。截图请求编号与配方/答案快照避免在途错配。生成器噪声使用实例RNG，旧图库/百分比保留历史窗口。说明见handbook/system/inspection/Review.qml。
 - 电脑端波形记录：ScopeArchive仅访问本地.vcscope.json单帧文件，128 KiB上限、版本1、原始ADC/实际采样率/UTC电脑接收时间/来源；不访问板上SD。离线回放与DeviceLink实时帧分别保存状态，共用ScopeFrame统计与ScopeAnalysis频谱。加载失败保留有效回放，返回实时不会自动开始采集。
 - 用户要求（2026-10-16）：面向读者的正文、学习说明、实测结论及验证边界写在 `handbook/*.qml` 中，展示在应用手册内。复用 `Section`、`Para`、`KeyPoints`、`Why`、`Pitfall`、`Figure` 等共享组件及 `Theme`，不在章节各自硬编码字体、颜色和间距。`.txt` 保留为原始测试证据，`CodeRef` 只选必要的短输出，不能用整份验收日志代替正文；交付时优先指向 QML 章节。
 - 每节：示例或板上脚本 → 实际输出存成 `output.txt` / `*-test.txt` → 写 QML（`CodeRef` 引用代码和输出）→ 在 `handbook/Index.qml` 登记 → `ctest -R tst_handbook_refs` → 截图检查 → 本地提交。
@@ -40,5 +41,6 @@ Qt 6 + OpenCV 上位机（`src/`、`qml/`），STM32F407ZG 工位固件（`firmw
 - 推送和发版前先确认。
 
 ## 测试
+- 用户长期偏好（2026-10-16，适用于后续所有工作）：少做截图和测试，把额度优先用在实际功能、代码和文档整理上。不要默认新增测试、运行完整回归或反复截图；通常做代码核对及必要编译即可。只有明确要求或具体故障需要时，才做最小范围的针对性验证。本轮已要求停止继续测试和截图。
 - `tests/` 下是上位机的测试（协议、DeviceLink + 模拟器、检测算法、手册引用、分层）。`tst_inspector` 很慢，改到检测算法才跑。
 - 模拟器（`src/device/SimTransport`）要和真固件行为一致：每个方向一个先进先出队列，不要用多个同时到期的定时器发数据（Windows 上会乱序）。

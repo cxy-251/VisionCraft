@@ -13,6 +13,7 @@
 class Inspector {
 public:
     struct Result {
+        QString error;              // 无效输入或执行失败；不作为正常NG样本统计
         bool ok = false;
         vc_defect defect = VC_DEFECT_MISSING;
         double ms = 0;               // 检测耗时

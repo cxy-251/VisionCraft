@@ -13,9 +13,10 @@ Item {
     // 检测请求：截取传送带画面交给 C++。截的是界面上真正显示的东西
     Connections {
         target: Station
-        function onGrabRequested() {
+        function onGrabRequested(request) {
             Qt.callLater(function() {
-                conveyor.grabToImage(function(result) { Station.inspectGrab(result.image) }, Qt.size(480, 360))
+                if (!conveyor.grabToImage(function(result) { Station.inspectGrab(result.image, request) }, Qt.size(480, 360)))
+                    Station.cancelCapture(request)
             })
         }
     }
@@ -29,9 +30,24 @@ Item {
         }
     }
 
-    RowLayout {
+    ColumnLayout {
         anchors.fill: parent
-        anchors.margins: 32
+        anchors.margins: 24
+        TabBar {
+            id: stationTabs
+            objectName: "stationTabs"
+            Layout.fillWidth: true
+            onCurrentIndexChanged: if(currentIndex === 1) Station.running = false
+            StationTab { text: qsTr("实时工位") }
+            StationTab { text: qsTr("记录与对比") }
+        }
+        StackLayout {
+            Layout.fillWidth: true; Layout.fillHeight: true; currentIndex: stationTabs.currentIndex
+            ScrollView {
+                id: liveScroll; clip: true; contentWidth: availableWidth
+    RowLayout {
+        width: liveScroll.availableWidth
+        height: Math.max(liveScroll.availableHeight, 880)
         spacing: 24
 
         // ================= 左：传送带 =================
@@ -49,7 +65,7 @@ Item {
                     color: DeviceLink.state === DeviceLink.Connected ? Theme.tryIt : Theme.textFaint }
                 Text {
                     text: DeviceLink.state === DeviceLink.Connected ? qsTr("板子已连接：KEY0 触发检测，结果显示在板子屏幕上")
-                                                                  : qsTr("板子未连接（在「设备」页连接）")
+                                                                  : qsTr("电脑独立检测 · 无需连接板子")
                     font.pixelSize: 12; color: Theme.textMuted
                 }
             }
@@ -70,10 +86,10 @@ Item {
             Flow {
                 Layout.fillWidth: true
                 spacing: 10
-                Btn { text: qsTr("检测一次"); primary: true; enabled: !Station.busy; onClicked: Station.inspectNow() }
-                Btn { text: Station.running ? qsTr("停止产线") : qsTr("启动产线"); onClicked: Station.running = !Station.running }
-                Btn { text: qsTr("换一件"); enabled: !Station.busy; onClicked: Station.nextPart() }
-                Btn { text: qsTr("清零统计"); onClicked: Station.resetStats() }
+                Btn { text: qsTr("检测一次"); primary: true; enabled: !Station.busy && !Station.review.busy; onClicked: Station.inspectNow() }
+                Btn { text: Station.running ? qsTr("停止产线") : qsTr("启动产线"); enabled: !Station.review.busy; onClicked: Station.running = !Station.running }
+                Btn { text: qsTr("换一件"); enabled: !Station.busy && !Station.review.busy; onClicked: Station.nextPart() }
+                Btn { text: qsTr("清零统计"); enabled: !Station.busy; onClicked: Station.resetStats() }
             }
 
             GridLayout {
@@ -241,6 +257,19 @@ Item {
             }
             Item { Layout.fillHeight: true }
         }
+    }
+
+            }
+            ReviewPanel { }
+        }
+    }
+
+    component StationTab: TabButton {
+        id: tab
+        implicitHeight: 42
+        contentItem: Text { text: tab.text; color: tab.checked ? Theme.accent : Theme.textMuted; font.pixelSize: Theme.fontSmall; font.bold: tab.checked; horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
+        background: Rectangle { color: tab.checked ? Theme.surfaceAlt : Theme.surface; radius: 6
+            Rectangle { anchors.bottom: parent.bottom; width: parent.width; height: 2; color: tab.checked ? Theme.accent : Theme.border } }
     }
 
     component Btn: Rectangle {

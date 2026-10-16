@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Inspector.h"
+#include "InspectionSession.h"
 #include "PartGenerator.h"
 
 #include <QFutureWatcher>
@@ -24,6 +25,7 @@ class StationController : public QObject {
     Q_OBJECT
     QML_NAMED_ELEMENT(Station)   // QML 里叫 Station
     QML_SINGLETON
+    Q_PROPERTY(InspectionSession *review READ review CONSTANT)
     Q_PROPERTY(QImage partImage READ partImage NOTIFY partChanged)
     Q_PROPERTY(QImage resultImage READ resultImage NOTIFY resultChanged)
     Q_PROPERTY(QVariantMap lastResult READ lastResult NOTIFY resultChanged)
@@ -43,6 +45,7 @@ class StationController : public QObject {
 public:
     explicit StationController(QObject *parent = nullptr);
 
+    InspectionSession *review() { return &m_review; }
     QImage partImage() const { return m_partImage; }
     QImage resultImage() const { return m_resultImage; }
     QVariantMap lastResult() const { return m_lastResult; }
@@ -59,8 +62,10 @@ public:
 
     Q_INVOKABLE void nextPart();
     Q_INVOKABLE void inspectNow();
-    Q_INVOKABLE void inspectGrab(const QImage &screenshot);
+    Q_INVOKABLE void inspectGrab(const QImage &screenshot, quint64 request);
     Q_INVOKABLE void resetStats();
+    Q_INVOKABLE void cancelCapture(quint64 request=0);
+    Q_INVOKABLE void resetRecipe();
     Q_INVOKABLE void setRecipeValue(const QString &key, double value);   // 立即生效，标记为未保存
     Q_INVOKABLE void saveRecipeToBoard();
     Q_INVOKABLE void loadRecipeFromBoard();
@@ -77,13 +82,21 @@ signals:
     void runningChanged();
     void busyChanged();
     void settingsChanged();
-    void grabRequested();
+    void grabRequested(quint64 request);
     void recipeChanged();
 
 private:
     void onInspected();
     void setBusy(bool b);
 
+    InspectionSession m_review;
+    Inspector m_pendingInspector;
+    int m_pendingTruth=0;
+    QString m_pendingSource, m_pendingUtc;
+    QImage m_pendingInput;
+    bool m_captureRequested=false;
+    quint64 m_captureId=0;
+    QTimer m_grabTimeout;
     PartGenerator m_generator;
     Inspector m_inspector;
     PartGenerator::Part m_part;
@@ -103,6 +116,7 @@ private:
     int m_intervalMs = 1200;
     double m_defectRate = 0.3;
     double m_difficulty = 0.0;
+    double m_partDifficulty = 0.0;
 
     int m_total = 0;
     int m_ng = 0;

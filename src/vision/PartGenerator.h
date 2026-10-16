@@ -28,4 +28,5 @@ public:
 
 private:
     std::mt19937 m_rng;
+    cv::RNG m_noise; // 成像噪声也归本实例拥有，不依赖OpenCV线程局部全局RNG
 };

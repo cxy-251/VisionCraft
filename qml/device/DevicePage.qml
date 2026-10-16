@@ -203,6 +203,8 @@ Item {
                 }
             }
 
+            RuntimePanel { Layout.leftMargin: 40; Layout.rightMargin: 40; Layout.fillWidth: true }
+
             // ---------------- 命令 ----------------
             Card {
                 Layout.leftMargin: 40

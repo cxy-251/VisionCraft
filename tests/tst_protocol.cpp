@@ -36,6 +36,37 @@ class TstProtocol : public QObject {
     Q_OBJECT
 
 private slots:
+    void monitorWireBoundaries()
+    {
+        vc_monitor m{};m.values[VC_MON_cycles_per_ms]=168000;
+        m.task_count=m.task_total=VC_MONITOR_TASK_MAX;
+        for(unsigned i=0;i<m.task_count;++i) {
+            qsnprintf(m.tasks[i].name,16,"task%02u",i);
+            m.tasks[i].state='B';m.tasks[i].priority=i;m.tasks[i].stack_free_bytes=100+i;
+        }
+        uint8_t wire[VC_MONITOR_MAX_SIZE+1];memset(wire,0xcc,sizeof wire);
+        QCOMPARE(vc_monitor_write(wire,VC_MONITOR_MAX_SIZE-1,&m),size_t(0));
+        QCOMPARE(wire[0],uint8_t(0xcc));
+        QCOMPARE(vc_monitor_write(wire,VC_MONITOR_MAX_SIZE,&m),size_t(VC_MONITOR_MAX_SIZE));
+        QCOMPARE(wire[VC_MONITOR_MAX_SIZE],uint8_t(0xcc));
+        QCOMPARE(QByteArray(reinterpret_cast<char *>(wire),8).toHex(),QByteArray("010a0a0000001207"));
+        vc_monitor out{};
+        QCOMPARE(vc_monitor_read(&out,wire,VC_MONITOR_MAX_SIZE),0);
+        QCOMPARE(out.tasks[9].stack_free_bytes,109u);
+        for(size_t n=0;n<VC_MONITOR_MAX_SIZE;++n) QVERIFY(vc_monitor_read(&out,wire,n)!=0);
+        QVERIFY(vc_monitor_read(&out,wire,sizeof wire)!=0);
+        for(unsigned off:{0u,1u,4u,5u,6u,7u}) {
+            const uint8_t saved=wire[off];wire[off]=255;
+            QVERIFY(vc_monitor_read(&out,wire,VC_MONITOR_MAX_SIZE)!=0);wire[off]=saved;
+        }
+        memset(wire+VC_MONITOR_BASE_SIZE,'x',16);
+        QVERIFY(vc_monitor_read(&out,wire,VC_MONITOR_MAX_SIZE)!=0);
+        m.tasks[1]=m.tasks[0];QCOMPARE(vc_monitor_write(wire,sizeof wire,&m),size_t(0));
+        m.task_count=0;m.task_total=42;m.task_status=1;
+        QCOMPARE(vc_monitor_write(wire,sizeof wire,&m),size_t(VC_MONITOR_BASE_SIZE));
+        QCOMPARE(vc_monitor_read(&out,wire,VC_MONITOR_BASE_SIZE),0);
+        QCOMPARE(out.task_count,uint8_t(0));QCOMPARE(out.task_total,uint16_t(42));
+    }
     void orderedImageChunks()
     {
         QVERIFY(vc_image_chunk_valid(0, 38400, 0, 1000));

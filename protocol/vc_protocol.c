@@ -286,3 +286,65 @@ int vc_recipe_read(vc_recipe *r, const uint8_t *src, size_t len)
     r->scratch_elongation_x10 = vc_get_u16(&src[6]);
     return 0;
 }
+
+// [region monitor]
+static int monitor_name(const char name[16], int empty)
+{
+    for (unsigned i=0;i<16;++i) {
+        if (!name[i]) return i || empty;
+        if ((unsigned char)name[i]<32 || (unsigned char)name[i]>126) return 0;
+    }
+    return 0;
+}
+static int monitor_valid(const vc_monitor *m)
+{
+    if (!m || m->task_count>VC_MONITOR_TASK_MAX || m->task_status>1 ||
+        (m->task_status ? m->task_count!=0 : m->task_count!=m->task_total) ||
+        !m->values[VC_MON_cycles_per_ms] || m->values[VC_MON_fault_kind]>3 || !monitor_name(m->fault_task,1)) return 0;
+    for (unsigned i=0;i<m->task_count;++i) {
+        if (!monitor_name(m->tasks[i].name,0) || !strchr("RrBSD?",m->tasks[i].state) || !m->tasks[i].state ||
+            (i && strcmp(m->tasks[i-1].name,m->tasks[i].name)>=0)) return 0;
+    }
+    return 1;
+}
+size_t vc_monitor_write(uint8_t *dst, size_t cap, const vc_monitor *m)
+{
+    if (!dst || !monitor_valid(m)) return 0;
+    const size_t size=VC_MONITOR_BASE_SIZE+25u*m->task_count;
+    if (cap<size) return 0;
+    dst[0]=VC_MONITOR_SCHEMA; dst[1]=m->task_count; vc_put_u16(dst+2,m->task_total);
+    dst[4]=m->task_status; dst[5]=0; dst[6]=VC_MONITOR_METRICS; dst[7]=VC_MONITOR_FLOWS;
+    uint8_t *p=dst+8;
+    for(unsigned i=0;i<VC_MON_FIELD_COUNT;++i,p+=4) vc_put_u32(p,m->values[i]);
+    memset(p,0,16); memcpy(p,m->fault_task,strlen(m->fault_task)); p+=16;
+    for(unsigned i=0;i<VC_MONITOR_METRICS;++i,p+=16) {
+        vc_put_u32(p,m->metrics[i].count);vc_put_u32(p+4,m->metrics[i].last);
+        vc_put_u32(p+8,m->metrics[i].peak);vc_put_u32(p+12,m->metrics[i].over20ms);
+    }
+    for(unsigned i=0;i<VC_MONITOR_FLOWS;++i,p+=4) vc_put_u32(p,m->flow[i]);
+    for(unsigned i=0;i<m->task_count;++i,p+=25) {
+        memset(p,0,16);memcpy(p,m->tasks[i].name,strlen(m->tasks[i].name));
+        vc_put_u32(p+16,m->tasks[i].priority);vc_put_u32(p+20,m->tasks[i].stack_free_bytes);p[24]=(uint8_t)m->tasks[i].state;
+    }
+    return size;
+}
+int vc_monitor_read(vc_monitor *m,const uint8_t *src,size_t len)
+{
+    if (!m || !src || len<VC_MONITOR_BASE_SIZE || src[0]!=VC_MONITOR_SCHEMA || src[1]>VC_MONITOR_TASK_MAX ||
+        src[5] || src[6]!=VC_MONITOR_METRICS || src[7]!=VC_MONITOR_FLOWS || len!=VC_MONITOR_BASE_SIZE+25u*src[1]) return -1;
+    m->task_count=src[1];m->task_total=vc_get_u16(src+2);m->task_status=src[4];
+    const uint8_t *p=src+8;
+    for(unsigned i=0;i<VC_MON_FIELD_COUNT;++i,p+=4) m->values[i]=vc_get_u32(p);
+    memcpy(m->fault_task,p,16);p+=16;
+    for(unsigned i=0;i<VC_MONITOR_METRICS;++i,p+=16) {
+        m->metrics[i].count=vc_get_u32(p);m->metrics[i].last=vc_get_u32(p+4);
+        m->metrics[i].peak=vc_get_u32(p+8);m->metrics[i].over20ms=vc_get_u32(p+12);
+    }
+    for(unsigned i=0;i<VC_MONITOR_FLOWS;++i,p+=4) m->flow[i]=vc_get_u32(p);
+    for(unsigned i=0;i<m->task_count;++i,p+=25) {
+        memcpy(m->tasks[i].name,p,16);m->tasks[i].priority=vc_get_u32(p+16);
+        m->tasks[i].stack_free_bytes=vc_get_u32(p+20);m->tasks[i].state=(char)p[24];
+    }
+    return monitor_valid(m) ? 0 : -1;
+}
+// [endregion]

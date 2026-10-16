@@ -60,6 +60,7 @@ void DeviceLink::setState(State s)
         m_scopeStatus = tr("设备未连接");
         emit scopeStateChanged();
         if (wasActive) emit scopeFinished(false, m_scopeStatus);
+        resetMonitor();
         m_deviceClock.clear();
         emit deviceClockChanged();
     }
@@ -113,6 +114,7 @@ void DeviceLink::connectWith(Transport *transport)
         m_timeoutTimer.start();
         getInfo();
         getTime();
+        getMonitor();
         subscribeTelemetry(1000);   // 默认每秒一条遥测：「数据」页的历史曲线靠它
     });
     connect(transport, &Transport::failed, this, [this](const QString &why) {
@@ -269,6 +271,8 @@ void DeviceLink::onFrame(const vc_frame &f)
     switch (f.type) {
     case VC_EVT_HELLO:
         if (m_scope.active && !m_info.isEmpty()) scopeFail(tr("设备重启，采集已取消，请重新采集"));
+        resetMonitor();
+        getMonitor();
         ev[QStringLiteral("name")] = QStringLiteral("hello");
         emit logLine(QStringLiteral("event"), tr("板子启动完成"));
         getInfo();
@@ -331,6 +335,7 @@ QString DeviceLink::commandName(uint8_t type)
     case VC_CMD_PING: return QStringLiteral("PING");
     case VC_CMD_GET_INFO: return QStringLiteral("GET_INFO");
     case VC_CMD_SET_TIME: return QStringLiteral("SET_TIME");
+    case VC_CMD_GET_MONITOR: return QStringLiteral("GET_MONITOR");
     case VC_CMD_GET_TIME: return QStringLiteral("GET_TIME");
     case VC_CMD_SCOPE_START: return QStringLiteral("SCOPE_START");
     case VC_CMD_SCOPE_READ: return QStringLiteral("SCOPE_READ");
@@ -801,3 +806,61 @@ void DeviceLink::flashFirmware(const QString &elfPath)
         emit flashFinished(ok, message);
     });
 }
+
+// [region monitor]
+void DeviceLink::resetMonitor()
+{
+    ++m_monitorEpoch; m_monitorPending=false; m_monitorUnsupported=false;
+    m_monitor.clear();m_monitorHistory.clear();m_monitorStatus=tr("尚未读取运行监控");
+    emit monitorChanged();
+}
+int DeviceLink::getMonitor()
+{
+    if (m_state!=Connected || m_monitorPending || m_monitorUnsupported) return -1;
+    m_monitorPending=true;
+    const quint64 epoch=m_monitorEpoch;
+    return request(VC_CMD_GET_MONITOR,{},[this,epoch](bool ok,int status,const QByteArray &payload) {
+        if(epoch!=m_monitorEpoch) return; // 旧连接/复位前的应答不能重新发布旧数据。
+        m_monitorPending=false;
+        vc_monitor m;
+        if(!ok || vc_monitor_read(&m,reinterpret_cast<const uint8_t *>(payload.constData()),size_t(payload.size()))) {
+            m_monitor.clear();
+            m_monitorUnsupported=status==VC_ERR_UNKNOWN;
+            m_monitorStatus=m_monitorUnsupported ? tr("此固件不支持运行监控") : status<0 ? tr("运行监控超时或连接已断开") :
+                !ok ? tr("运行监控读取失败（%1）").arg(status) : tr("运行监控数据格式错误");
+            emit monitorChanged();return;
+        }
+        if(!m_monitorHistory.isEmpty()) {
+            const auto previous=m_monitorHistory.last().toMap();
+            if(m.values[VC_MON_uptime_ms]<previous.value("uptime_ms").toUInt() ||
+               m.values[VC_MON_epoch]!=previous.value("epoch").toUInt()) m_monitorHistory.clear();
+        }
+        QVariantMap snapshot;
+#define MONITOR_VALUE(name) snapshot.insert(QStringLiteral(#name),m.values[VC_MON_##name]);
+        VC_MONITOR_FIELDS(MONITOR_VALUE)
+#undef MONITOR_VALUE
+        snapshot[QStringLiteral("taskStatus")]=m.task_status;
+        snapshot[QStringLiteral("taskTotal")]=m.task_total;
+        snapshot[QStringLiteral("faultTask")]=QString::fromLatin1(m.fault_task);
+        snapshot[QStringLiteral("receivedAt")]=QDateTime::currentMSecsSinceEpoch();
+        snapshot[QStringLiteral("source")]=transportName();
+        QVariantList tasks,metrics,flow;
+        for(unsigned i=0;i<m.task_count;++i) tasks.append(QVariantMap{
+            {QStringLiteral("name"),QString::fromLatin1(m.tasks[i].name)},
+            {QStringLiteral("state"),QString(QChar::fromLatin1(m.tasks[i].state))},
+            {QStringLiteral("priority"),m.tasks[i].priority},{QStringLiteral("stackFree"),m.tasks[i].stack_free_bytes}});
+        for(const auto &stat:m.metrics) metrics.append(QVariantMap{
+            {QStringLiteral("count"),stat.count},{QStringLiteral("lastMs"),double(stat.last)/m.values[VC_MON_cycles_per_ms]},
+            {QStringLiteral("peakMs"),double(stat.peak)/m.values[VC_MON_cycles_per_ms]},{QStringLiteral("over20ms"),stat.over20ms}});
+        for(auto value:m.flow) flow.append(value);
+        snapshot[QStringLiteral("tasks")]=tasks;snapshot[QStringLiteral("metrics")]=metrics;snapshot[QStringLiteral("flow")]=flow;
+        m_monitor=snapshot;
+        m_monitorHistory.append(QVariantMap{{QStringLiteral("t"),snapshot.value("receivedAt")},
+            {QStringLiteral("heap"),m.values[VC_MON_heap_free]},{QStringLiteral("lv"),m.values[VC_MON_lv_used]},
+            {QStringLiteral("uptime_ms"),m.values[VC_MON_uptime_ms]},{QStringLiteral("epoch"),m.values[VC_MON_epoch]}});
+        while(m_monitorHistory.size()>120) m_monitorHistory.removeFirst();
+        m_monitorStatus=tr("%1 · 已更新 · 任务%2").arg(transportName()).arg(m.task_total);
+        emit monitorChanged();
+    });
+}
+// [endregion]

@@ -91,6 +91,7 @@ target_sources(${CMAKE_PROJECT_NAME} PRIVATE
     App/nor.c
     App/spiflash.c
     App/flash_diag.c
+    App/monitor.c
     App/diagnostics.c
     App/gui.c
     App/page_home.c

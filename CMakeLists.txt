@@ -118,6 +118,7 @@ qt_add_qml_module(VisionCraft
         qml/shell/NavRail.qml
         qml/shell/LabPage.qml
         qml/device/DevicePage.qml
+        qml/device/RuntimePanel.qml
         qml/station/StationPage.qml
         qml/data/DataPage.qml
         qml/data/TimeChart.qml

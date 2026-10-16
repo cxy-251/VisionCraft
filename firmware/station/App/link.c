@@ -1,4 +1,5 @@
 #include "memory.h"
+#include "monitor.h"
 /* LinkTask：从 RTT 下行缓冲区收字节 → 拆帧 → 执行命令 → 回应答 */
 #include "app.h"
 #include "fault.h"
@@ -49,6 +50,12 @@ static void reply(uint8_t cmd, uint8_t seq, uint8_t status, const uint8_t *data,
 static void handle(const vc_frame *f)
 {
     switch (f->type) {
+    case VC_CMD_GET_MONITOR: {
+        const uint8_t rc=f->len ? VC_ERR_ARGS : monitor_request(f->seq);
+        if(rc!=VC_OK) reply(f->type,f->seq,rc,NULL,0);
+        break;
+    }
+
     case VC_CMD_PING:
         reply(f->type, f->seq, VC_OK, f->payload, f->len);
         break;

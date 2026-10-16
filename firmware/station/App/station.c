@@ -16,6 +16,7 @@
 #include "eeprom_diag.h"
 #include "spiflash.h"
 #include "diagnostics.h"
+#include "monitor.h"
 
 extern osMessageQueueId_t g_beepQueue;
 
@@ -229,6 +230,7 @@ void StationTask(void *argument)
         health_feed(now);               /* 三个任务都报到了才喂狗 */
         settings_idle_tick(now);        /* 闲置够久就调暗屏幕 */
         const uint32_t bgStart = gui_cycles();
+        monitor_poll();
         pages_background(now);          /* 取走上位机的结果 / 缩略图、记录传感器历史 */
         perf_observe(PERF_BACKGROUND, gui_cycles() - bgStart);
         if (diag_busy()) {

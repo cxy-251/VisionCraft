@@ -55,6 +55,8 @@ enum vc_type {
     VC_CMD_SCOPE_READ  = 0x0E, /* capture_id(4) offset(2) count(2)；应答 id(4) offset(2) total(2) + uint16 samples */
     VC_CMD_SCOPE_STOP  = 0x0F, /* 空请求；停止并释放快照，重复 STOP 也成功 */
 
+    VC_CMD_GET_MONITOR = 0x10, /* 空请求；StationTask 汇总，见 vc_monitor；旧固件回 UNKNOWN */
+
     /* EVT：事件 */
     VC_EVT_HELLO     = 0x40, /* 板子启动完成，负载同 vc_info */
     VC_EVT_KEY       = 0x41, /* 负载：key(1) action(1) */
@@ -172,6 +174,38 @@ typedef struct {
 int vc_scope_config_valid(uint32_t rate, uint16_t count);
 size_t vc_scope_meta_write(uint8_t *dst, const vc_scope_meta *m);
 int vc_scope_meta_read(vc_scope_meta *m, const uint8_t *src, size_t len);
+// [endregion]
+
+// [region monitor]
+/* 监控schema独立于帧版本。固定头112 B + 18项计时 + 7项流量 + count*25 B。
+ * 计时单位为CPU周期，包含等待/抢占，不是CPU使用率；任务栈为历史最小余量（字节）。 */
+#define VC_MONITOR_SCHEMA 1u
+#define VC_MONITOR_TASK_MAX 10u
+#define VC_MONITOR_METRICS 18u
+#define VC_MONITOR_FLOWS 7u
+#define VC_MONITOR_BASE_SIZE 428u
+#define VC_MONITOR_MAX_SIZE (VC_MONITOR_BASE_SIZE + VC_MONITOR_TASK_MAX*25u)
+#define VC_MONITOR_FIELDS(X) \
+ X(uptime_ms) X(epoch) X(cycles_per_ms) X(heap_free) X(heap_min) X(heap_total) \
+ X(lv_used) X(lv_peak) X(lv_total) X(ram_used) X(ccm_used) X(external_used) \
+ X(rtt_dropped) X(rx_frames) X(rx_errors) X(mouse_dropped) X(reset_flags) \
+ X(fault_kind) X(fault_pc) X(fault_lr) X(fault_cfsr) X(fault_hfsr)
+#define VC_MONITOR_FIELD(name) VC_MON_##name,
+enum { VC_MONITOR_FIELDS(VC_MONITOR_FIELD) VC_MON_FIELD_COUNT };
+#undef VC_MONITOR_FIELD
+typedef struct { uint32_t count, last, peak, over20ms; } vc_monitor_stat;
+typedef struct { char name[16]; uint32_t priority, stack_free_bytes; char state; } vc_monitor_task;
+typedef struct {
+    uint8_t task_count, task_status; /* status 0=完整，1=快照不可用，失败时count必须为0 */
+    uint16_t task_total;
+    uint32_t values[VC_MON_FIELD_COUNT];
+    char fault_task[16];
+    vc_monitor_stat metrics[VC_MONITOR_METRICS];
+    uint32_t flow[VC_MONITOR_FLOWS];
+    vc_monitor_task tasks[VC_MONITOR_TASK_MAX];
+} vc_monitor;
+size_t vc_monitor_write(uint8_t *dst, size_t cap, const vc_monitor *m);
+int vc_monitor_read(vc_monitor *m, const uint8_t *src, size_t len);
 // [endregion]
 
 /* ---------------- 小端读写 ---------------- */

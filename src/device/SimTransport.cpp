@@ -114,6 +114,29 @@ void SimTransport::handle(const vc_frame &f)
     const char ok = char(VC_OK);
 
     switch (f.type) {
+    case VC_CMD_GET_MONITOR: {
+        if(f.len) { send(VC_RSP(f.type),f.seq,QByteArray(1,char(VC_ERR_ARGS)));break; }
+        vc_monitor m{};
+        m.task_count=m.task_total=6;
+        m.values[VC_MON_uptime_ms]=uint32_t(m_uptime.elapsed());
+        m.values[VC_MON_cycles_per_ms]=168000;
+        m.values[VC_MON_heap_free]=18816;m.values[VC_MON_heap_min]=18816;m.values[VC_MON_heap_total]=32768;
+        m.values[VC_MON_lv_used]=32440;m.values[VC_MON_lv_peak]=33636;m.values[VC_MON_lv_total]=45056;
+        m.values[VC_MON_ram_used]=121648;m.values[VC_MON_ccm_used]=63512;m.values[VC_MON_external_used]=955308;
+        m.values[VC_MON_rx_frames]=m_decoder.frames;m.values[VC_MON_rx_errors]=m_decoder.errors;
+        const char *names[]={"IDLE","Tmr Svc","USBH_Queue","envTask","linkTask","stationTask"};
+        const uint32_t priorities[]={0,2,24,16,32,24}, stacks[]={428,896,756,1308,1680,3996};
+        for(unsigned i=0;i<6;++i) {
+            std::strcpy(m.tasks[i].name,names[i]);m.tasks[i].state=i==5 ? 'R' : 'B';
+            m.tasks[i].priority=priorities[i];m.tasks[i].stack_free_bytes=stacks[i];
+        }
+        for(unsigned i=0;i<VC_MONITOR_METRICS;++i) {
+            m.metrics[i]={uint32_t(10+m_uptime.elapsed()/20),168000u,336000u,0};
+        }
+        QByteArray out(1+VC_MONITOR_MAX_SIZE,0);
+        const size_t n=vc_monitor_write(reinterpret_cast<uint8_t *>(out.data())+1,size_t(out.size()-1),&m);
+        out.resize(qsizetype(n+1));send(VC_RSP(f.type),f.seq,out);break;
+    }
     case VC_CMD_PING:
         send(VC_RSP(VC_CMD_PING), f.seq, QByteArray(1, ok) + payload);
         break;

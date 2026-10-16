@@ -29,6 +29,10 @@ class DeviceLink : public QObject {
     Q_PROPERTY(QVariantMap telemetry READ telemetry NOTIFY telemetryChanged)
     Q_PROPERTY(QVariantMap stats READ stats NOTIFY statsChanged)
     Q_PROPERTY(QVariantMap deviceClock READ deviceClock NOTIFY deviceClockChanged)
+    Q_PROPERTY(QVariantMap monitor READ monitor NOTIFY monitorChanged)
+    Q_PROPERTY(QVariantList monitorHistory READ monitorHistory NOTIFY monitorChanged)
+    Q_PROPERTY(QString monitorStatus READ monitorStatus NOTIFY monitorChanged)
+    Q_PROPERTY(bool monitorSupported READ monitorSupported NOTIFY monitorChanged)
     Q_PROPERTY(bool scopeBusy READ scopeBusy NOTIFY scopeStateChanged)
     Q_PROPERTY(QString scopeStatus READ scopeStatus NOTIFY scopeStateChanged)
     Q_PROPERTY(QVariantMap scopeFrame READ scopeFrame NOTIFY scopeFrameChanged)
@@ -49,6 +53,10 @@ public:
     QVariantMap info() const { return m_info; }
     QVariantMap telemetry() const { return m_telemetry; }
     QVariantMap deviceClock() const { return m_deviceClock; }
+    QVariantMap monitor() const { return m_monitor; }
+    QVariantList monitorHistory() const { return m_monitorHistory; }
+    QString monitorStatus() const { return m_monitorStatus; }
+    bool monitorSupported() const { return !m_monitorUnsupported; }
     bool scopeBusy() const { return m_scope.active; }
     QString scopeStatus() const { return m_scopeStatus; }
     QVariantMap scopeFrame() const { return m_scopeFrame; }
@@ -67,6 +75,7 @@ public:
     Q_INVOKABLE int beep(int durationMs);
     Q_INVOKABLE int setTimeNow();
     Q_INVOKABLE int getTime();
+    Q_INVOKABLE int getMonitor();
     Q_INVOKABLE int subscribeTelemetry(int periodMs);
     Q_INVOKABLE bool startScope(int rate = 50000, int samples = 2048);
     Q_INVOKABLE void stopScope();
@@ -102,6 +111,7 @@ signals:
     void infoChanged();
     void telemetryChanged();
     void deviceClockChanged();
+    void monitorChanged();
     void scopeStateChanged();
     void scopeFrameChanged();
     void scopeFinished(bool ok, const QString &message);
@@ -142,6 +152,12 @@ private:
     QVariantMap m_telemetry;
     QVariantMap m_deviceClock;
     bool m_clockPending = false;
+    QVariantMap m_monitor;
+    QVariantList m_monitorHistory;
+    QString m_monitorStatus;
+    bool m_monitorPending = false, m_monitorUnsupported = false;
+    quint64 m_monitorEpoch = 0;
+    void resetMonitor();
     struct ScopeCapture {
         bool active = false;
         quint64 epoch = 0;

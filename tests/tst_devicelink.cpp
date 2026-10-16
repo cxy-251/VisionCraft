@@ -3,6 +3,29 @@
 
 #include <QtTest>
 
+class MonitorErrorSim : public SimTransport {
+public:
+    int mode=0; // 0 normal, 1 unsupported, 2 malformed, 3 silent
+    void write(const QByteArray &bytes) override {
+        vc_decoder d;vc_decoder_init(&d);vc_frame f{};
+        for(char c:bytes) if(vc_decoder_feed(&d,uint8_t(c),&f) && f.type==VC_CMD_GET_MONITOR && mode) {
+            if(mode==3) return;
+            QByteArray body(1,mode==1 ? char(VC_ERR_UNKNOWN) : char(VC_OK));
+            if(mode==2) body.append("bad schema");
+            QByteArray frame(VC_MAX_FRAME,0);
+            frame.resize(qsizetype(vc_encode(reinterpret_cast<uint8_t *>(frame.data()),size_t(frame.size()),VC_RSP(f.type),f.seq,
+                reinterpret_cast<const uint8_t *>(body.constData()),uint16_t(body.size()))));
+            QTimer::singleShot(0,this,[this,frame]{ emit bytesReceived(frame); });return;
+        }
+        SimTransport::write(bytes);
+    }
+    void hello() {
+        QByteArray frame(VC_MAX_FRAME,0);
+        frame.resize(qsizetype(vc_encode(reinterpret_cast<uint8_t *>(frame.data()),size_t(frame.size()),VC_EVT_HELLO,0,nullptr,0)));
+        emit bytesReceived(frame);
+    }
+};
+
 class ClockErrorSim : public SimTransport {
 public:
     explicit ClockErrorSim(uint8_t status) : m_status(status) {}
@@ -73,6 +96,30 @@ class TstDeviceLink : public QObject {
     }
 
 private slots:
+    void monitorFailureRecoveryAndHistory()
+    {
+        DeviceLink link;auto *channel=new MonitorErrorSim;
+        link.connectWith(channel);
+        QTRY_VERIFY(!link.monitor().isEmpty());
+        QCOMPARE(link.monitor().value("tasks").toList().size(),6);
+        QCOMPARE(link.monitor().value("source").toString(),QStringLiteral("模拟器"));
+        for(int i=0;i<125;++i) {
+            QSignalSpy changed(&link,&DeviceLink::monitorChanged);
+            QVERIFY(link.getMonitor()>=0);QVERIFY(link.getMonitor()<0);
+            QTRY_VERIFY(changed.size()>0);
+        }
+        QCOMPARE(link.monitorHistory().size(),120);
+        channel->mode=2;QVERIFY(link.getMonitor()>=0);
+        QTRY_VERIFY(link.monitor().isEmpty());QVERIFY(link.monitorSupported());
+        channel->mode=0;QVERIFY(link.getMonitor()>=0);QTRY_VERIFY(!link.monitor().isEmpty());
+        channel->mode=3;QVERIFY(link.getMonitor()>=0);QTRY_VERIFY_WITH_TIMEOUT(link.monitor().isEmpty(),2000);
+        channel->mode=1;QVERIFY(link.getMonitor()>=0);QTRY_VERIFY(!link.monitorSupported());
+        QVERIFY(link.getMonitor()<0);
+        channel->mode=0;channel->hello();QTRY_VERIFY(!link.monitor().isEmpty());
+        QVERIFY(link.monitorHistory().size()<5); // 重启不会接上旧历史。
+        link.disconnectDevice();QVERIFY(link.monitor().isEmpty());QVERIFY(link.monitorHistory().isEmpty());
+    }
+
     void scopeRoundTrip()
     {
         DeviceLink link;

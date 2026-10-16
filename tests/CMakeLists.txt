@@ -135,3 +135,16 @@ qt_add_executable(tst_game_seed tst_game_seed.cpp ${PROJECT_SOURCE_DIR}/firmware
 target_include_directories(tst_game_seed PRIVATE ${PROJECT_SOURCE_DIR}/examples/gui_sim/include ${PROJECT_SOURCE_DIR}/firmware/station/App)
 target_link_libraries(tst_game_seed PRIVATE Qt6::Core Qt6::Test)
 add_test(NAME tst_game_seed COMMAND tst_game_seed)
+
+# 实际QML运行监控：轮询、暂停/手动刷新、离页及断开时旧行清理。
+qt_add_executable(tst_runtime_ui tst_runtime_ui.cpp
+    ${PROJECT_SOURCE_DIR}/protocol/vc_protocol.c
+    ${PROJECT_SOURCE_DIR}/src/device/DeviceLink.cpp
+    ${PROJECT_SOURCE_DIR}/src/device/SimTransport.cpp
+    ${PROJECT_SOURCE_DIR}/src/device/SerialTransport.cpp
+    ${PROJECT_SOURCE_DIR}/src/device/RttTransport.cpp
+    ${PROJECT_SOURCE_DIR}/src/device/Transport.h)
+target_include_directories(tst_runtime_ui PRIVATE ${PROJECT_SOURCE_DIR}/protocol ${PROJECT_SOURCE_DIR}/src/device)
+target_compile_definitions(tst_runtime_ui PRIVATE VC_SOURCE_DIR="${PROJECT_SOURCE_DIR}")
+target_link_libraries(tst_runtime_ui PRIVATE Qt6::Core Qt6::Gui Qt6::Quick Qt6::QuickControls2 Qt6::Network Qt6::SerialPort Qt6::Qml Qt6::Test)
+add_test(NAME tst_runtime_ui COMMAND tst_runtime_ui)

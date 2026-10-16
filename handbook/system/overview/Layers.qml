@@ -60,12 +60,26 @@ Section {
         points: [
             qsTr("新版QML界面之外，实验室仍保留Widgets图像工坊、屏幕流、模板匹配、批量质检和节点编辑器。打开图片、灰度、高斯、阈值、Canny和图像导出已经有实现；迁移应先抽出运算，再复用到新界面。"),
             qsTr("图像工坊的四种基础运算已提取为src/vision/ImageOperations，旧页面改为调用这个公共入口。算法接收Mat与参数，返回独立结果和错误，不认识控件、文件或设备；页面保留滑条到参数的映射和说明。"),
-            qsTr("工位、手册交互演示与旧批处理各有样本语义，不能因为都有图像和统计就强行合并。ImageView已经能等比显示，但通用缩放/平移/ROI尚未实现；后续从这些实际缺口推进。"),
+            qsTr("工位、手册交互演示与旧批处理各有样本语义，不能因为都有图像和统计就强行合并。ImageView已有通用缩放、平移、1:1和原图坐标/RGB显示，ImageViewer将其用于工位及记录回看；ROI选区暂未实现。"),
             qsTr("设备和视觉是并列能力，由应用控制器组合。旧工具中的GUI与算法仍在逐步分离，不把此处的目标结构误写成全仓库已经完成的状态。")
         ]
     }
     CodeRef { file: "src/vision/ImageOperations.h" }
     CodeRef { file: "src/vision/ImageOperations.cpp"; region: "operations" }
+
+    KeyPoints {
+        label: qsTr("统一图像查看器")
+        points: [
+            qsTr("ImageView默认只绘制图像；显式启用interactive后才接收交互。ImageViewer组合工具栏、画布和坐标信息，工位原图、结果和记录回看共用它，不另做一套显示逻辑。"),
+            qsTr("加减按钮以视口中心缩放，Ctrl+滚轮以鼠标位置缩放；图像超过画布后可按住左键拖动。普通滚轮仍用于页面滚动。适应按钮恢复完整图像，1:1表示一个原图像素对应一个Qt逻辑像素；高DPI屏幕不等于一个物理屏幕像素。"),
+            qsTr("原点在原图左上角，x向右、y向下，从0开始；坐标按逆变换后向下取整得到列和行。留白或图像外不报坐标。RGB读取原始QImage像素，而不是插值后的屏幕颜色。"),
+            qsTr("适应模式随窗口尺寸调整；手动缩放和1:1模式在窗口调整时保留实际比例，并限制平移不把整张图拖走。换图自动恢复适应视图；平滑/像素开关只改变显示插值。"),
+            qsTr("传送带另保留完整图层供grabToImage使用。界面的查看缩放、拖动、工具栏和坐标信息都不进入检测帧；查看结果也不改变原始像素、检测配方、频谱或归档内容。")
+        ]
+    }
+    CodeRef { file: "src/app/ImageView.cpp"; region: "mapping" }
+    CodeRef { file: "src/app/ImageView.cpp"; region: "zoom" }
+    CodeRef { file: "qml/data/ImageViewer.qml"; match: "onClicked:|Ctrl\\+滚轮|interactive: true"; caption: qsTr("统一工具栏与显式交互入口") }
 
     InSystem {
         text: qsTr("规则在 tests/tst_layering.cpp。各层的入口：protocol/vc_protocol.h、src/vision/Inspector.h、src/device/DeviceLink.h、src/app/StationController.h、qml/Main.qml。")

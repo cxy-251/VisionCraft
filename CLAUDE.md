@@ -3,7 +3,7 @@
 Qt 6 + OpenCV 上位机（`src/`、`qml/`），STM32F407ZG 工位固件（`firmware/station/`），以及一本写在程序里的手册（`handbook/`，按「卷 / 章 / 节」组织）。项目的目的是学原理、出结果：每个功能都配一节手册，每个结论都要能验证。
 
 ## 构建
-- 开始上位机新功能前先查 `PROJECT_MAP.md` 和实验室旧实现，不能只看QML主导航就判断未实现。图像处理/节点/匹配/批量/屏幕流已有Widgets实现；四种图像工坊运算已提取为src/vision/ImageOperations。后续先补ImageView通用缩放/平移，再迁移入口，不重复造已有算法。
+- 开始上位机新功能前先查 `PROJECT_MAP.md` 和实验室旧实现，不能只看QML主导航就判断未实现。图像处理/节点/匹配/批量/屏幕流已有Widgets实现；四种图像工坊运算已提取为src/vision/ImageOperations。ImageView通用缩放/平移/坐标及ImageViewer工具栏已接入工位与记录，后续迁移单图入口时复用，不重复造已有算法。
 - 环境：`source scripts/steamdeck-env.sh`（Qt、OpenCV、CMake、arm-none-eabi、OpenOCD 都在 `~/Applications` 下）。
 - 上位机：`nice -n 19 cmake --build build -j2`。示例和板上调试工具可以关掉：`-DVC_BUILD_EXAMPLES=OFF -DVC_BUILD_TOOLS=OFF`。
 - 固件：`cd firmware/station && cmake --preset Release && nice -n 19 cmake --build --preset Release -j2`。
@@ -28,6 +28,7 @@ Qt 6 + OpenCV 上位机（`src/`、`qml/`），STM32F407ZG 工位固件（`firmw
 - 需要人动手的（看屏、按键、插线）一次问清楚。
 
 ## 手册
+- 图片查看：ImageView默认不接收交互；ImageViewer显式开启，Ctrl+滚轮缩放、拖动、适应/1:1、原图坐标/RGB。工位conveyor是独立完整捕获层，交互查看器是另一个同源图层；不得直接用变换后的查看器抓图喂检测，或把工具栏截入样本。换图恢复适应，手动缩放在resize时保留实际比例。
 - 工位已增加电脑端记录与参数对比（2026-10-16）：Station.review由InspectionSession持有，最近60条实际输入图/答案/配方/原判定，可生成固定种子样本并在同图上重测；.vcinspect.json保存原记录及已有对比，64 MiB上限。ReviewPanel显示漏检/误报/类型误判和分母；不连接板子、不写板上存储。截图请求编号与配方/答案快照避免在途错配。生成器噪声使用实例RNG，旧图库/百分比保留历史窗口。说明见handbook/system/inspection/Review.qml。
 - 电脑端波形记录：ScopeArchive仅访问本地.vcscope.json单帧文件，128 KiB上限、版本1、原始ADC/实际采样率/UTC电脑接收时间/来源；不访问板上SD。离线回放与DeviceLink实时帧分别保存状态，共用ScopeFrame统计与ScopeAnalysis频谱。加载失败保留有效回放，返回实时不会自动开始采集。
 - 用户要求（2026-10-16）：面向读者的正文、学习说明、实测结论及验证边界写在 `handbook/*.qml` 中，展示在应用手册内。复用 `Section`、`Para`、`KeyPoints`、`Why`、`Pitfall`、`Figure` 等共享组件及 `Theme`，不在章节各自硬编码字体、颜色和间距。`.txt` 保留为原始测试证据，`CodeRef` 只选必要的短输出，不能用整份验收日志代替正文；交付时优先指向 QML 章节。

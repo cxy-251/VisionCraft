@@ -121,6 +121,7 @@ qt_add_qml_module(VisionCraft
         qml/device/RuntimePanel.qml
         qml/station/StationPage.qml
         qml/station/ReviewPanel.qml
+        qml/data/ImageViewer.qml
         qml/data/DataPage.qml
         qml/data/TimeChart.qml
         qml/data/ScopePanel.qml

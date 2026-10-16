@@ -10,7 +10,7 @@ Item {
     readonly property var defectNames: ["合格", "划痕", "缺口", "污点", "偏心", "未找到"]
 
     // [region grab]
-    // 检测请求：截取传送带画面交给 C++。截的是界面上真正显示的东西
+    // 检测抓取独立的完整传送带图层，不包含查看器的缩放、平移和工具栏。
     Connections {
         target: Station
         function onGrabRequested(request) {
@@ -70,7 +70,7 @@ Item {
                 }
             }
 
-            Text { text: qsTr("传送带（检测的是这块画面的截图）"); font.pixelSize: Theme.fontSmall; color: Theme.textMuted }
+            Text { text: qsTr("传送带原图（检测始终使用完整画面）"); font.pixelSize: Theme.fontSmall; color: Theme.textMuted }
             Rectangle {
                 Layout.fillWidth: true
                 Layout.preferredHeight: width * 0.75
@@ -81,6 +81,7 @@ Item {
                     anchors.fill: parent
                     image: Station.partImage
                 }
+                ImageViewer { anchors.fill: parent; image: Station.partImage }
             }
 
             Flow {
@@ -197,7 +198,7 @@ Item {
                 Layout.maximumHeight: page.height * 0.45
                 color: "black"
                 radius: 6
-                ImageView { anchors.fill: parent; image: Station.resultImage }
+                ImageViewer { anchors.fill: parent; image: Station.resultImage }
             }
 
             // 统计

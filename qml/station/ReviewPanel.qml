@@ -178,6 +178,6 @@ ScrollView {
         Layout.fillWidth: true
         Note { text: parent.title }
         Rectangle { Layout.fillWidth: true; implicitHeight: width * .75; color: Theme.surface; radius: Theme.radius; border.color: Theme.border
-            ImageView { id: view; anchors.fill: parent; anchors.margins: 1 } }
+            ImageViewer { id: view; anchors.fill: parent; anchors.margins: 1 } }
     }
 }

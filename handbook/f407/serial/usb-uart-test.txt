@@ -1,0 +1,122 @@
+2026-10-16 USB_232 implementation validation
+Physical CH340 / detached ST-Link validation is pending. No SD operations.
+
+==== Firmware build
+[0/2] Re-checking globbed directories...
+[1/21] cd /home/deck/Games/claude/VisionCraft/firmware/station/build/Release && /home/deck/Applications/cmake/usr/bin/cmake -DOUT=/home/deck/Games/claude/VisionCraft/firmware/station/build/Release/build_stamp.c -P /home/deck/Games/claude/VisionCraft/firmware/station/cmake/build_stamp.cmake
+[2/21] Building C object CMakeFiles/station.dir/build_stamp.c.obj
+[3/21] Building C object CMakeFiles/station.dir/Core/Src/freertos.c.obj
+[4/21] Building C object CMakeFiles/station.dir/App/app.c.obj
+[5/21] Building C object CMakeFiles/station.dir/App/scope.c.obj
+[6/21] Building C object CMakeFiles/station.dir/App/link.c.obj
+[7/21] Building C object CMakeFiles/station.dir/App/station.c.obj
+[8/21] Building C object CMakeFiles/station.dir/App/env.c.obj
+[9/21] Building C object CMakeFiles/station.dir/App/station_ui.c.obj
+[10/21] Building C object CMakeFiles/station.dir/App/monitor.c.obj
+[11/21] Building C object CMakeFiles/station.dir/App/page_classic.c.obj
+[12/21] Building C object CMakeFiles/station.dir/App/page_station.c.obj
+[13/21] Building C object CMakeFiles/station.dir/App/page_sensors.c.obj
+[14/21] Building C object CMakeFiles/station.dir/App/page_classic_sensors.c.obj
+[15/21] Building C object CMakeFiles/station.dir/App/page_classic_device.c.obj
+[16/21] Building C object CMakeFiles/station.dir/App/page_device.c.obj
+[17/21] Building C object CMakeFiles/station.dir/App/page_term.c.obj
+[18/21] Building C object CMakeFiles/station.dir/App/page_lvgl.c.obj
+[19/21] Building C object CMakeFiles/station.dir/App/shell.c.obj
+[20/21] Linking C executable station.elf
+Memory region         Used Size  Region Size  %age Used
+             RAM:      122808 B       128 KB     93.70%
+          CCMRAM:       63512 B        64 KB     96.91%
+         EXTSRAM:      959404 B         1 MB     91.50%
+           FLASH:      492012 B         1 MB     46.92%
+   text	   data	    bss	    dec	    hex	filename
+ 490264	   1740	1143984	1635988	 18f694	/home/deck/Games/claude/VisionCraft/firmware/station/build/Release/station.elf
+
+==== Programming and verification
+Open On-Chip Debugger 0.12.0
+Licensed under GNU GPL v2
+For bug reports, read
+	http://openocd.org/doc/doxygen/bugs.html
+Info : auto-selecting first available session transport "hla_swd". To override use 'transport select <transport>'.
+Info : The selected transport took over low-level target control. The results might differ compared to plain JTAG/SWD
+Info : clock speed 2000 kHz
+Info : STLINK V2J37S7 (API v2) VID:PID 0483:3748
+Info : Target voltage: 3.164272
+Info : [stm32f4x.cpu] Cortex-M4 r0p1 processor detected
+Info : [stm32f4x.cpu] target has 6 breakpoints, 4 watchpoints
+Info : starting gdb server for stm32f4x.cpu on 3333
+Info : Listening on port 3333 for gdb connections
+Info : Unable to match requested speed 2000 kHz, using 1800 kHz
+Info : Unable to match requested speed 2000 kHz, using 1800 kHz
+[stm32f4x.cpu] halted due to debug-request, current mode: Thread
+xPSR: 0x01000000 pc: 0x0800ab28 msp: 0x20020000
+Info : Unable to match requested speed 8000 kHz, using 4000 kHz
+Info : Unable to match requested speed 8000 kHz, using 4000 kHz
+** Programming Started **
+Info : device id = 0x10076413
+Info : flash size = 1024 KiB
+** Programming Finished **
+** Verify Started **
+** Verified OK **
+** Resetting Target **
+Info : Unable to match requested speed 2000 kHz, using 1800 kHz
+Info : Unable to match requested speed 2000 kHz, using 1800 kHz
+
+==== UART real driver with fake registers
+[0/2] Re-checking globbed directories...
+[1/2] Re-running CMake...
+-- Could NOT find WrapVulkanHeaders (missing: Vulkan_INCLUDE_DIR)
+-- Could NOT find WrapVulkanHeaders (missing: Vulkan_INCLUDE_DIR)
+-- Found OpenCV: /home/deck/Applications/opencv/usr (found version "4.12.0") found components: core imgproc imgcodecs features2d calib3d objdetect video
+-- Found OpenCV: /home/deck/Applications/opencv/usr (found version "4.12.0") found components: core imgproc videoio video
+-- Found OpenCV: /home/deck/Applications/opencv/usr (found version "4.12.0") found components: core imgproc dnn
+-- Configuring done (3.3s)
+-- Generating done (0.6s)
+-- Build files have been written to: /home/deck/Games/claude/VisionCraft/build
+[0/4] Re-checking globbed directories...
+[1/8] Automatic MOC and UIC for target tst_uart_driver
+[2/8] Building CXX object tests/CMakeFiles/tst_uart_driver.dir/tst_uart_driver_autogen/mocs_compilation.cpp.o
+[3/8] Building C object tests/CMakeFiles/tst_uart_driver.dir/__/firmware/station/App/vc_uart.c.o
+[4/8] Building C object tests/CMakeFiles/tst_uart_driver.dir/tst_uart_driver.c.o
+[5/8] Linking CXX executable tests/tst_uart_driver
+
+==== Qt SerialTransport via Linux pseudo-terminal
+********* Start testing of TstDeviceLink *********
+Config: Using QtTest library 6.9.1, Qt 6.9.1 (x86_64-little_endian-lp64 shared (dynamic) release build; by GCC 15.1.1 20250425), steamos 3.8.16
+PASS   : TstDeviceLink::initTestCase()
+PASS   : TstDeviceLink::serialPseudoTerminalRoundTripAndRecovery()
+PASS   : TstDeviceLink::cleanupTestCase()
+Totals: 3 passed, 0 failed, 0 skipped, 0 blacklisted, 13056ms
+********* Finished testing of TstDeviceLink *********
+
+==== Real MCU over retained RTT, UART registers only
+LINK active RTT; USART1 115200 8N1
+uart rx-drop 0 tx-drop 0 errors 0
+Flash boot alias 0x20020000 0x800ad11
+INITIAL {"uptime_ms": 34932, "epoch": 0, "cycles_per_ms": 168000, "heap_free": 18816, "heap_min": 18816, "heap_total": 32768, "lv_used": 6456, "lv_peak": 6456, "lv_total": 45056, "ram_used": 122808, "ccm_used": 63512, "external_used": 959404, "rtt_dropped": 0, "rx_frames": 3, "rx_errors": 0, "mouse_dropped": 0, "reset_flags": 335544320, "fault_kind": 0, "fault_pc": 0, "fault_lr": 0, "fault_cfsr": 0, "fault_hfsr": 0, "faultTask": "", "metrics": {"loop_gap": {"count": 3321, "last": 1850432, "peak": 1850432, "over20ms": 0}, "touch_gap": {"count": 1660, "last": 3359935, "peak": 3528083, "over20ms": 940}, "gui_gap": {"count": 1660, "last": 3502118, "peak": 3533425, "over20ms": 1620}, "background": {"count": 3321, "last": 16140, "peak": 16140, "over20ms": 0}, "gui_work": {"count": 1661, "last": 340, "peak": 1310, "over20ms": 0}, "input_mark": {"count": 0, "last": 0, "peak": 0, "over20ms": 0}, "shell_wait": {"count": 1, "last": 851372, "peak": 851372, "over20ms": 0}, "shell_exec": {"count": 1, "last": 5442, "peak": 5442, "over20ms": 0}, "image_wait": {"count": 0, "last": 0, "peak": 0, "over20ms": 0}, "image_work": {"count": 0, "last": 0, "peak": 0, "over20ms": 0}, "tx_wait_link": {"count": 2, "last": 291, "peak": 291, "over20ms": 0}, "tx_wait_station": {"count": 1, "last": 291, "peak": 291, "over20ms": 0}, "tx_wait_env": {"count": 1, "last": 268, "peak": 268, "over20ms": 0}, "tx_hold_link": {"count": 2, "last": 1354, "peak": 5266, "over20ms": 0}, "tx_hold_station": {"count": 1, "last": 6642, "peak": 6642, "over20ms": 0}, "tx_hold_env": {"count": 1, "last": 2801, "peak": 2801, "over20ms": 0}, "controlled_work": {"count": 0, "last": 0, "peak": 0, "over20ms": 0}, "diagnostic_step": {"count": 0, "last": 0, "peak": 0, "over20ms": 0}}, "flow": [0, 0, 0, 0, 0, 0, 0], "tasks": [{"name": "IDLE", "priority": 0, "stackFree": 428, "state": "r"}, {"name": "Tmr Svc", "priority": 2, "stackFree": 896, "state": "B"}, {"name": "USBH_Queue", "priority": 24, "stackFree": 756, "state": "B"}, {"name": "envTask", "priority": 16, "stackFree": 1308, "state": "r"}, {"name": "linkTask", "priority": 32, "stackFree": 1668, "state": "B"}, {"name": "stationTask", "priority": 24, "stackFree": 6528, "state": "R"}]}
+PASS RTT: ten PA4 frames and 1023-byte PINGs; USB UART registers initialized
+USART1 0xc0 0x0 0x2d9 0x202c 0x0 0x1
+FINAL {"uptime_ms": 35972, "epoch": 0, "cycles_per_ms": 168000, "heap_free": 18816, "heap_min": 18816, "heap_total": 32768, "lv_used": 6456, "lv_peak": 6456, "lv_total": 45056, "ram_used": 122808, "ccm_used": 63512, "external_used": 959404, "rtt_dropped": 0, "rx_frames": 74, "rx_errors": 0, "mouse_dropped": 0, "reset_flags": 335544320, "fault_kind": 0, "fault_pc": 0, "fault_lr": 0, "fault_cfsr": 0, "fault_hfsr": 0, "faultTask": "", "metrics": {"loop_gap": {"count": 3422, "last": 1680000, "peak": 1854688, "over20ms": 0}, "touch_gap": {"count": 1711, "last": 3528065, "peak": 3705122, "over20ms": 977}, "gui_gap": {"count": 1710, "last": 3484195, "peak": 3655914, "over20ms": 1670}, "background": {"count": 3422, "last": 683, "peak": 184985, "over20ms": 0}, "gui_work": {"count": 1711, "last": 340, "peak": 1310, "over20ms": 0}, "input_mark": {"count": 0, "last": 0, "peak": 0, "over20ms": 0}, "shell_wait": {"count": 1, "last": 851372, "peak": 851372, "over20ms": 0}, "shell_exec": {"count": 1, "last": 5442, "peak": 5442, "over20ms": 0}, "image_wait": {"count": 0, "last": 0, "peak": 0, "over20ms": 0}, "image_work": {"count": 0, "last": 0, "peak": 0, "over20ms": 0}, "tx_wait_link": {"count": 72, "last": 291, "peak": 291, "over20ms": 0}, "tx_wait_station": {"count": 2, "last": 291, "peak": 291, "over20ms": 0}, "tx_wait_env": {"count": 21, "last": 268, "peak": 269, "over20ms": 0}, "tx_hold_link": {"count": 72, "last": 88132, "peak": 91477, "over20ms": 0}, "tx_hold_station": {"count": 2, "last": 60889, "peak": 60889, "over20ms": 0}, "tx_hold_env": {"count": 21, "last": 2800, "peak": 2803, "over20ms": 0}, "controlled_work": {"count": 0, "last": 0, "peak": 0, "over20ms": 0}, "diagnostic_step": {"count": 0, "last": 0, "peak": 0, "over20ms": 0}}, "flow": [0, 0, 0, 0, 0, 0, 0], "tasks": [{"name": "IDLE", "priority": 0, "stackFree": 428, "state": "r"}, {"name": "Tmr Svc", "priority": 2, "stackFree": 896, "state": "B"}, {"name": "USBH_Queue", "priority": 24, "stackFree": 756, "state": "B"}, {"name": "envTask", "priority": 16, "stackFree": 1308, "state": "r"}, {"name": "linkTask", "priority": 32, "stackFree": 1640, "state": "B"}, {"name": "stationTask", "priority": 24, "stackFree": 6504, "state": "R"}]}
+
+==== Host regressions
+Test project /home/deck/Games/claude/VisionCraft/build
+    Start  2: tst_protocol
+1/7 Test  #2: tst_protocol .....................   Passed    0.02 sec
+    Start  3: tst_devicelink
+2/7 Test  #3: tst_devicelink ...................   Passed   29.72 sec
+    Start  4: tst_scope_ui
+3/7 Test  #4: tst_scope_ui .....................   Passed    1.54 sec
+    Start 10: tst_handbook_refs
+4/7 Test #10: tst_handbook_refs ................   Passed    0.17 sec
+    Start 11: tst_layering
+5/7 Test #11: tst_layering .....................   Passed    0.01 sec
+    Start 18: tst_runtime_ui
+6/7 Test #18: tst_runtime_ui ...................   Passed    3.93 sec
+    Start 19: tst_uart_driver
+7/7 Test #19: tst_uart_driver ..................   Passed    0.00 sec
+
+100% tests passed, 0 tests failed out of 7
+
+Total Test time (real) =  35.41 sec
+
+==== Measurement boundary
+Pseudo-terminal is not CH340; fake registers are not electrical UART. RTT results above do not prove physical UART reception. Real USB_232 and boot without the debug cable are not yet verified. ST-Link connection button and programming capability are preserved.

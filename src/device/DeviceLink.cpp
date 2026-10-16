@@ -108,6 +108,8 @@ void DeviceLink::connectWith(Transport *transport)
         emit logLine(QStringLiteral("link"), msg);
     });
     connect(transport, &Transport::opened, this, [this] {
+        m_serialRxClock.start();
+        m_serialPingClock.start();
         setState(Connected);
         setStatus(tr("已连接：%1").arg(transportName()));
         emit logLine(QStringLiteral("link"), m_statusText);
@@ -220,8 +222,10 @@ void DeviceLink::onBytes(const QByteArray &bytes)
     m_rxBytes += quint64(bytes.size());
     vc_frame f;
     for (char c : bytes) {
-        if (vc_decoder_feed(&m_decoder, uint8_t(c), &f))
+        if (vc_decoder_feed(&m_decoder, uint8_t(c), &f)) {
+            m_serialRxClock.restart();
             onFrame(f);
+        }
     }
     noteStatsChanged();
 }
@@ -315,6 +319,18 @@ void DeviceLink::checkTimeouts()
     }
     if (!expired.isEmpty())
         noteStatsChanged();
+    // USB adapter may remain enumerated while the MCU is off or unresponsive.
+    // Serial-only heartbeat also works when telemetry and monitor are paused.
+    if (m_state==Connected && qobject_cast<SerialTransport *>(m_transport.data())) {
+        if (m_serialRxClock.elapsed()>5000) {
+            disconnectDevice();
+            setStatus(tr("串口设备5秒无有效协议数据，请检查供电、USB_232连接及115200波特率后重新连接"));
+            emit logLine(QStringLiteral("error"),m_statusText);
+        } else if (m_serialPingClock.elapsed()>2000) {
+            m_serialPingClock.restart();
+            ping();
+        }
+    }
 }
 
 void DeviceLink::failAllPending(const QString &why)

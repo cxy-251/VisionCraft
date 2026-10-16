@@ -3,10 +3,32 @@ import VisionCraft
 
 Section {
     title: qsTr("UART：轮询、中断、DMA")
-    lead: qsTr("UART 两根线、不带时钟：双方事先约好波特率，接收方按自己的时钟去数每一位。所以波特率的误差直接决定能不能通信。本节不接任何线，用「单线半双工」让 USART 自己收自己发的数据。")
+    lead: qsTr("UART 两根线、不带时钟，双方事先约好波特率。正式工位固件通过板载USB_232与Qt通信，脱离ST-Link使用；后半节保留USART3单线半双工实验，解释波特率、中断和DMA。")
+
+    KeyPoints {
+        label: qsTr("正式固件：只接板载USB_232")
+        points: [
+            qsTr("把电脑USB线接到板上标注USB_232的接口，使用115200、8数据位、无校验、1停止位、无流控。Qt设备页保留连接ST-Link按钮；选择连接串口后点选对应的串口。两种通道都使用同一套二进制协议，普通串口终端不会直接得到文本命令行。"),
+            qsTr("USART1由CubeMX配置PA9/PA10，接收中断只把字节存入2048字节环形区，LinkTask拆帧并处理命令；中断不调用界面、协议处理或RTOS等待。发送另有2048字节环形区，空间不足时限时等待，整帧拒绝并累计丢弃，不把半帧放进队列。"),
+            qsTr("RTT与UART使用独立解码器。即时应答回到请求通道，远程终端和运行监控的异步应答保存来源；遥测和按键事件发送到最近收到有效命令的通道。控制状态仍由同一块板共享，日常使用一个上位机连接，不把双通道当作两个独立设备。"),
+            qsTr("USB串口也支持设备信息、RTC、遥测、检测结果、图片、远程终端、波形采集及运行监控。115200的线速上限约11520字节/秒，波形分帧读回和图片传输会比RTT慢，不是无缝采样流。Qt关闭串口前限时排空停止采集/取消遥测命令；拔线来不及发送时不能承诺命令已经到达。"),
+            qsTr("Qt串口连接每两秒尝试PING，五秒无有效协议帧则断开并提示检查；即使USB转换芯片仍枚举，也能识别板子不再回应。没有协议应答前，仅打开串口不能证明接线和固件正确。接回后重新选择串口连接，Qt重新读取信息和监控。"),
+            qsTr("远程终端执行link可查看当前通道、UART接收溢出、发送丢弃和硬件错误累计值；运行监控中的RTT丢弃字段仍专指RTT，不能当作UART错误统计。last查看已有复位原因和故障现场，不需要调试器读内存。")
+        ]
+    }
+    Pitfall {
+        text: qsTr("梯形外形不能单独识别接口，板上以USB_232标注为准。脱机启动要从用户Flash启动；若BOOT0保持高电平，原先调试器强制跳转运行可能掩盖启动配置问题。不要为串口通信执行擦除、格式化、存储诊断或访问SD卡。")
+    }
+    Para {
+        text: qsTr("验证进度：新固件已编译、烧录并校验，RTT十帧采集和最大合法PING通过，Flash启动映射已核对。真实UART驱动的桌面测试检查缓冲回绕、溢出、整帧拒绝和超时；Qt伪终端测试另行检查分片收发及重连。伪终端和寄存器检查均不能替代CH340实线测试；拔掉ST-Link后只接USB_232的验收尚待完成。")
+    }
+    CodeRef { file: "handbook/f407/serial/usb-uart-test.txt"; match: "Verified OK|^PASS RTT:|^PASS   : TstDeviceLink::serialPseudoTerminal|^100% tests passed"; caption: qsTr("烧录、RTT保留路径与桌面回归的原始短输出；实线串口尚待验证") }
+    CodeRef { file: "firmware/station/App/vc_uart.c"; region: "interrupt" }
+    CodeRef { file: "firmware/station/App/vc_uart.c"; region: "write" }
+    CodeRef { file: "firmware/station/App/app.c"; region: "send" }
 
     Why {
-        text: qsTr("工位和 PLC、扫码枪、上位机的串口通信都是 UART。正常的测试要把板子的串口接到电脑上（本板 USB_232 口上的 CH340 接 USART1），但这次电脑没有空余的 USB 口。"
+        text: qsTr("工位和 PLC、扫码枪、上位机的串口通信都是 UART。正常的测试要把板子的串口接到电脑上（本板 USB_232 口上的 CH340 接 USART1），早期独立实验时电脑没有空余的 USB 口。"
                  + "USART 有一个单线半双工模式：发送和接收共用一根线（TX 脚），自己发出的每一位，接收器也同时收到。用它可以在不接线的情况下检验配置、DMA、以及实际的波特率。"
                  + "示例用工位固件没用的 USART3（PB10，板上 ATK 模块座的串口，现在没插模块），全部由调试器配置，测完写回原值。上位机那一侧见「QSerialPort 串口」。")
     }
@@ -55,6 +77,6 @@ Section {
     }
 
     InSystem {
-        text: qsTr("本程序和板子的通信走调试器的 RTT（见「RTT：经调试口通信」）。上位机里有串口通道（src/device/SerialTransport），但工位固件（station.ioc）目前没有配置任何 USART，所以串口这条路在固件一侧还不存在。以后加上时，接法是板子的 USB_232 口 → CH340 → USART1；等电脑有空余的 USB 口，再实测「QSerialPort 串口」里留下的两个问题：波特率不一致时收到什么、拔掉 USB 线时上位机报什么错。")
+        text: qsTr("正式固件同时保留RTT和USART1协议入口；Qt设备页可分别选择连接ST-Link或串口。板载USB_232经CH340接PA9/PA10，不是DB9的USART3，也不是USB OTG主机口。日常USB串口通信不需要运行OpenOCD；重新烧录仍使用原有ST-Link路径。")
     }
 }

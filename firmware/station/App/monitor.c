@@ -15,7 +15,7 @@
 
 extern volatile uint32_t g_mouse_dropped;
 static volatile uint8_t s_pending;
-static uint8_t s_seq;
+static uint8_t s_seq, s_channel;
 _Static_assert(APP_TASK_MAX == VC_MONITOR_TASK_MAX, "task capacity mismatch");
 _Static_assert(PERF_COUNT == VC_MONITOR_METRICS && PERF_FLOW_COUNT == VC_MONITOR_FLOWS, "monitor schema mismatch");
 _Static_assert(VC_MONITOR_MAX_SIZE+1 <= VC_MAX_PAYLOAD, "monitor reply too large");
@@ -23,7 +23,7 @@ _Static_assert(VC_MONITOR_MAX_SIZE+1 <= VC_MAX_PAYLOAD, "monitor reply too large
 uint8_t monitor_request(uint8_t seq)
 {
     if (s_pending) return VC_ERR_BUSY;
-    s_seq=seq; __DMB(); s_pending=1;
+    s_seq=seq; s_channel=app_link_channel(); __DMB(); s_pending=1;
     return VC_OK;
 }
 void monitor_poll(void)
@@ -65,7 +65,7 @@ void monitor_poll(void)
     static uint8_t out[1+VC_MONITOR_MAX_SIZE] __attribute__((section(".extsram"),aligned(4)));
     const size_t size=vc_monitor_write(out+1,sizeof out-1,&m);
     out[0]=size ? VC_OK : VC_ERR_IO;
-    app_send(VC_RSP(VC_CMD_GET_MONITOR),seq,out,size ? (uint16_t)(size+1) : 1);
+    app_send_on(s_channel,VC_RSP(VC_CMD_GET_MONITOR),seq,out,size ? (uint16_t)(size+1) : 1);
     __DMB();s_pending=0;
 }
 // [endregion]

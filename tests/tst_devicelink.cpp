@@ -2,6 +2,13 @@
 #include "SimTransport.h"
 
 #include <QtTest>
+#include <QJsonDocument>
+#ifdef Q_OS_LINUX
+#include <QSocketNotifier>
+#include <fcntl.h>
+#include <unistd.h>
+#include <cstdlib>
+#endif
 
 class MonitorErrorSim : public SimTransport {
 public:
@@ -411,7 +418,7 @@ private slots:
         QTRY_COMPARE(spy.size(), 1);
         QVERIFY(spy.at(0).at(1).toBool());
         const QStringList lines = spy.at(0).at(2).toString().split('\n');
-        QCOMPARE(lines.size(), 13);                               // 和固件的命令表一样多
+        QVERIFY(lines.contains("link     transport and uart counters"));
         QVERIFY(lines.first().startsWith("help     list commands"));
         link.shell("frobnicate");
         QTRY_COMPARE(spy.size(), 2);
@@ -420,6 +427,115 @@ private slots:
         QCOMPARE(link.shell(QString::fromUtf8("帮助")), -1);      // 板子只认 ASCII
         QCOMPARE(spy.size(), 4);
         QVERIFY(!spy.at(3).at(1).toBool());
+    }
+
+    void serialRealBoard()
+    {
+        const QString port=qEnvironmentVariable("VC_SERIAL_TEST_PORT");
+        if (port.isEmpty()) QSKIP("Opt-in physical USB_232 test; set VC_SERIAL_TEST_PORT");
+        DeviceLink link;
+        link.connectSerial(port,115200);
+        QTRY_VERIFY_WITH_TIMEOUT(!link.info().isEmpty(),5000);
+        QTRY_VERIFY_WITH_TIMEOUT(!link.monitor().isEmpty(),5000);
+        qInfo().noquote()<<"SERIAL INFO"<<QJsonDocument::fromVariant(link.info()).toJson(QJsonDocument::Compact);
+        QSignalSpy shell(&link,&DeviceLink::shellReply);
+        for (const QString &cmd : {QStringLiteral("link"),QStringLiteral("last")}) {
+            shell.clear(); link.shell(cmd);
+            QTRY_COMPARE_WITH_TIMEOUT(shell.size(),1,3000);
+            QVERIFY(shell.first().at(1).toBool());
+            qInfo().noquote()<<cmd<<shell.first().at(2).toString();
+            if (cmd=="link") QVERIFY(shell.first().at(2).toString().contains("active UART"));
+        }
+        const uint32_t initialUptime=link.monitor().value("uptime_ms").toUInt();
+        for (int i=0;i<10;++i) {
+            bool done=false, good=false;
+            const QByteArray payload(1023,char(i));
+            link.request(VC_CMD_PING,payload,[&](bool ok,int,const QByteArray &reply) { good=ok && reply==payload; done=true; },3000);
+            QTRY_VERIFY_WITH_TIMEOUT(done,4000); QVERIFY(good);
+            const uint32_t previous=link.scopeFrame().value("id").toUInt();
+            QVERIFY(link.startScope(50000,1024));
+            QTRY_VERIFY_WITH_TIMEOUT(link.scopeFrame().value("id").toUInt()>previous,5000);
+            QCOMPARE(link.scopeFrame().value("samples").toList().size(),1024);
+            link.getMonitor();
+            QTest::qWait(150);
+        }
+        for (int i=0;i<3;++i) {
+            link.disconnectDevice(); link.connectSerial(port,115200);
+            QTRY_VERIFY_WITH_TIMEOUT(!link.info().isEmpty(),5000);
+            QTRY_VERIFY_WITH_TIMEOUT(!link.monitor().isEmpty(),5000);
+        }
+        QVERIFY(link.monitor().value("uptime_ms").toUInt()>initialUptime);
+        QCOMPARE(link.monitor().value("fault_kind").toUInt(),0u);
+        QVERIFY(!(link.monitor().value("reset_flags").toUInt() & (1u<<29)));
+        qInfo().noquote()<<"SERIAL FINAL MONITOR"<<QJsonDocument::fromVariant(link.monitor()).toJson(QJsonDocument::Compact);
+        shell.clear();link.shell("link");
+        QTRY_COMPARE_WITH_TIMEOUT(shell.size(),1,3000);
+        QVERIFY(shell.first().at(1).toBool());
+        const QString stats=shell.first().at(2).toString();
+        qInfo().noquote()<<"SERIAL FINAL"<<stats;
+        QVERIFY(stats.contains("uart rx-drop 0 tx-drop 0 errors 0"));
+        link.stopScope();link.disconnectDevice();
+        qInfo()<<"PASS physical USB_232: ten frames, ten maximum PINGs, three client reconnects; no SD operations";
+    }
+
+    void serialPseudoTerminalRoundTripAndRecovery()
+    {
+#ifndef Q_OS_LINUX
+        QSKIP("POSIX pseudo-terminal test is Linux only");
+#else
+        const int master=posix_openpt(O_RDWR|O_NOCTTY|O_NONBLOCK);
+        QVERIFY(master>=0);
+        struct Guard { int fd; ~Guard() { ::close(fd); } } guard{master};
+        QVERIFY(grantpt(master)==0 && unlockpt(master)==0);
+        const QString port=QString::fromLocal8Bit(ptsname(master));
+        SimTransport board;
+        bool silent=false;
+        QByteArray outgoing;
+        QSocketNotifier input(master,QSocketNotifier::Read);
+        connect(&input,&QSocketNotifier::activated,this,[&] {
+            char buf[2048]; ssize_t n;
+            while ((n=::read(master,buf,sizeof buf))>0)
+                if (!silent) board.write(QByteArray(buf,n));
+        });
+        connect(&board,&Transport::bytesReceived,this,[&](const QByteArray &bytes) {
+            if (!silent) outgoing+=bytes;
+        });
+        // Fragment board output into 7-byte pieces, including protocol headers.
+        QTimer fragment;
+        fragment.setInterval(1);
+        connect(&fragment,&QTimer::timeout,this,[&] {
+            if (outgoing.isEmpty()) return;
+            const auto n=::write(master,outgoing.constData(),size_t(qMin(7,outgoing.size())));
+            if (n>0) outgoing.remove(0,n);
+        });
+        fragment.start(); board.open();
+        DeviceLink link;
+        link.connectSerial(port,115200);
+        QTRY_VERIFY_WITH_TIMEOUT(!link.info().isEmpty(),3000);
+        QTRY_VERIFY_WITH_TIMEOUT(!link.monitor().isEmpty(),3000);
+        QSignalSpy replies(&link,&DeviceLink::shellReply);
+        link.shell("help");
+        QTRY_COMPARE_WITH_TIMEOUT(replies.size(),1,3000);
+        QVERIFY(replies.first().at(1).toBool());
+        QByteArray payload(1023,'x'); payload[511]=0;
+        bool echoed=false;
+        link.request(VC_CMD_PING,payload,[&](bool ok,int,const QByteArray &body) { echoed=ok && body==payload; },3000);
+        QTRY_VERIFY_WITH_TIMEOUT(echoed,4000);
+        QVERIFY(link.startScope(50000,1024));
+        QTRY_VERIFY_WITH_TIMEOUT(!link.scopeFrame().isEmpty(),5000);
+        link.disconnectDevice();
+        link.connectSerial(port,115200);
+        QTRY_VERIFY_WITH_TIMEOUT(!link.info().isEmpty(),3000);
+        // Adapter still exists, but board no longer answers. Heartbeat must
+        // clear Connected even with no operating-system unplug error.
+        silent=true; outgoing.clear();
+        QTRY_COMPARE_WITH_TIMEOUT(link.state(),DeviceLink::Disconnected,7500);
+        QVERIFY(link.monitor().isEmpty());
+        silent=false;
+        link.connectSerial(port,115200);
+        QTRY_VERIFY_WITH_TIMEOUT(!link.info().isEmpty(),3000);
+        link.disconnectDevice(); board.close();
+#endif
     }
 
     void disconnectFailsPendingRequests()

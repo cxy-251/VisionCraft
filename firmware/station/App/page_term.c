@@ -86,8 +86,8 @@ static void collect(const char *line, void *ctx)
 void term_remote_poll(void)
 {
     char cmd[64];
-    uint8_t seq;
-    if (!app_take_shell(cmd, &seq))
+    uint8_t seq, channel;
+    if (!app_take_shell(cmd, &seq, &channel))
         return;
     static remote_reply r CPU_BUFFER;             /* 1 KB，放静态区不放任务栈 */
     r.buf[0] = VC_OK;
@@ -99,8 +99,8 @@ void term_remote_poll(void)
     if (strncmp(cmd, "reboot", 6) == 0 && (cmd[6] == 0 || cmd[6] == ' ')) {
         /* reboot 执行完就复位了，没有机会再回应答：先回一句，等上位机取走了再执行 */
         static const char kMsg[] = "\0rebooting";
-        app_send(VC_RSP(VC_CMD_SHELL), seq, kMsg, sizeof kMsg - 1);
-        app_tx_flush(200);
+        app_send_on(channel, VC_RSP(VC_CMD_SHELL), seq, kMsg, sizeof kMsg - 1);
+        app_tx_flush_on(channel, 250);
     }
     shell_exec(cmd, collect, &r);
     if (r.cut)
@@ -108,7 +108,7 @@ void term_remote_poll(void)
     g_term_runs++;
     g_term_remote_runs++;
     show_log();                        /* 终端页正在显示就刷新；不在显示时 s_out 是空的，什么也不做 */
-    app_send(VC_RSP(VC_CMD_SHELL), seq, r.buf, r.len);
+    app_send_on(channel, VC_RSP(VC_CMD_SHELL), seq, r.buf, r.len);
 }
 // [endregion]
 

@@ -146,6 +146,7 @@ private:
     static QString commandName(uint8_t type);
 
     QPointer<Transport> m_transport;
+    QElapsedTimer m_serialRxClock, m_serialPingClock;
     State m_state = Disconnected;
     QString m_statusText;
     QVariantMap m_info;

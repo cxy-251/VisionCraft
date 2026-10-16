@@ -72,7 +72,7 @@ uint8_t app_clock_read(app_clock *out)
 }
 const char *shell_complete(const char *prefix) { (void)prefix; return 0; }
 /* 上位机的命令行：模拟器里没有链路 */
-int app_take_shell(char cmd[64], uint8_t *seq) { (void)cmd; (void)seq; return 0; }
+int app_take_shell(char cmd[64], uint8_t *seq, uint8_t *channel) { (void)cmd; (void)seq; (void)channel; return 0; }
 void app_send(uint8_t type, uint8_t seq, const void *payload, uint16_t len) { (void)type; (void)seq; (void)payload; (void)len; }
 int app_tx_flush(uint32_t timeout_ms) { (void)timeout_ms; return 1; }
 
@@ -164,3 +164,8 @@ int diag_start(unsigned kind,uint32_t now) {
 }
 void diag_cancel(void) {}
 int diag_retry(uint32_t now) { (void)now; return 1; }
+
+void app_send_on(uint8_t channel, uint8_t type, uint8_t seq, const void *payload, uint16_t len) { (void)channel; app_send(type, seq, payload, len); }
+int app_tx_flush_on(uint8_t channel, uint32_t timeout_ms) { (void)channel; return app_tx_flush(timeout_ms); }
+
+void app_link_stats(uint32_t stats[4]) { memset(stats, 0, 4*sizeof(*stats)); }

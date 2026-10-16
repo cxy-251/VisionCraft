@@ -82,6 +82,7 @@ target_sources(${CMAKE_PROJECT_NAME} PRIVATE
     App/station.c
     App/env.c
     App/vc_rtt.c
+    App/vc_uart.c
     App/lcd.c
     App/lcd_font.c
     App/station_ui.c

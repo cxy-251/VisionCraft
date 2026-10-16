@@ -107,8 +107,8 @@ Item {
                             model: serialMenu.visible ? DeviceLink.serialPorts() : []
                             delegate: MenuItem {
                                 required property string modelData
-                                text: modelData + "  @921600"
-                                onTriggered: DeviceLink.connectSerial(modelData, 921600)
+                                text: modelData + "  @115200 · 8N1"
+                                onTriggered: DeviceLink.connectSerial(modelData, 115200)
                             }
                         }
                         MenuItem {

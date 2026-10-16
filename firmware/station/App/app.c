@@ -8,15 +8,22 @@
 #include "stm32f4xx.h"
 #include "vc_protocol.h"
 #include "vc_rtt.h"
+#include "vc_uart.h"
 
 #include <string.h>
 
 static osMutexId_t s_txMutex;
+static volatile uint8_t s_channel=APP_LINK_RTT;
+uint8_t app_link_channel(void) { return s_channel; }
+void app_link_select(uint8_t channel) { s_channel=channel; }
+void app_link_stats(uint32_t stats[4])
+{ stats[0]=s_channel; stats[1]=vc_uart_rx_dropped(); stats[2]=vc_uart_tx_dropped(); stats[3]=vc_uart_errors(); }
 osMessageQueueId_t g_beepQueue;   /* station.c 里消费 */
 
 void app_init(void)
 {
     vc_rtt_init();
+    vc_uart_init();
     s_txMutex = osMutexNew(NULL);
     g_beepQueue = osMessageQueueNew(4, sizeof(uint16_t), NULL);
     eeprom_init();
@@ -25,6 +32,11 @@ void app_init(void)
 
 // [region send]
 void app_send(uint8_t type, uint8_t seq, const void *payload, uint16_t len)
+{
+    app_send_on(app_link_channel(),type,seq,payload,len);
+}
+
+void app_send_on(uint8_t channel, uint8_t type, uint8_t seq, const void *payload, uint16_t len)
 {
     /* 编码缓冲区较大，放静态区而不是任务栈；由互斥锁保证同一时刻只有一个任务在用 */
     static uint8_t frame[VC_MAX_FRAME] CPU_BUFFER;
@@ -36,8 +48,10 @@ void app_send(uint8_t type, uint8_t seq, const void *payload, uint16_t len)
     const uint32_t acquired = gui_cycles();
     perf_observe(PERF_TX_WAIT_LINK + owner, acquired - start);
     const size_t n = vc_encode(frame, sizeof(frame), type, seq, payload, len);
-    if (n)
-        vc_rtt_write(frame, n, 50);
+    if (n) {
+        if (channel==APP_LINK_UART) vc_uart_write(frame,n,100);
+        else vc_rtt_write(frame,n,50);
+    }
     perf_observe(PERF_TX_HOLD_LINK + owner, gui_cycles() - acquired);
     osMutexRelease(s_txMutex);
 }
@@ -45,7 +59,12 @@ void app_send(uint8_t type, uint8_t seq, const void *payload, uint16_t len)
 
 int app_tx_flush(uint32_t timeout_ms)
 {
-    return vc_rtt_flush(timeout_ms);
+    return app_tx_flush_on(app_link_channel(),timeout_ms);
+}
+
+int app_tx_flush_on(uint8_t channel, uint32_t timeout_ms)
+{
+    return channel==APP_LINK_UART ? vc_uart_flush(timeout_ms) : vc_rtt_flush(timeout_ms);
 }
 
 // [region beep]
@@ -91,7 +110,7 @@ int app_take_result(vc_result *out)
 // [region shell]
 /* ---- 上位机的命令行：一次只放一条，上一条还没执行完就回「忙」 ---- */
 static char s_shellCmd[64];
-static uint8_t s_shellSeq;
+static uint8_t s_shellSeq, s_shellChannel;
 static volatile uint8_t s_shellPending;
 static uint32_t s_shellPosted;
 
@@ -106,13 +125,14 @@ uint8_t app_post_shell(uint8_t seq, const uint8_t *cmd, uint16_t len)
     memcpy(s_shellCmd, cmd, len);
     s_shellCmd[len] = 0;
     s_shellSeq = seq;
+    s_shellChannel = app_link_channel();
     s_shellPosted = gui_cycles();
     __DMB();
     s_shellPending = 1;                /* 最后才置位：StationTask 看到它时命令已经写好了 */
     return VC_OK;
 }
 
-int app_take_shell(char cmd[64], uint8_t *seq)
+int app_take_shell(char cmd[64], uint8_t *seq, uint8_t *channel)
 {
     if (!s_shellPending)
         return 0;
@@ -120,6 +140,7 @@ int app_take_shell(char cmd[64], uint8_t *seq)
     perf_observe(PERF_SHELL_WAIT, gui_cycles() - s_shellPosted);
     memcpy(cmd, s_shellCmd, sizeof s_shellCmd);
     *seq = s_shellSeq;
+    *channel = s_shellChannel;
     s_shellPending = 0;
     return 1;
 }

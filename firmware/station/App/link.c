@@ -1,6 +1,6 @@
 #include "memory.h"
 #include "monitor.h"
-/* LinkTask：从 RTT 下行缓冲区收字节 → 拆帧 → 执行命令 → 回应答 */
+/* LinkTask：RTT / USART1 各自拆帧，共用协议处理；异步应答保留来源。 */
 #include "app.h"
 #include "fault.h"
 #include "perf.h"
@@ -11,18 +11,19 @@
 #include "cmsis_os2.h"
 #include "vc_protocol.h"
 #include "vc_rtt.h"
+#include "vc_uart.h"
 #include "eeprom.h"
 
 #include <string.h>
 
-static vc_decoder s_decoder;
+static vc_decoder s_decoder[2];
 extern const char app_build_stamp[];   /* build_stamp.c，每次编译生成 */
 
 static volatile uint32_t s_lastRxTick;
 
-uint32_t app_rx_frames(void) { return s_decoder.frames; }
+uint32_t app_rx_frames(void) { return s_decoder[0].frames+s_decoder[1].frames; }
 uint32_t app_last_rx_tick(void) { return s_lastRxTick; }
-uint32_t app_rx_errors(void) { return s_decoder.errors; }
+uint32_t app_rx_errors(void) { return s_decoder[0].errors+s_decoder[1].errors; }
 
 static size_t make_info(uint8_t *dst)
 {
@@ -190,7 +191,8 @@ static void handle(const vc_frame *f)
 void LinkTask(void *argument)
 {
     (void)argument;
-    vc_decoder_init(&s_decoder);
+    vc_decoder_init(&s_decoder[0]);
+    vc_decoder_init(&s_decoder[1]);
     app_scope_init();
 
     uint8_t info[VC_INFO_SIZE];
@@ -205,15 +207,19 @@ void LinkTask(void *argument)
             g_perf_input_request = 2;
         }
         health_checkin(HEALTH_LINK);   /* 看门狗监工：我还活着 */
-        const size_t n = vc_rtt_read(chunk, sizeof(chunk));
-        vc_frame f;
-        for (size_t i = 0; i < n; ++i) {
-            if (vc_decoder_feed(&s_decoder, chunk[i], &f)) {
-                s_lastRxTick = HAL_GetTick();
-                handle(&f);
+        size_t received=0;
+        for (uint8_t channel=APP_LINK_RTT; channel<=APP_LINK_UART; ++channel) {
+            const size_t n=channel==APP_LINK_UART ? vc_uart_read(chunk,sizeof chunk) : vc_rtt_read(chunk,sizeof chunk);
+            received+=n;
+            vc_frame f;
+            for (size_t i=0;i<n;++i) {
+                if (vc_decoder_feed(&s_decoder[channel],chunk[i],&f) && VC_IS_CMD(f.type)) {
+                    s_lastRxTick=HAL_GetTick();
+                    app_link_select(channel);
+                    handle(&f);
+                }
             }
         }
-        if (n == 0)
-            osDelay(1);   /* 没数据就让出 CPU；调试器每毫秒左右轮询一次，再快也没意义 */
+        if (!received) osDelay(1);
     }
 }

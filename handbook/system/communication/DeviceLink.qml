@@ -17,7 +17,7 @@ Section {
         points: [
             qsTr("SimTransport：进程里的一个对象，收到字节就用同一份协议代码（protocol/vc_protocol.c）解析，按固件的行为应答，延迟 2 ms 再发回来模拟往返时间。"),
             qsTr("RttTransport：启动 OpenOCD，经 ST-Link 读写板子内存里的 RTT 缓冲区（见 F407 卷「RTT」和 Qt 卷「QProcess」「QTcpSocket」）。"),
-            qsTr("SerialTransport：串口，给以后用 USB 转串口的板子留的。"),
+            qsTr("SerialTransport：板载USB_232经CH340接USART1，正式固件115200 8N1，与RTT共用协议；串口连接不启动OpenOCD。"),
             qsTr("DeviceLink 只调用 open、close、write，只接收 opened、failed、bytesReceived 这些信号，不知道下面是哪一种。")
         ]
     }

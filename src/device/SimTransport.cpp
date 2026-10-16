@@ -291,6 +291,7 @@ QByteArray SimTransport::shellOutput(const QByteArray &line)
     static const char *const kCommands[][2] = {
         {"help", "list commands"},
         {"uptime", "time since boot"},
+        {"link", "transport and uart counters"},
         {"ps", "tasks: state, priority, free stack"},
         {"free", "freertos heap, lvgl pool"},
         {"sensors", "temperature, light, vdda"},
@@ -311,6 +312,7 @@ QByteArray SimTransport::shellOutput(const QByteArray &line)
             out << QByteArray(c[0]).leftJustified(8, ' ') + ' ' + c[1];
         return out.join('\n');
     }
+    if (name == "link") return "simulated transport; no physical UART counters";
     if (name == "uptime") {
         const qint64 s = m_uptime.elapsed() / 1000;
         return QStringLiteral("up %1h %2m %3s").arg(s / 3600).arg(s / 60 % 60).arg(s % 60).toLatin1();

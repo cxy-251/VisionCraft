@@ -148,3 +148,10 @@ target_include_directories(tst_runtime_ui PRIVATE ${PROJECT_SOURCE_DIR}/protocol
 target_compile_definitions(tst_runtime_ui PRIVATE VC_SOURCE_DIR="${PROJECT_SOURCE_DIR}")
 target_link_libraries(tst_runtime_ui PRIVATE Qt6::Core Qt6::Gui Qt6::Quick Qt6::QuickControls2 Qt6::Network Qt6::SerialPort Qt6::Qml Qt6::Test)
 add_test(NAME tst_runtime_ui COMMAND tst_runtime_ui)
+
+# Actual USART ring/IRQ driver with fake registers, without hardware or RTOS.
+if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
+    add_executable(tst_uart_driver tst_uart_driver.c ${PROJECT_SOURCE_DIR}/firmware/station/App/vc_uart.c)
+    target_include_directories(tst_uart_driver PRIVATE uart_stubs ${PROJECT_SOURCE_DIR}/firmware/station/App)
+    add_test(NAME tst_uart_driver COMMAND tst_uart_driver)
+endif()

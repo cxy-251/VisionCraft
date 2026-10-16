@@ -44,6 +44,13 @@ static void say(shell_io *io, const char *fmt, ...)
 
 // [region commands]
 static void cmd_help(shell_io *io, int argc, char **argv);
+static void cmd_link(shell_io *io, int argc, char **argv)
+{
+    (void)argc; (void)argv;
+    uint32_t s[4]; app_link_stats(s);
+    say(io,"active %s; USART1 115200 8N1",s[0]==APP_LINK_UART ? "UART" : "RTT");
+    say(io,"uart rx-drop %lu tx-drop %lu errors %lu",(unsigned long)s[1],(unsigned long)s[2],(unsigned long)s[3]);
+}
 
 static void cmd_uptime(shell_io *io, int argc, char **argv)
 {
@@ -394,6 +401,7 @@ static const struct {
     const char *help;
 } kCommands[] = {
     {"help", cmd_help, "list commands"},
+    {"link", cmd_link, "transport and uart counters"},
     {"uptime", cmd_uptime, "time since boot"},
     {"ps", cmd_ps, "tasks: state, priority, free stack"},
     {"free", cmd_free, "freertos heap, lvgl pool"},

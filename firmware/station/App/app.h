@@ -9,10 +9,16 @@
 #define APP_FW_MINOR 1
 #define APP_FW_PATCH 0
 
-/* 在 MX_FREERTOS_Init 之后、调度器启动之前调用：建队列、互斥锁、初始化 RTT */
+/* 在 MX_FREERTOS_Init 之后、调度器启动之前调用：建队列、互斥锁、初始化 RTT/串口 */
 void app_init(void);
 
 /* 发一帧给上位机。任何任务都可以调用（内部加锁）；不能在中断里调用。 */
+enum { APP_LINK_RTT, APP_LINK_UART };
+uint8_t app_link_channel(void);
+void app_link_stats(uint32_t stats[4]); /* channel, UART RX drop, TX drop, errors */
+void app_link_select(uint8_t channel); /* LinkTask only, after a valid command */
+void app_send_on(uint8_t channel, uint8_t type, uint8_t seq, const void *payload, uint16_t len);
+int app_tx_flush_on(uint8_t channel, uint32_t timeout_ms);
 void app_send(uint8_t type, uint8_t seq, const void *payload, uint16_t len);
 /* 等已经发出的帧全被上位机取走（最多 timeout_ms 毫秒），复位前用。取走了返回 1 */
 int app_tx_flush(uint32_t timeout_ms);
@@ -51,7 +57,7 @@ void    app_image_done(void);                                            /* Stat
 
 /* 上位机的命令行：LinkTask 收到 SHELL 先放下，StationTask 执行后自己回应答（bl、reboot 这些命令要在 StationTask 里做） */
 uint8_t app_post_shell(uint8_t seq, const uint8_t *cmd, uint16_t len);   /* 返回 vc_status；VC_OK 表示已接下 */
-int     app_take_shell(char cmd[64], uint8_t *seq);                       /* 有一条等着执行返回 1 */
+int     app_take_shell(char cmd[64], uint8_t *seq, uint8_t *channel);                       /* 有一条等着执行返回 1 */
 
 /* 给「设备」页的信息（app.c；电脑上的模拟器另有一份假的实现） */
 void     app_chip_uid(uint32_t uid[3]);

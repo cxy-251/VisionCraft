@@ -24,6 +24,7 @@ Qt 6 + OpenCV 上位机（`src/`、`qml/`），STM32F407ZG 工位固件（`firmw
 - 需要人动手的（看屏、按键、插线）一次问清楚。
 
 ## 手册
+- 用户要求（2026-10-16）：面向读者的正文、学习说明、实测结论及验证边界写在 `handbook/*.qml` 中，展示在应用手册内。复用 `Section`、`Para`、`KeyPoints`、`Why`、`Pitfall`、`Figure` 等共享组件及 `Theme`，不在章节各自硬编码字体、颜色和间距。`.txt` 保留为原始测试证据，`CodeRef` 只选必要的短输出，不能用整份验收日志代替正文；交付时优先指向 QML 章节。
 - 每节：示例或板上脚本 → 实际输出存成 `output.txt` / `*-test.txt` → 写 QML（`CodeRef` 引用代码和输出）→ 在 `handbook/Index.qml` 登记 → `ctest -R tst_handbook_refs` → 截图检查 → 本地提交。
 - 每句结论都要有出处（测试、示例输出、测量）；推测写明是推测。`CodeRef` 的 from/to 是正则，标记里避免括号。
 - 程序自动运行（截图、测试）用临时的 `XDG_CONFIG_HOME`，不要碰用户的 `~/.config/VisionCraftStudio`。

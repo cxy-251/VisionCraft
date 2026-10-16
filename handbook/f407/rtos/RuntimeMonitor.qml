@@ -8,6 +8,26 @@ Section {
         text: qsTr("不需要添加外设或连线。已有的任务快照、计时计数器和故障记录足以提供运行监控；关键是让数据所属任务生成快照，避免把LVGL或终端搬进通信任务，也避免靠解析终端文字维持界面。读取监控不会启动自检、访问SD或写入EEPROM/Flash。")
     }
     KeyPoints {
+        label: qsTr("实板验证结果 · 2026-10-16")
+        points: [
+            qsTr("连续观察600.37秒：PA4以50 kHz、每帧1024点采集，共完成1125帧、4500次512字节PING和18次RTT客户端重连；每30秒往返HOME与DEVICE页。采集帧之间有间隔，这项验证覆盖并行工作与恢复，不用于测极限吞吐。"),
+            qsTr("主动暂停OpenOCD 6秒后恢复，RTT累计丢弃从1260字节增至2492字节；随后正常窗口结束仍为2492字节，恢复后新增丢弃为零。已有计数保留，不能把累计非零误判为恢复后仍在出错。板端坏帧和鼠标丢弃均为零，本轮未观察到复位或故障记录。"),
+            qsTr("FreeRTOS最小剩余堆保持18816字节；LVGL使用量从压力恢复后的32396字节到窗口末32392字节，累计峰值33612/45056字节。窗口内StationTask、LinkTask、EnvTask最小剩栈分别为3996/8192、1664/2048、1252/1536字节；随后Qt读取INFO/RTC及监控时，LinkTask降至1576字节，属于另一段调用路径。"),
+            qsTr("协议、DeviceLink、波形界面、波形分析、分层、手册引用和运行监控界面七项回归全部通过。另用实板RTT验证Qt控件的轮询、暂停、手动刷新、离页停止及断开清理；下方图片来自这次实板连接。")
+        ]
+    }
+    Para {
+        text: qsTr("固件链接占用：RAM 121656/131072字节，CCM 63512/65536字节，外部静态区955308字节，距尾部64 KiB暂存区尚有27732字节。本次监控增加984字节Flash、8字节片内RAM及680字节外部静态缓冲，未增加CCM或FreeRTOS堆分配。")
+    }
+    CodeRef {
+        file: "handbook/f407/rtos/runtime-monitor-test.txt"
+        match: "^.*seconds.*600[.]37"
+        caption: qsTr("同一轮600秒测试的原始结果；完整采样日志保留在仓库中")
+    }
+    Pitfall {
+        text: qsTr("这次结果只覆盖十分钟内实际执行的负载，不代表数日稳定性、所有队列满载或全部断线时序。计时峰值包含启动、换页和背压，不能当作稳定采集时延上界或CPU占用率；本轮也没有注入HardFault或栈溢出。阅读时要把已测结果与这些边界放在一起。")
+    }
+    KeyPoints {
         label: qsTr("请求和所有者")
         points: [
             qsTr("GET_MONITOR（0x10）是空请求。LinkTask只交接一个序号，槽满立即返回BUSY；StationTask每轮检查请求，采集任务、LVGL内存及其他计数器，编码后回应。没有新增任务或动态分配；应答缓冲680字节放在外部静态区，受链接器的暂存区隔离检查保护。"),
@@ -39,10 +59,7 @@ Section {
     }
     CodeRef { file: "firmware/station/App/vc_rtt.c"; region: "write" }
     CodeRef { file: "tools/runtime_probe.py" }
-    CodeRef { file: "handbook/f407/rtos/runtime-monitor-test.txt"; from: "==== 构建及固件资源"; to: "==== 桌面协议"; caption: qsTr("构建、烧录与资源") }
-    CodeRef { file: "handbook/f407/rtos/runtime-monitor-test.txt"; from: "==== 10分钟稳定性"; to: "以下原始输出"; caption: qsTr("600秒实板窗口摘要；完整逐次快照保留在同一记录文件") }
-    CodeRef { file: "handbook/f407/rtos/runtime-monitor-test.txt"; from: "==== 验证边界"; to: "==== 最终相关回归"; caption: qsTr("验证范围和测量边界") }
-    CodeRef { file: "handbook/f407/rtos/runtime-monitor-test.txt"; from: "==== 最终相关回归"; to: "==== 归档结束"; caption: qsTr("主机回归及实板Qt控件测试") }
+    CodeRef { file: "handbook/f407/rtos/runtime-monitor-test.txt"; match: "^100% tests passed, 0 tests failed out of 7$|^Totals: 3 passed, 0 failed, 0 skipped, 0 blacklisted, 5291ms$"; caption: qsTr("七项主机回归与另一次实板Qt控件测试的原始汇总") }
     CodeRef { file: "tests/tst_runtime_ui.cpp" }
     Try {
         task: qsTr("为什么RTT丢弃计数增加以后，恢复测试要比较后续增量，而不能要求计数重新为零？")

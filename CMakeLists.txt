@@ -99,7 +99,7 @@ else()
 endif()
 
 # ============================================================
-# 新版界面（QML 外壳 + 手册）。旧 Widgets 代码通过「实验室」入口打开，迁移完成后删除。
+# 新版界面（QML 外壳 + 手册）。旧 Widgets 代码通过侧栏入口打开，按用户要求长期保留。
 # ============================================================
 # Qt 6.8 起：给 qml/ 下每个子目录也生成 qmldir（6.7 没有这条策略）
 if(QT_KNOWN_POLICY_QTP0004)
@@ -118,6 +118,17 @@ qt_add_qml_module(VisionCraft
         qml/shell/NavRail.qml
         qml/shell/LabPage.qml
         qml/workshop/ImageWorkshopPage.qml
+        qml/tools/ToolAction.qml
+        qml/tools/ToolNote.qml
+        qml/tools/ToolPage.qml
+        qml/tools/SourcePicker.qml
+        qml/tools/ToolNumber.qml
+        qml/tools/MatcherPage.qml
+        qml/tools/BatchPage.qml
+        qml/tools/StreamPage.qml
+        qml/tools/NodeSettings.qml
+        qml/tools/NodesPage.qml
+        qml/tools/DevToolsPage.qml
         qml/device/DevicePage.qml
         qml/device/RuntimePanel.qml
         qml/station/StationPage.qml
@@ -177,6 +188,12 @@ qt_add_qml_module(VisionCraft
         src/app/ScopeArchive.cpp
         src/app/ScopeAnalysis.h
         src/app/ScopeAnalysis.cpp
+        src/app/VisionRunner.h
+        src/app/VisionRunner.cpp
+        src/app/BatchInspector.h
+        src/app/BatchInspector.cpp
+        src/app/DevTools.h
+        src/app/DevTools.cpp
         src/app/ImageWorkshop.h
         src/app/ImageWorkshop.cpp
         src/app/ImageView.h
@@ -190,6 +207,8 @@ qt_add_qml_module(VisionCraft
 
 # 视觉：可复用图像运算、模拟产线与检测算法
 target_sources(VisionCraft PRIVATE
+    src/vision/LabAlgorithms.h
+    src/vision/LabAlgorithms.cpp
     src/vision/ImageOperations.h
     src/vision/ImageOperations.cpp
     src/vision/PartGenerator.h

@@ -80,6 +80,12 @@ Rectangle {
             text: qsTr("静态链接占用：RAM %1 · CCM %2 · 外部SRAM %3").arg(panel.bytes(panel.snapshot.ram_used)).arg(panel.bytes(panel.snapshot.ccm_used)).arg(panel.bytes(panel.snapshot.external_used))
             color: Theme.textMuted; font.pixelSize: 12
         }
+        Text {
+            Layout.fillWidth: true; wrapMode: Text.Wrap; color: Theme.textMuted; font.pixelSize: 12
+            readonly property var flow: panel.snapshot.flow || []
+            text: qsTr("队列与拒绝：蜂鸣峰值 %1 / 丢弃 %2 · 命令忙 %3 · 结果覆盖 %4 · 图片忙 %5 · 鼠标队列峰值 %6")
+                .arg(flow[0]??"—").arg(flow[1]??"—").arg(flow[2]??"—").arg(flow[3]??"—").arg(flow[4]??"—").arg(flow[5]??"—")
+        }
         Canvas {
             id: trend
             Layout.fillWidth: true; implicitHeight: 90
@@ -145,7 +151,7 @@ Rectangle {
                 readonly property var stat: (panel.snapshot.metrics||[])[modelData]||{}
                 Layout.fillWidth: true
                 Text { text: panel.metricNames[modelData]; color: Theme.textMuted; font.pixelSize: 12; Layout.fillWidth: true }
-                Text { text: qsTr("最近 %1 · 峰值 %2 · >20ms %3 / %4次").arg((stat.lastMs||0).toFixed(3)).arg((stat.peakMs||0).toFixed(3)).arg(stat.over20ms||0).arg(stat.count||0); color: Theme.text; font.pixelSize: 12 }
+                Text { text: stat.count ? qsTr("最近 %1 · 峰值 %2 · >20ms %3 / %4次").arg((stat.lastMs||0).toFixed(3)).arg((stat.peakMs||0).toFixed(3)).arg(stat.over20ms||0).arg(stat.count||0) : qsTr("尚无样本"); color: Theme.text; font.pixelSize: 12 }
             }
         }
         Text { text: qsTr("计时包含等待与抢占；峰值从板端计时窗口开始累计，换页不清零，不能当作最坏时延保证。"); color: Theme.textMuted; font.pixelSize: 11; wrapMode: Text.Wrap; Layout.fillWidth: true }

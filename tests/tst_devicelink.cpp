@@ -5,11 +5,13 @@
 
 class MonitorErrorSim : public SimTransport {
 public:
-    int mode=0; // 0 normal, 1 unsupported, 2 malformed, 3 silent
+    int mode=0; // 0 normal, 1 unsupported, 2 malformed, 3 silent, 4 delayed old boot
+    uint8_t heldSeq=0;
     void write(const QByteArray &bytes) override {
         vc_decoder d;vc_decoder_init(&d);vc_frame f{};
         for(char c:bytes) if(vc_decoder_feed(&d,uint8_t(c),&f) && f.type==VC_CMD_GET_MONITOR && mode) {
             if(mode==3) return;
+            if(mode==4) { heldSeq=f.seq;return; }
             QByteArray body(1,mode==1 ? char(VC_ERR_UNKNOWN) : char(VC_OK));
             if(mode==2) body.append("bad schema");
             QByteArray frame(VC_MAX_FRAME,0);
@@ -18,6 +20,16 @@ public:
             QTimer::singleShot(0,this,[this,frame]{ emit bytesReceived(frame); });return;
         }
         SimTransport::write(bytes);
+    }
+    void releaseHeld() {
+        vc_monitor old{};old.task_status=1;old.task_total=6;
+        old.values[VC_MON_cycles_per_ms]=168000;old.values[VC_MON_uptime_ms]=9999999;
+        QByteArray body(VC_MONITOR_MAX_SIZE+1,0);
+        body.resize(qsizetype(1+vc_monitor_write(reinterpret_cast<uint8_t *>(body.data())+1,size_t(body.size()-1),&old)));
+        QByteArray frame(VC_MAX_FRAME,0);
+        frame.resize(qsizetype(vc_encode(reinterpret_cast<uint8_t *>(frame.data()),size_t(frame.size()),VC_RSP(VC_CMD_GET_MONITOR),heldSeq,
+            reinterpret_cast<const uint8_t *>(body.constData()),uint16_t(body.size()))));
+        emit bytesReceived(frame);
     }
     void hello() {
         QByteArray frame(VC_MAX_FRAME,0);
@@ -117,6 +129,11 @@ private slots:
         QVERIFY(link.getMonitor()<0);
         channel->mode=0;channel->hello();QTRY_VERIFY(!link.monitor().isEmpty());
         QVERIFY(link.monitorHistory().size()<5); // 重启不会接上旧历史。
+        channel->mode=4;QVERIFY(link.getMonitor()>=0);
+        channel->mode=0;channel->hello();QTRY_VERIFY(!link.monitor().isEmpty());
+        const auto fresh=link.monitor();const auto freshHistory=link.monitorHistory();
+        channel->releaseHeld();QTest::qWait(20);
+        QCOMPARE(link.monitor(),fresh);QCOMPARE(link.monitorHistory(),freshHistory);
         link.disconnectDevice();QVERIFY(link.monitor().isEmpty());QVERIFY(link.monitorHistory().isEmpty());
     }
 

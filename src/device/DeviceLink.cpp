@@ -859,7 +859,7 @@ int DeviceLink::getMonitor()
             {QStringLiteral("heap"),m.values[VC_MON_heap_free]},{QStringLiteral("lv"),m.values[VC_MON_lv_used]},
             {QStringLiteral("uptime_ms"),m.values[VC_MON_uptime_ms]},{QStringLiteral("epoch"),m.values[VC_MON_epoch]}});
         while(m_monitorHistory.size()>120) m_monitorHistory.removeFirst();
-        m_monitorStatus=tr("%1 · 已更新 · 任务%2").arg(transportName()).arg(m.task_total);
+        m_monitorStatus=tr("%1 · 已更新 · 任务%2 · 运行%3秒").arg(transportName()).arg(m.task_total).arg(m.values[VC_MON_uptime_ms]/1000);
         emit monitorChanged();
     });
 }

@@ -315,3 +315,32 @@ Test project /home/deck/Games/claude/VisionCraft/build
 100% tests passed, 0 tests failed out of 7
 
 Total Test time (real) =  35.47 sec
+
+==== Stage 3: observed USB re-enumeration and power-reset startup
+2026-10-16. After requesting a power cycle, USB CH340 was observed changing from device 057 to 058; no timing of the physical action or screen appearance was captured. No ST-Link present. The protocol monitor reported RCC reset_flags=0x0e000000 (power/brownout reset bits; no IWDG). Following full serial window passed, UART errors/drops 0->0. This is distinct from the Stage 2 software reset and is not a multi-day or all-power-supplies claim.
+Bus 001 Device 001: ID 1d6b:0002 Linux Foundation 2.0 root hub
+Bus 001 Device 058: ID 1a86:7523 QinHeng Electronics CH340 serial converter
+Bus 002 Device 001: ID 1d6b:0003 Linux Foundation 3.0 root hub
+Bus 003 Device 001: ID 1d6b:0002 Linux Foundation 2.0 root hub
+Bus 003 Device 002: ID 28de:1205 Valve Software Steam Controller
+Bus 004 Device 001: ID 1d6b:0003 Linux Foundation 3.0 root hub
+
+********* Start testing of TstDeviceLink *********
+Config: Using QtTest library 6.9.1, Qt 6.9.1 (x86_64-little_endian-lp64 shared (dynamic) release build; by GCC 15.1.1 20250425), steamos 3.8.16
+PASS   : TstDeviceLink::initTestCase()
+QINFO  : TstDeviceLink::serialRealBoard() SERIAL INFO {"build":"Oct 16 2026 16:09:26","firmware":"0.1.0","protocol":1,"uid":"17002E001351363530353037","uptimeMs":522833}
+QINFO  : TstDeviceLink::serialRealBoard() link active UART; USART1 115200 8N1
+uart rx-drop 0 tx-drop 0 errors 0
+QINFO  : TstDeviceLink::serialRealBoard() last RCC_CSR 0x0e000000
+no fault record
+QINFO  : TstDeviceLink::serialRealBoard() SERIAL TELEMETRY {"cpuTemp":44.98,"deviceRxErrors":0,"deviceRxFrames":4,"hostTime":1792157917861,"light":3.6,"uptimeMs":522842,"vddaMv":3293}
+QINFO  : TstDeviceLink::serialRealBoard() SERIAL CLOCK {"available":true,"source":"LSE","text":"未校时","valid":false}
+QINFO  : TstDeviceLink::serialRealBoard() SERIAL IMAGE bytes 38400 ms 3392.35
+QINFO  : TstDeviceLink::serialRealBoard() SERIAL FINAL MONITOR {"ccm_used":63512,"cycles_per_ms":168000,"epoch":0,"external_used":959404,"faultTask":"","fault_cfsr":0,"fault_hfsr":0,"fault_kind":0,"fault_lr":0,"fault_pc":0,"flow":[0,0,0,0,0,0,0],"heap_free":18816,"heap_min":18816,"heap_total":32768,"lv_peak":6456,"lv_total":45056,"lv_used":6456,"metrics":[{"count":51705,"lastMs":11.016196428571428,"over20ms":0,"peakMs":13},{"count":25852,"lastMs":20,"over20ms":15620,"peakMs":23.99085119047619},{"count":25852,"lastMs":20.739714285714285,"over20ms":25806,"peakMs":23.240964285714284},{"count":51705,"lastMs":0.004125,"over20ms":0,"peakMs":3.25275},{"count":25853,"lastMs":0.0020238095238095236,"over20ms":0,"peakMs":0.021541666666666667},{"count":0,"lastMs":0,"over20ms":0,"peakMs":0},{"count":2,"lastMs":8.010392857142858,"over20ms":0,"peakMs":8.05942857142857},{"count":2,"lastMs":0.02230357142857143,"over20ms":0,"peakMs":0.03255357142857143},{"count":1,"lastMs":1.802529761904762,"over20ms":0,"peakMs":1.802529761904762},{"count":1,"lastMs":3.2482261904761907,"over20ms":0,"peakMs":3.2482261904761907},{"count":132,"lastMs":0.002476190476190476,"over20ms":0,"peakMs":0.002511904761904762},{"count":15,"lastMs":0.0017321428571428572,"over20ms":0,"peakMs":0.0017321428571428572},{"count":11,"lastMs":0.0015952380952380953,"over20ms":0,"peakMs":0.0017321428571428572},{"count":132,"lastMs":0.014226190476190476,"over20ms":0,"peakMs":0.5811785714285714},{"count":15,"lastMs":0.3749523809523809,"over20ms":0,"peakMs":0.3880595238095238},{"count":11,"lastMs":0.018232142857142856,"over20ms":0,"peakMs":0.031017857142857142},{"count":0,"lastMs":0,"over20ms":0,"peakMs":0},{"count":0,"lastMs":0,"over20ms":0,"peakMs":0}],"mouse_dropped":0,"ram_used":122808,"receivedAt":1792157928040,"reset_flags":234881024,"rtt_dropped":0,"rx_errors":0,"rx_frames":147,"source":"串口 serial/by-id/usb-1a86_USB_Serial-if00-port0 @115200","taskStatus":0,"taskTotal":6,"tasks":[{"name":"IDLE","priority":0,"stackFree":428,"state":"r"},{"name":"Tmr Svc","priority":2,"stackFree":896,"state":"B"},{"name":"USBH_Queue","priority":24,"stackFree":756,"state":"B"},{"name":"envTask","priority":16,"stackFree":1252,"state":"r"},{"name":"linkTask","priority":32,"stackFree":1632,"state":"B"},{"name":"stationTask","priority":24,"stackFree":6496,"state":"R"}],"uptime_ms":533002}
+QINFO  : TstDeviceLink::serialRealBoard() SERIAL FINAL active UART; USART1 115200 8N1
+uart rx-drop 0 tx-drop 0 errors 0
+QINFO  : TstDeviceLink::serialRealBoard() PASS physical USB_232: ten frames, ten maximum PINGs, 38400-byte image, telemetry, RTC, three client reconnects; no SD operations
+PASS   : TstDeviceLink::serialRealBoard()
+PASS   : TstDeviceLink::cleanupTestCase()
+Totals: 3 passed, 0 failed, 0 skipped, 0 blacklisted, 10305ms
+********* Finished testing of TstDeviceLink *********

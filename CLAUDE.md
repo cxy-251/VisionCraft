@@ -10,7 +10,7 @@ Qt 6 + OpenCV 上位机（`src/`、`qml/`），STM32F407ZG 工位固件（`firmw
 - 第三方源码不在仓库里：第一次配置时 `firmware/third_party/fetch.cmake` 从 GitHub 拉 LVGL（v9.6.0）和 STM32CubeF4（v1.28.3，文件清单见 `stm32cubef4_files.txt`）。不要把 `firmware/station/Drivers`、`Middlewares`、`firmware/third_party/lvgl` 提交进来。
 
 ## 固件
-- USB_232实线已验收（2026-10-16，Qt6.9.1）：115200 8N1，打开时显式DTR有效、RTS释放，保持板载自动下载电路正常运行态；普通连接不自动复位。Qt6.9+关闭settingsRestoredOnClose，防止恢复Linux默认9600/回显。UART错误计数比较窗口增量，保留历史；显式reboot前先只读diag确认active/pending均零。无ST-Link的软件复位/重连通过，不能外推为冷断电或数日运行已验证。
+- USB_232实线已验收（2026-10-16，Qt6.9.1）：115200 8N1，打开时显式DTR有效、RTS释放，保持板载自动下载电路正常运行态；普通连接不自动复位。Qt6.9+关闭settingsRestoredOnClose，防止恢复Linux默认9600/回显。UART错误计数比较窗口增量，保留历史；显式reboot前先只读diag确认active/pending均零。无ST-Link的软件复位/重连通过；后续USB重枚举和0x0e000000电源复位后的串口窗口也通过，未自动测量断电时长/屏幕外观，不能外推数日或所有供电组合。
 - 用户最新使用方式（2026-10-16）：以后日常只接板载梯形 USB_232（CH340 / USART1），必须支持脱离 ST-Link 的协议通信与启动；这是恢复 USB 串口通信的明确授权，DB9 RS232、RS485等取消项不随之恢复。应用原有 ST-Link（RTT）连接入口、调试与烧录功能必须保留。
 - 用户范围调整（2026-10-16）：串口、RS232/485、红外、SPI Flash 文件系统及卷切换不再列为待办；不要自动恢复这些任务。SPI Flash 已完成的识别、只读驱动和保留区诊断保留。
 - 用户最新要求（2026-10-15）：不要再操作他的 SD 卡。后续开发与验证不进入 FILES、不执行读写卡/存储诊断/插拔测试；使用设备页、任务信息、RTT 等其他路径。保留既有 SD 实验记录，不把旧回归脚本自动带进新任务。
@@ -26,6 +26,7 @@ Qt 6 + OpenCV 上位机（`src/`、`qml/`），STM32F407ZG 工位固件（`firmw
 - 需要人动手的（看屏、按键、插线）一次问清楚。
 
 ## 手册
+- 电脑端波形记录：ScopeArchive仅访问本地.vcscope.json单帧文件，128 KiB上限、版本1、原始ADC/实际采样率/UTC电脑接收时间/来源；不访问板上SD。离线回放与DeviceLink实时帧分别保存状态，共用ScopeFrame统计与ScopeAnalysis频谱。加载失败保留有效回放，返回实时不会自动开始采集。
 - 用户要求（2026-10-16）：面向读者的正文、学习说明、实测结论及验证边界写在 `handbook/*.qml` 中，展示在应用手册内。复用 `Section`、`Para`、`KeyPoints`、`Why`、`Pitfall`、`Figure` 等共享组件及 `Theme`，不在章节各自硬编码字体、颜色和间距。`.txt` 保留为原始测试证据，`CodeRef` 只选必要的短输出，不能用整份验收日志代替正文；交付时优先指向 QML 章节。
 - 每节：示例或板上脚本 → 实际输出存成 `output.txt` / `*-test.txt` → 写 QML（`CodeRef` 引用代码和输出）→ 在 `handbook/Index.qml` 登记 → `ctest -R tst_handbook_refs` → 截图检查 → 本地提交。
 - 每句结论都要有出处（测试、示例输出、测量）；推测写明是推测。`CodeRef` 的 from/to 是正则，标记里避免括号。

@@ -304,6 +304,10 @@ HandbookIndex {
             Entry { title: qsTr("远程终端：在上位机里敲板子的命令"); file: "handbook/system/communication/RemoteShell.qml" }
         }
         Chapter {
+            title: qsTr("数据记录")
+            Entry { title: qsTr("波形文件：保存与离线回放"); file: "handbook/system/data/ScopeArchive.qml" }
+        }
+        Chapter {
             title: qsTr("检测")
             Entry { title: qsTr("模拟产线"); file: "handbook/system/inspection/PartLine.qml" }
             Entry { title: qsTr("检测管线"); file: "handbook/system/inspection/Pipeline.qml" }

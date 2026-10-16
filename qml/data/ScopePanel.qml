@@ -1,6 +1,8 @@
 import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
+import QtQuick.Dialogs
+import QtCore
 import VisionCraft
 
 Rectangle {
@@ -11,7 +13,8 @@ Rectangle {
     color: Theme.surface
     border.color: Theme.border
     readonly property bool connected: DeviceLink.state === DeviceLink.Connected
-    readonly property var frame: DeviceLink.scopeFrame
+    readonly property bool replaying: ScopeArchive.replaying
+    readonly property var frame: replaying ? ScopeArchive.replayFrame : DeviceLink.scopeFrame
     readonly property var samples: frame.samples || []
     readonly property var spectrum: ScopeAnalysis.spectrum(frame)
     property bool fullSpectrum: false
@@ -20,9 +23,17 @@ Rectangle {
     property int frames: 0
     property real lastFrameAt: 0
     property real refreshHz: 0
+    property var pendingSaveFrame: ({})
 
     function capture() {
+        if (replaying) return false
         return DeviceLink.startScope(rates[rateBox.currentIndex], Number(countBox.currentText))
+    }
+    function openReplay(url) {
+        if (!ScopeArchive.load(url)) return false
+        stop()
+        zoom.value = 1; pan.value = 0
+        return true
     }
     function stop() {
         continuous = false
@@ -35,6 +46,7 @@ Rectangle {
     Connections {
         target: DeviceLink
         function onScopeFinished(ok, message) {
+            if (panel.replaying) return
             if (!ok) { panel.continuous = false; repeatCapture.stop(); return }
             panel.frames++
             const now = Date.now()
@@ -57,41 +69,66 @@ Rectangle {
             Text { text: qsTr("板上波形 · PA4 回环"); color: Theme.text; font.pixelSize: 18; font.weight: Font.DemiBold }
             Item { Layout.fillWidth: true }
             Text {
-                text: !panel.connected ? qsTr("未连接") : DeviceLink.transportName.indexOf("模拟") >= 0 ? qsTr("模拟数据") : qsTr("实板采样")
-                color: panel.connected ? Theme.accent : Theme.textMuted; font.pixelSize: 12
+                objectName: "scopeSource"
+                text: panel.replaying ? qsTr("离线回放 · %1").arg(ScopeArchive.replayFile)
+                    : !panel.connected ? qsTr("未连接") : DeviceLink.transportName.indexOf("模拟") >= 0 ? qsTr("模拟数据") : qsTr("实板采样")
+                textFormat: Text.PlainText
+                color: panel.replaying || panel.connected ? Theme.accent : Theme.textMuted; font.pixelSize: 12
+                elide: Text.ElideMiddle; Layout.maximumWidth: panel.width * .5
             }
         }
         Text {
             Layout.fillWidth: true; wrapMode: Text.Wrap; color: Theme.textMuted; font.pixelSize: 12
-            text: qsTr("DAC 产生约 1 kHz 正弦，ADC2 采集同一 PA4 引脚，无需接线。连续模式逐帧采集与回传，帧与帧之间有间隔。")
+            text: panel.replaying ? qsTr("回放电脑上的完整采样帧，不需要连接开发板。时间轴和频谱使用文件样本；回传耗时及VDDA保留原始记录值。")
+                : qsTr("DAC 产生约 1 kHz 正弦，ADC2 采集同一 PA4 引脚，无需接线。连续模式逐帧采集与回传，帧与帧之间有间隔。")
         }
         Flow {
             Layout.fillWidth: true; spacing: 10
             Row {
                 spacing: 6
                 Label { text: qsTr("采样率"); color: Theme.textMuted; anchors.verticalCenter: parent.verticalCenter }
-                ScopeChoice { id: rateBox; model: ["10 kS/s", "20 kS/s", "50 kS/s", "100 kS/s", "200 kS/s"]; currentIndex: 2; enabled: !DeviceLink.scopeBusy && !panel.continuous }
+                ScopeChoice { id: rateBox; model: ["10 kS/s", "20 kS/s", "50 kS/s", "100 kS/s", "200 kS/s"]; currentIndex: 2; displayText: panel.replaying ? (panel.frame.rate/1000).toFixed(2) + " kS/s" : currentText; enabled: !panel.replaying && !DeviceLink.scopeBusy && !panel.continuous }
             }
             Row {
                 spacing: 6
                 Label { text: qsTr("点数"); color: Theme.textMuted; anchors.verticalCenter: parent.verticalCenter }
-                ScopeChoice { id: countBox; model: ["512", "1024", "2048"]; currentIndex: 2; enabled: !DeviceLink.scopeBusy && !panel.continuous }
+                ScopeChoice { id: countBox; model: ["512", "1024", "2048"]; currentIndex: 2; displayText: panel.replaying ? String(panel.frame.count) : currentText; enabled: !panel.replaying && !DeviceLink.scopeBusy && !panel.continuous }
             }
-            ScopeAction { text: qsTr("采一帧"); enabled: panel.connected && !DeviceLink.scopeBusy && !panel.continuous; onClicked: panel.capture() }
+            ScopeAction { text: qsTr("采一帧"); enabled: !panel.replaying && panel.connected && !DeviceLink.scopeBusy && !panel.continuous; onClicked: panel.capture() }
             ScopeAction {
                 objectName: "scopeContinuous"
                 text: panel.continuous ? qsTr("暂停") : qsTr("连续采集")
-                enabled: panel.connected && (panel.continuous || !DeviceLink.scopeBusy)
+                enabled: !panel.replaying && panel.connected && (panel.continuous || !DeviceLink.scopeBusy)
                 onClicked: {
                     if (panel.continuous) panel.stop()
                     else { panel.continuous = true; panel.lastFrameAt = 0; panel.capture() }
                 }
             }
             ScopeAction { text: qsTr("停止"); enabled: panel.connected && (DeviceLink.scopeBusy || panel.continuous); onClicked: panel.stop() }
+            ScopeAction {
+                objectName: "scopeSave"
+                text: qsTr("保存这一帧…"); enabled: panel.samples.length > 0 && !DeviceLink.scopeBusy && !panel.continuous
+                onClicked: { panel.pendingSaveFrame = panel.frame; saveDialog.open() }
+            }
+            ScopeAction { objectName: "scopeOpen"; text: qsTr("打开采样文件…"); onClicked: openDialog.open() }
+            ScopeAction {
+                objectName: "scopeReturnLive"
+                text: qsTr("返回实时"); visible: panel.replaying
+                onClicked: { ScopeArchive.closeReplay(); zoom.value = 1; pan.value = 0 }
+            }
         }
         Text {
             Layout.fillWidth: true; wrapMode: Text.Wrap; color: Theme.textMuted; font.pixelSize: 12
-            text: DeviceLink.scopeStatus || qsTr("在设备页连接后，可采一帧或连续观察。")
+            textFormat: Text.PlainText
+            text: panel.replaying ? qsTr("离线回放：%1\n原始来源：%2 · 电脑接收时间（UTC）：%3")
+                .arg(ScopeArchive.replayFile).arg(panel.frame.source).arg(panel.frame.receivedAtUtc)
+                : DeviceLink.scopeStatus || qsTr("在设备页连接后，可采一帧或连续观察，也可打开电脑上的采样文件。")
+        }
+        Text {
+            objectName: "scopeFileStatus"
+            Layout.fillWidth: true; visible: text.length > 0; wrapMode: Text.Wrap
+            text: ScopeArchive.status; textFormat: Text.PlainText
+            color: Theme.textMuted; font.pixelSize: 12
         }
         Rectangle {
             Layout.fillWidth: true; implicitHeight: 280; radius: 6; color: Theme.codeBg
@@ -155,7 +192,7 @@ Rectangle {
                 .arg(panel.frame.transferMs.toFixed(1)).arg(panel.frame.min).arg(panel.frame.max)
                 .arg(panel.frame.measuredHz > 0 ? panel.frame.measuredHz.toFixed(1) : qsTr("周期不足"))
                 .arg(panel.frame.signalHz.toFixed(2)).arg(panel.frame.vddaMv || "—")
-                + (panel.refreshHz > 0 ? qsTr(" · 最近刷新 %1 帧/s").arg(panel.refreshHz.toFixed(1)) : "")
+                + (!panel.replaying && panel.refreshHz > 0 ? qsTr(" · 最近刷新 %1 帧/s").arg(panel.refreshHz.toFixed(1)) : "")
                 : qsTr("纵轴为原始 12 位 ADC 码；横轴按实际采样间隔计算。暂停后可放大、平移最后完整帧。")
         }
         // [region spectrum]
@@ -224,6 +261,26 @@ Rectangle {
                 : qsTr("收到完整帧后分析频谱；全频段上限为采样率的一半。")
         }
         // [endregion]
+    }
+    FileDialog {
+        id: saveDialog
+        objectName: "scopeSaveDialog"
+        title: qsTr("保存采样帧到电脑")
+        fileMode: FileDialog.SaveFile
+        nameFilters: [qsTr("采样帧 (*.vcscope.json)")]
+        defaultSuffix: "vcscope.json"
+        currentFolder: StandardPaths.writableLocation(StandardPaths.DocumentsLocation)
+        onAccepted: { ScopeArchive.save(selectedFile, panel.pendingSaveFrame); panel.pendingSaveFrame = ({}) }
+        onRejected: panel.pendingSaveFrame = ({})
+    }
+    FileDialog {
+        id: openDialog
+        objectName: "scopeOpenDialog"
+        title: qsTr("打开电脑上的采样帧")
+        fileMode: FileDialog.OpenFile
+        nameFilters: [qsTr("采样帧 (*.vcscope.json)"), qsTr("JSON 文件 (*.json)")]
+        currentFolder: StandardPaths.writableLocation(StandardPaths.DocumentsLocation)
+        onAccepted: panel.openReplay(selectedFile)
     }
     component ScopeChoice: ComboBox {
         palette.button: Theme.surfaceAlt

@@ -169,6 +169,9 @@ qt_add_qml_module(VisionCraft
         src/demos/opencv/ThresholdDemo.cpp
         src/device/DeviceLink.h
         src/device/DeviceLink.cpp
+        src/device/ScopeFrame.h
+        src/app/ScopeArchive.h
+        src/app/ScopeArchive.cpp
         src/app/ScopeAnalysis.h
         src/app/ScopeAnalysis.cpp
         src/app/ImageView.h
@@ -202,7 +205,7 @@ target_sources(VisionCraft PRIVATE
 # 手册正文、示例代码与被引用的源码：打包进资源，CodeRef 运行时按文件路径读取
 file(GLOB_RECURSE VC_HANDBOOK_FILES CONFIGURE_DEPENDS
     RELATIVE ${CMAKE_CURRENT_SOURCE_DIR}
-    handbook/*.qml handbook/*.txt handbook/*.c handbook/*.png handbook/*.jpg
+    handbook/*.qml handbook/*.txt handbook/*.c handbook/*.png handbook/*.jpg handbook/*.json
     scripts/*.sh
     examples/*.cpp examples/*.h examples/*.c examples/*.txt examples/*.qml examples/*.ts examples/*.json
     src/*.cpp src/*.h

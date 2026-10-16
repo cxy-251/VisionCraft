@@ -5,6 +5,8 @@ Section {
     title: qsTr("DAC → ADC 回环示波器")
     lead: qsTr("定时器决定 DAC 更新和 ADC 采样节拍，DMA 搬运数据，CPU 管理配置、缓冲交接与传输。正式固件现已接通 Qt 数据页；PA4 同引脚回环，无需跳线。")
 
+    Para { text: qsTr("电脑端现可保存完整帧并离线回放，入口在数据页；格式、来源与时间含义见系统卷「波形文件：保存与离线回放」。不需要板上SD卡，回放复用本节的时域与频谱分析。") }
+
     Why {
         text: qsTr("「DAC」一节是一个点一个点地写、一个点一个点地读，靠调试器每次几毫秒，测不了随时间变化的信号。真实的采集要求「每隔固定时间采一个点」，这件事靠程序循环是做不准的，要交给硬件：定时器决定节拍，DMA 负责搬数据。"
                  + "当前实现用 TIM6 + DMA1 驱动 DAC 的 128 点表，TIM2 + DMA2 驱动 ADC2，LinkTask 管理一次有限长度采集，并按请求分块读回。Qt 只发布完整帧，可以连续采集、暂停、放大和平移。")
@@ -30,8 +32,14 @@ Section {
     CodeRef { file: "firmware/station/App/scope.c"; region: "notify" }
     CodeRef { file: "firmware/station/App/link.c"; region: "scope" }
     CodeRef { file: "src/device/DeviceLink.cpp"; region: "scope" }
-    CodeRef { file: "handbook/f407/analog/scope-stream-test.txt"; from: "==== 0"; to: "==== 6"; caption: qsTr("正式固件：三档采样、停止重启、客户端丢失和二十帧并发") }
-    CodeRef { file: "handbook/f407/analog/scope-stream-test.txt"; from: "==== 6"; caption: qsTr("真实 Qt 链路、响应、内存与复现范围") }
+    KeyPoints {
+        label: qsTr("波形闭环的历史实板窗口 · 2026-10-15")
+        points: [
+            qsTr("10、50、200 kS/s三档各验证2048点；非法范围/长度、采集BUSY、读取边界、停止重启、客户端丢失后采集自行结束、旧编号拒绝和重复STOP均通过。真实Qt DeviceLink也完成三档整帧读回。"),
+            qsTr("二十帧并发遥测、PING和输入轮询标记：20个标记全部处理，峰值10.1204 ms；GUI调用间隔峰值27.6749 ms，DMA错误与RTT丢弃均为零，无看门狗复位。FreeRTOS最小剩堆18816字节，StationTask/LinkTask最小剩栈3996/1672字节，LVGL峰值31628/45056字节；仅覆盖该窗口，不是真实触摸延迟或最坏上界。")
+        ]
+    }
+    CodeRef { file: "handbook/f407/analog/scope-stream-test.txt"; match: "^PASS: actual PA4|PASS: three rates"; caption: qsTr("历史实板闭环与Qt整帧检查的短输出") }
     Pitfall {
         text: qsTr("200 kS/s 是帧内采样速率，不是屏幕刷新率，也不是持续回传速率。ADC 采满后已停，RTT 读回和下一帧启动之间有空档。当前固定约 1 kHz 信号、10–200 kS/s、32–2048 点；没有实现连续无缝流、任意外部探头输入、触发电平或绝对电压校准。")
     }
@@ -50,7 +58,7 @@ Section {
     }
     CodeRef { file: "src/app/ScopeAnalysis.cpp"; region: "spectrum" }
     CodeRef { file: "qml/data/ScopePanel.qml"; region: "spectrum" }
-    CodeRef { file: "handbook/f407/analog/scope-spectrum-test.txt"; caption: qsTr("合成信号、已存实板帧与界面验证；未占用当前设备连接") }
+    CodeRef { file: "handbook/f407/analog/scope-spectrum-test.txt"; match: "^Totals:"; caption: qsTr("合成信号、已归档实板帧及模拟界面的历史回归汇总") }
     Para {
         text: qsTr("以下保留历史裸寄存器实验和旧数据，未在本轮重跑。旧脚本曾使用 0x2001A000 起的固定 RAM，当时固件变量较少；当前这些地址已经不能视为空闲。脚本现在检测到 DAC 被固件启用就拒绝运行。正式回归使用 scope_link_probe.py 或 Qt 数据页。")
     }

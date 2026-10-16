@@ -1,0 +1,91 @@
+2026-10-16 computer-side single-frame recording / replay validation
+All files are on the computer; no board SD access or firmware changes.
+
+==== File schema and archived physical-frame tests
+********* Start testing of TstScopeArchive *********
+Config: Using QtTest library 6.9.1, Qt 6.9.1 (x86_64-little_endian-lp64 shared (dynamic) release build; by GCC 15.1.1 20250425), steamos 3.8.16
+PASS   : TstScopeArchive::initTestCase()
+QINFO  : TstScopeArchive::roundTripAndAnalysis() PASS raw ADC, actual rate, UTC receive time, source and derived time/frequency statistics survive replay
+PASS   : TstScopeArchive::roundTripAndAnalysis()
+PASS   : TstScopeArchive::rejectMalformedWithoutReplacingReplay(version)
+PASS   : TstScopeArchive::rejectMalformedWithoutReplacingReplay(format)
+PASS   : TstScopeArchive::rejectMalformedWithoutReplacingReplay(count)
+PASS   : TstScopeArchive::rejectMalformedWithoutReplacingReplay(short)
+PASS   : TstScopeArchive::rejectMalformedWithoutReplacingReplay(range)
+PASS   : TstScopeArchive::rejectMalformedWithoutReplacingReplay(fraction)
+PASS   : TstScopeArchive::rejectMalformedWithoutReplacingReplay(string)
+PASS   : TstScopeArchive::rejectMalformedWithoutReplacingReplay(boolean)
+PASS   : TstScopeArchive::rejectMalformedWithoutReplacingReplay(rate)
+PASS   : TstScopeArchive::rejectMalformedWithoutReplacingReplay(id)
+PASS   : TstScopeArchive::rejectMalformedWithoutReplacingReplay(vdda)
+PASS   : TstScopeArchive::rejectMalformedWithoutReplacingReplay(timestamp)
+PASS   : TstScopeArchive::rejectMalformedWithoutReplacingReplay(source)
+PASS   : TstScopeArchive::rejectMalformedWithoutReplacingReplay(null)
+PASS   : TstScopeArchive::rejectMalformedWithoutReplacingReplay(truncated)
+PASS   : TstScopeArchive::rejectMalformedWithoutReplacingReplay(oversize)
+PASS   : TstScopeArchive::rejectInvalidSaveAndIoFailures()
+PASS   : TstScopeArchive::ignoresForgedDerivedStatistics()
+QINFO  : TstScopeArchive::recordedPhysicalFrameCanBeAnalyzedOffline() PASS archived real PA4 frame analyzed offline without device connection
+PASS   : TstScopeArchive::recordedPhysicalFrameCanBeAnalyzedOffline()
+PASS   : TstScopeArchive::cleanupTestCase()
+Totals: 22 passed, 0 failed, 0 skipped, 0 blacklisted, 61ms
+********* Finished testing of TstScopeArchive *********
+
+==== QML button/accepted handlers, simulation
+Test project /home/deck/Games/claude/VisionCraft/build
+    Start  4: tst_scope_ui
+1/3 Test  #4: tst_scope_ui .....................   Passed    2.45 sec
+    Start 10: tst_handbook_refs
+2/3 Test #10: tst_handbook_refs ................   Passed    0.35 sec
+    Start 20: tst_scope_archive
+3/3 Test #20: tst_scope_archive ................   Passed    0.10 sec
+
+100% tests passed, 0 tests failed out of 3
+
+Total Test time (real) =   2.91 sec
+
+==== Original physical replay and archived sample provenance
+********* Start testing of TstScopeUi *********
+Config: Using QtTest library 6.9.1, Qt 6.9.1 (x86_64-little_endian-lp64 shared (dynamic) release build; by GCC 15.1.1 20250425), steamos 3.8.16
+PASS   : TstScopeUi::initTestCase()
+PASS   : TstScopeUi::capturePauseZoomAndLeave()
+PASS   : TstScopeUi::cleanupTestCase()
+Totals: 3 passed, 0 failed, 0 skipped, 0 blacklisted, 2616ms
+********* Finished testing of TstScopeUi *********
+
+==== Physical QML save/open button and dialog-accepted handlers
+********* Start testing of TstScopeUi *********
+Config: Using QtTest library 6.9.1, Qt 6.9.1 (x86_64-little_endian-lp64 shared (dynamic) release build; by GCC 15.1.1 20250425), steamos 3.8.16
+PASS   : TstScopeUi::initTestCase()
+PASS   : TstScopeUi::capturePauseZoomAndLeave()
+PASS   : TstScopeUi::cleanupTestCase()
+Totals: 3 passed, 0 failed, 0 skipped, 0 blacklisted, 2758ms
+********* Finished testing of TstScopeUi *********
+
+==== Scope and limits
+Physical test selects USB_232 explicitly; default tests still use simulation. The native QML test invokes button clicked and dialog accepted handlers, checks pause, replay isolation from subsequent live frames, disconnect retention, and return-to-live. Tests use non-native dialogs and do not drive the OS-native picker pixel by pixel.
+The archived JSON is one actual 2048-point / 50 kS/s PA4 frame, ADC min/max404/3704, source serial, receivedAtUtc2026-10-16T13:41:58.929Z. It is not a simulated dataset and not a calibrated voltage/frequency reference. File replay does not require a board. File time is computer complete-frame reception, not hardware sample-start time.
+Malformed/unknown/oversized/truncated files do not replace the last good replay. Save failure is checked against existing-file content. Raw samples and metadata, not serialized derived statistics, drive calculations. Files are single frames, not continuous recording.
+
+==== Final protocol, link, UI, analysis, archive, runtime, reference and layering regressions
+Test project /home/deck/Games/claude/VisionCraft/build
+    Start  2: tst_protocol
+1/8 Test  #2: tst_protocol .....................   Passed    0.03 sec
+    Start  3: tst_devicelink
+2/8 Test  #3: tst_devicelink ...................   Passed   29.44 sec
+    Start  4: tst_scope_ui
+3/8 Test  #4: tst_scope_ui .....................   Passed    2.05 sec
+    Start 10: tst_handbook_refs
+4/8 Test #10: tst_handbook_refs ................   Passed    0.33 sec
+    Start 11: tst_layering
+5/8 Test #11: tst_layering .....................   Passed    0.02 sec
+    Start 12: tst_scope_analysis
+6/8 Test #12: tst_scope_analysis ...............   Passed    0.10 sec
+    Start 18: tst_runtime_ui
+7/8 Test #18: tst_runtime_ui ...................   Passed    3.96 sec
+    Start 20: tst_scope_archive
+8/8 Test #20: tst_scope_archive ................   Passed    0.10 sec
+
+100% tests passed, 0 tests failed out of 8
+
+Total Test time (real) =  36.03 sec

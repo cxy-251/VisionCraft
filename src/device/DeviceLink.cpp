@@ -1,4 +1,5 @@
 #include "DeviceLink.h"
+#include "ScopeFrame.h"
 
 #include "RttTransport.h"
 #include "SerialTransport.h"
@@ -564,30 +565,14 @@ void DeviceLink::scopeRead(quint64 epoch)
             m_scope.samples.append(sample);
         }
         if (m_scope.samples.size() < m_scope.meta.count) { scopeRead(epoch); return; }
-        double sum = 0, lo = 4095, hi = 0;
-        for (const QVariant &sample : m_scope.samples) {
-            const double v = sample.toDouble(); sum += v; lo = std::min(lo, v); hi = std::max(hi, v);
-        }
-        const double mean = sum / m_scope.meta.count;
-        const double rate = double(m_scope.meta.timer_hz) / m_scope.meta.adc_div;
-        QList<double> crossings;
-        const double hyst = std::max(8.0, (hi-lo)*.05), threshold = mean+hyst;
-        bool armed = m_scope.samples.first().toDouble() < mean-hyst;
-        for (int i = 1; i < m_scope.samples.size(); ++i) {
-            const double a = m_scope.samples[i-1].toDouble(), b = m_scope.samples[i].toDouble();
-            if (b < mean-hyst) armed = true;
-            if (armed && a < threshold && b >= threshold) {
-                crossings.append(i - 1 + (threshold-a)/(b-a));
-                armed = false;
-            }
-        }
-        const double hz = crossings.size() >= 2 ? rate * (crossings.size()-1) / (crossings.last()-crossings.first()) : 0;
-        m_scopeFrame = {{QStringLiteral("samples"), m_scope.samples}, {QStringLiteral("rate"), rate},
-            {QStringLiteral("count"), m_scope.meta.count}, {QStringLiteral("id"), m_scope.meta.id},
-            {QStringLiteral("signalHz"), double(m_scope.meta.timer_hz)/m_scope.meta.dac_div/128.0},
-            {QStringLiteral("vddaMv"), m_scope.meta.vdda_mv}, {QStringLiteral("min"), lo}, {QStringLiteral("max"), hi},
-            {QStringLiteral("mean"), mean}, {QStringLiteral("measuredHz"), hz},
-            {QStringLiteral("transferMs"), m_scope.clock.nsecsElapsed()/1e6}};
+        const auto completed=ScopeFrame::normalized({
+            {"samples",m_scope.samples}, {"rate",double(m_scope.meta.timer_hz)/m_scope.meta.adc_div},
+            {"count",m_scope.meta.count}, {"id",m_scope.meta.id},
+            {"signalHz",double(m_scope.meta.timer_hz)/m_scope.meta.dac_div/128.0},
+            {"vddaMv",m_scope.meta.vdda_mv}, {"transferMs",m_scope.clock.nsecsElapsed()/1e6},
+            {"source",transportName()}, {"receivedAtUtc",QDateTime::currentDateTimeUtc().toString(Qt::ISODateWithMs)}});
+        if (completed.isEmpty()) { scopeFail(tr("采样帧无效")); return; }
+        m_scopeFrame=completed;
         m_scope.active = false;
         m_scopeStatus = tr("已接收完整帧 · %1 点").arg(m_scope.meta.count);
         emit scopeFrameChanged();

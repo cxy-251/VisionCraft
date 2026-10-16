@@ -58,7 +58,7 @@ class Probe:
         self.library.vc_crc16.argtypes = [ctypes.c_void_p, ctypes.c_size_t, ctypes.c_uint16]
         self.library.vc_crc16.restype = ctypes.c_uint16
 
-    def start(self):
+    def start(self, reset=True, navigate=True):
         for port in (self.tcl_port, self.rtt_port):
             with socket.socket() as test:
                 test.bind(("127.0.0.1", port))
@@ -76,8 +76,9 @@ class Probe:
             except OSError:
                 require(time.monotonic() < deadline, "TCL connection timed out")
                 time.sleep(.1)
-        self.cmd("reset run")
-        time.sleep(4)
+        if reset:
+            self.cmd("reset run")
+            time.sleep(4)
         self.cmd('rtt setup 0x20000000 0x20000 {SEGGER RTT}')
         self.cmd("rtt polling_interval 1")
         self.cmd("rtt start")
@@ -89,9 +90,10 @@ class Probe:
         self.request(5, struct.pack("<H", 50))
         self.telemetry_enabled = True
         # 空白处唤醒，再进入设备页；没有任何存储页面或命令。
-        self.tap(470, 780)
-        self.tap(392, 190)
-        require(self.title() == "DEVICE", "not DEVICE")
+        if navigate:
+            self.tap(470, 780)
+            self.tap(392, 190)
+            require(self.title() == "DEVICE", "not DEVICE")
 
     def close(self):
         if self.rtt and self.telemetry_enabled:

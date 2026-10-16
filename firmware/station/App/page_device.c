@@ -16,7 +16,7 @@ extern const char app_build_stamp[];
 
 static lv_obj_t *s_screen, *s_uptime, *s_heap, *s_tasks, *s_lvmem;
 LV_FONT_DECLARE(vc_font_mono_16)
-static lv_obj_t *s_taskRows[APP_TASK_MAX], *s_taskCells[APP_TASK_MAX][4], *s_taskError;
+static lv_obj_t *s_taskCard, *s_taskRows[APP_TASK_MAX], *s_taskCells[APP_TASK_MAX][4], *s_taskError;
 static uint32_t s_lastUpdate;
 static lv_obj_t *s_clock;
 static lv_obj_t *s_diagValues[4], *s_diagMessage, *s_diagButtons[3], *s_diagCancel, *s_diagRetry;
@@ -64,11 +64,12 @@ static lv_obj_t *task_row(lv_obj_t *parent, lv_obj_t **cells, int header)
 static void tasks_build(void)
 {
     lv_obj_t *card = group("任务明细");
+    s_taskCard = card;
     lv_obj_t *header[4];
     task_row(card, header, 1);
+    /* 仅为实际任务建行。预建十行（含四行隐藏控件）会挤占字形绘制的临时内存。 */
     for (unsigned i = 0; i < APP_TASK_MAX; ++i) {
-        s_taskRows[i] = task_row(card, s_taskCells[i], 0);
-        lv_obj_set_hidden(s_taskRows[i], true);
+        s_taskRows[i] = NULL;
     }
     s_taskError = ui_text(card, "任务快照不可用", UI_NG);
     lv_obj_set_hidden(s_taskError, true);
@@ -87,7 +88,11 @@ static void tasks_update(void)
     lv_obj_set_hidden(s_taskError, g_device_tasks_rc == 0);
     for (unsigned i = 0; i < APP_TASK_MAX; ++i) {
         const int show = g_device_tasks_rc == 0 && i < g_device_tasks.count;
-        lv_obj_set_hidden(s_taskRows[i], !show);
+        if (show && !s_taskRows[i]) {
+            s_taskRows[i] = task_row(s_taskCard, s_taskCells[i], 0);
+            lv_obj_move_to_index(s_taskRows[i], (int32_t)i + 1);
+        }
+        if (s_taskRows[i]) lv_obj_set_hidden(s_taskRows[i], !show);
         if (!show) continue;
         const app_task_info *t = &g_device_tasks.tasks[i];
         char value[16], state[] = {t->state, 0};

@@ -149,13 +149,28 @@ def run(p):
     p.status(8, struct.pack("<I", 0)+b"abcd", 1)
     p.request(8, struct.pack("<I", 4)+b"efgh")
     print("PASS image wrap/gap/duplicate rejected; complete frame recovered", flush=True)
+    # 覆盖搬到 CCM 的最大组帧/应答缓冲，以及完整的 160x120 接收区。
+    for i in range(10):
+        p.request(1, bytes((j+i) % 256 for j in range(1023)))
+    image = bytes(j % 256 for j in range(160*120*2))
+    for _ in range(3):
+        p.pump(.05)
+        p.request(7, struct.pack("<HH", 160, 120))
+        for offset in range(0, len(image), 1020):
+            p.request(8, struct.pack("<I", offset)+image[offset:offset+1020])
+    p.pump(1.2)
+    print("PASS ten 1023-byte PING echoes and three full-size images, CRC checked on every frame", flush=True)
 
     print("==== 6. DEVICE reconstruction and memory ====", flush=True)
     base_used = p.read("g_lv_mem_used")[0]
     updates = p.read("g_device_diag_updates")[0]
-    for _ in range(3):
-        p.tap(40, 38); p.tap(392, 190); p.pump(.4)
-        require(p.title() == "DEVICE", "not DEVICE")
+    for i in range(10):
+        p.tap(40, 38)
+        require(p.title() == "VISIONCRAFT", f"cycle {i}: back failed: {p.title()}")
+        p.tap(392, 190); p.pump(1.2)
+        require(p.title() == "DEVICE", f"cycle {i}: not DEVICE: {p.title()}")
+        require("flash result 2 phase 13" in state(p), "results lost or board reset")
+        print(f"cycle {i+1}: DEVICE used={p.read('g_lv_mem_used')[0]} peak={p.read('g_lv_mem_peak')[0]}", flush=True)
     require(p.read("g_device_diag_updates")[0] > updates+3, "diagnostic UI stopped refreshing")
     require(p.read("g_lv_mem_used")[0] <= base_used+512, "DEVICE memory grows on recreation")
     require("flash result 2 phase 13" in state(p), "results lost on page recreation")

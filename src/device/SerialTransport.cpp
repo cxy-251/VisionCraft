@@ -4,6 +4,11 @@
 SerialTransport::SerialTransport(const QString &port, int baud, QObject *parent)
     : Transport(parent)
 {
+#if QT_VERSION >= QT_VERSION_CHECK(6, 9, 0)
+    // Restoring Linux's original 9600/echo terminal settings can echo the
+    // board's final binary replies back at the wrong baud after close.
+    m_port.setSettingsRestoredOnClose(false);
+#endif
     m_port.setPortName(port);
     m_port.setBaudRate(baud);
     m_port.setDataBits(QSerialPort::Data8);
@@ -23,9 +28,14 @@ SerialTransport::SerialTransport(const QString &port, int baud, QObject *parent)
 
 void SerialTransport::open()
 {
-    if (m_port.open(QIODevice::ReadWrite))
+    if (m_port.open(QIODevice::ReadWrite)) {
+        // Board USB_232 has an automatic ISP circuit. Linux raises RTS on
+        // open, which can select the ROM loader at the next MCU reset.
+        // Keep normal-running pin levels, without pulsing the reset line.
+        m_port.setRequestToSend(false);
+        m_port.setDataTerminalReady(true);
         emit opened();
-    else
+    } else
         emit failed(m_port.errorString());
 }
 

@@ -76,7 +76,7 @@ int main(int argc, char *argv[])
     QQmlApplicationEngine engine;
     QObject::connect(&engine, &QQmlApplicationEngine::objectCreationFailed, &app,
                      [] { QCoreApplication::exit(1); }, Qt::QueuedConnection);
-    // 开发辅助：VC_PAGE=0..4 指定启动页；VC_AUTOCONNECT=sim|rtt 启动后自动连接设备
+    // 开发辅助：VC_PAGE=0..4；VC_AUTOCONNECT=sim|rtt|serial，串口另设VC_SERIAL_PORT。
     if (qEnvironmentVariableIsSet("VC_PAGE"))
         engine.setInitialProperties({{QStringLiteral("startPage"), qEnvironmentVariableIntValue("VC_PAGE")}});
     engine.loadFromModule("VisionCraft", "Main");
@@ -87,10 +87,16 @@ int main(int argc, char *argv[])
     }
     if (const QString mode = qEnvironmentVariable("VC_AUTOCONNECT"); !mode.isEmpty()) {
         if (auto *link = engine.singletonInstance<DeviceLink *>("VisionCraft", "DeviceLink")) {
-            if (mode == QLatin1String("rtt"))
-                link->connectRtt();
-            else
-                link->connectSimulator();
+            // Serial opens synchronously. Register scope/shell observers below
+            // before opening any transport so the Connected signal is observed.
+            QTimer::singleShot(0, link, [link, mode] {
+                if (mode == QLatin1String("rtt"))
+                    link->connectRtt();
+                else if (mode == QLatin1String("serial"))
+                    link->connectSerial(qEnvironmentVariable("VC_SERIAL_PORT"), 115200);
+                else
+                    link->connectSimulator();
+            });
             // VC_SCOPE=1：在数据页截图/验证一帧板上回环，不启用连续采集。
             if (qEnvironmentVariableIntValue("VC_SCOPE") == 1) {
                 auto scopeConnection = std::make_shared<QMetaObject::Connection>();

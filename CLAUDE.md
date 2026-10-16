@@ -10,6 +10,7 @@ Qt 6 + OpenCV 上位机（`src/`、`qml/`），STM32F407ZG 工位固件（`firmw
 - 第三方源码不在仓库里：第一次配置时 `firmware/third_party/fetch.cmake` 从 GitHub 拉 LVGL（v9.6.0）和 STM32CubeF4（v1.28.3，文件清单见 `stm32cubef4_files.txt`）。不要把 `firmware/station/Drivers`、`Middlewares`、`firmware/third_party/lvgl` 提交进来。
 
 ## 固件
+- USB_232实线已验收（2026-10-16，Qt6.9.1）：115200 8N1，打开时显式DTR有效、RTS释放，保持板载自动下载电路正常运行态；普通连接不自动复位。Qt6.9+关闭settingsRestoredOnClose，防止恢复Linux默认9600/回显。UART错误计数比较窗口增量，保留历史；显式reboot前先只读diag确认active/pending均零。无ST-Link的软件复位/重连通过，不能外推为冷断电或数日运行已验证。
 - 用户最新使用方式（2026-10-16）：以后日常只接板载梯形 USB_232（CH340 / USART1），必须支持脱离 ST-Link 的协议通信与启动；这是恢复 USB 串口通信的明确授权，DB9 RS232、RS485等取消项不随之恢复。应用原有 ST-Link（RTT）连接入口、调试与烧录功能必须保留。
 - 用户范围调整（2026-10-16）：串口、RS232/485、红外、SPI Flash 文件系统及卷切换不再列为待办；不要自动恢复这些任务。SPI Flash 已完成的识别、只读驱动和保留区诊断保留。
 - 用户最新要求（2026-10-15）：不要再操作他的 SD 卡。后续开发与验证不进入 FILES、不执行读写卡/存储诊断/插拔测试；使用设备页、任务信息、RTT 等其他路径。保留既有 SD 实验记录，不把旧回归脚本自动带进新任务。

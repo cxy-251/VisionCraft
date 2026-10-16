@@ -19,10 +19,23 @@ Section {
     Pitfall {
         text: qsTr("梯形外形不能单独识别接口，板上以USB_232标注为准。脱机启动要从用户Flash启动；若BOOT0保持高电平，原先调试器强制跳转运行可能掩盖启动配置问题。不要为串口通信执行擦除、格式化、存储诊断或访问SD卡。")
     }
-    Para {
-        text: qsTr("验证进度：新固件已编译、烧录并校验，RTT十帧采集和最大合法PING通过，Flash启动映射已核对。真实UART驱动的桌面测试检查缓冲回绕、溢出、整帧拒绝和超时；Qt伪终端测试另行检查分片收发及重连。伪终端和寄存器检查均不能替代CH340实线测试；拔掉ST-Link后只接USB_232的验收尚待完成。")
+    KeyPoints {
+        label: qsTr("只接USB_232实测 · 2026-10-16")
+        points: [
+            qsTr("电脑识别到CH340（1a86:7523），ST-Link已不在USB设备列表中。实际Qt串口以115200 8N1读取固件信息、遥测、RTC状态及六任务监控；RTC未校时会如实显示未校时，本轮没有写入时间或存储器。"),
+            qsTr("最终窗口完成十帧PA4采集，每帧1024点、50 kHz；十次1023字节PING逐字节回读一致，38400字节RGB565图片分块传输应答通过，另做三次客户端断开重连。UART接收丢弃、发送丢弃和硬件错误均为0→0；图片测试核验协议传输完成，不声称逐像素检查了板屏显示。"),
+            qsTr("实板Qt监控控件通过自动轮询、暂停、手动刷新、展开、离页停止和断开清理。正式应用的设备页也实际通过串口显示遥测和任务信息，连接ST-Link按钮仍保留。"),
+            qsTr("确认diag没有运行中或待恢复内容后，通过串口执行一次reboot；没有ST-Link或OpenOCD参与，重连读回同一芯片UID，uptime回退，复位标志为0x14000000，含软件复位位，无看门狗标志或故障记录。这证明本轮软件复位后可独立启动，不等同于冷断电、长期运行或所有线缆/供电条件已验证。")
+        ]
     }
-    CodeRef { file: "handbook/f407/serial/usb-uart-test.txt"; match: "Verified OK|^PASS RTT:|^PASS   : TstDeviceLink::serialPseudoTerminal|^100% tests passed"; caption: qsTr("烧录、RTT保留路径与桌面回归的原始短输出；实线串口尚待验证") }
+    Pitfall {
+        text: qsTr("实线测试发现两个桌面模拟没有覆盖的问题。其一，Linux关闭串口恢复默认9600和回显，板端最后的二进制应答可能被错误波特率回送；Qt 6.9及以上现关闭恢复旧设置，本机Qt 6.9.1验证通过，旧Qt版本尚未做同样实线验证。其二，打开串口默认置为有效的RTS会影响板载自动下载电路；连接现在显式释放RTS、置DTR为有效，保持正常运行态，不自动脉冲复位或启动下载。修复关闭回显后，早期累计467个硬件错误在压力与重连窗口内保持467→467，未为清零复位；后来为独立启动验收而执行的软件复位属于另一窗口。")
+    }
+    Figure {
+        files: ["handbook/f407/serial/figures/usb-uart-device.png"]
+        captions: [qsTr("正式Qt应用只经USB_232连接实板，显示遥测与六任务；原有ST-Link入口保留")]
+    }
+    CodeRef { file: "handbook/f407/serial/usb-uart-test.txt"; match: "Verified OK|^PASS RTT:|^PASS   : TstDeviceLink::serialPseudoTerminal|^QINFO.*PASS physical USB_232:|^QINFO.*PASS software reset|^100% tests passed"; caption: qsTr("烧录、RTT保留路径、桌面回归及实线串口/软件复位的原始短输出") }
     CodeRef { file: "firmware/station/App/vc_uart.c"; region: "interrupt" }
     CodeRef { file: "firmware/station/App/vc_uart.c"; region: "write" }
     CodeRef { file: "firmware/station/App/app.c"; region: "send" }

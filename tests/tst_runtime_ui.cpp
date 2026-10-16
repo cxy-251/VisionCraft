@@ -30,7 +30,9 @@ private slots:
         QQuickWindow window;panel->setParentItem(window.contentItem());panel->setWidth(1100);panel->setHeight(1000);
         window.resize(1100,1000);window.show();
         // 默认始终使用模拟器；显式环境开关用于本机只读实板验收。
-        if(qEnvironmentVariableIntValue("VC_RUNTIME_TEST_RTT")==1) link.connectRtt();
+        if(!qEnvironmentVariable("VC_RUNTIME_TEST_SERIAL_PORT").isEmpty())
+            link.connectSerial(qEnvironmentVariable("VC_RUNTIME_TEST_SERIAL_PORT"),115200);
+        else if(qEnvironmentVariableIntValue("VC_RUNTIME_TEST_RTT")==1) link.connectRtt();
         else link.connectSimulator();
         QTRY_VERIFY(panel->property("available").toBool());
         QTRY_VERIFY(textExists(panel,QStringLiteral("stationTask")));

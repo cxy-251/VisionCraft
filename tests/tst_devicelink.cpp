@@ -3,9 +3,11 @@
 
 #include <QtTest>
 #include <QJsonDocument>
+#include <memory>
 #ifdef Q_OS_LINUX
 #include <QSocketNotifier>
 #include <fcntl.h>
+#include <termios.h>
 #include <unistd.h>
 #include <cstdlib>
 #endif
@@ -439,19 +441,27 @@ private slots:
         QTRY_VERIFY_WITH_TIMEOUT(!link.monitor().isEmpty(),5000);
         qInfo().noquote()<<"SERIAL INFO"<<QJsonDocument::fromVariant(link.info()).toJson(QJsonDocument::Compact);
         QSignalSpy shell(&link,&DeviceLink::shellReply);
+        QString initialStats;
         for (const QString &cmd : {QStringLiteral("link"),QStringLiteral("last")}) {
             shell.clear(); link.shell(cmd);
             QTRY_COMPARE_WITH_TIMEOUT(shell.size(),1,3000);
             QVERIFY(shell.first().at(1).toBool());
             qInfo().noquote()<<cmd<<shell.first().at(2).toString();
-            if (cmd=="link") QVERIFY(shell.first().at(2).toString().contains("active UART"));
+            if (cmd=="link") {
+                initialStats=shell.first().at(2).toString();
+                QVERIFY(initialStats.contains("active UART"));
+            }
         }
+        QTRY_VERIFY_WITH_TIMEOUT(!link.telemetry().isEmpty(),3000);
+        QVERIFY(link.deviceClock().value("available").toBool());
+        qInfo().noquote()<<"SERIAL TELEMETRY"<<QJsonDocument::fromVariant(link.telemetry()).toJson(QJsonDocument::Compact);
+        qInfo().noquote()<<"SERIAL CLOCK"<<QJsonDocument::fromVariant(link.deviceClock()).toJson(QJsonDocument::Compact);
         const uint32_t initialUptime=link.monitor().value("uptime_ms").toUInt();
         for (int i=0;i<10;++i) {
-            bool done=false, good=false;
+            const auto result=std::make_shared<std::pair<bool,bool>>(false,false);
             const QByteArray payload(1023,char(i));
-            link.request(VC_CMD_PING,payload,[&](bool ok,int,const QByteArray &reply) { good=ok && reply==payload; done=true; },3000);
-            QTRY_VERIFY_WITH_TIMEOUT(done,4000); QVERIFY(good);
+            link.request(VC_CMD_PING,payload,[result,payload](bool ok,int,const QByteArray &reply) { result->second=ok && reply==payload; result->first=true; },3000);
+            QTRY_VERIFY_WITH_TIMEOUT(result->first,4000); QVERIFY(result->second);
             const uint32_t previous=link.scopeFrame().value("id").toUInt();
             QVERIFY(link.startScope(50000,1024));
             QTRY_VERIFY_WITH_TIMEOUT(link.scopeFrame().value("id").toUInt()>previous,5000);
@@ -459,6 +469,13 @@ private slots:
             link.getMonitor();
             QTest::qWait(150);
         }
+        QSignalSpy image(&link,&DeviceLink::imageSent);
+        QImage pixels(160,120,QImage::Format_RGB32); pixels.fill(Qt::darkCyan);
+        QVERIFY(link.sendImage(pixels));
+        QTRY_COMPARE_WITH_TIMEOUT(image.size(),1,10000);
+        QVERIFY(image.first().at(0).toBool());
+        QCOMPARE(image.first().at(1).toInt(),38400);
+        qInfo()<<"SERIAL IMAGE bytes"<<image.first().at(1).toInt()<<"ms"<<image.first().at(2).toDouble();
         for (int i=0;i<3;++i) {
             link.disconnectDevice(); link.connectSerial(port,115200);
             QTRY_VERIFY_WITH_TIMEOUT(!link.info().isEmpty(),5000);
@@ -473,9 +490,56 @@ private slots:
         QVERIFY(shell.first().at(1).toBool());
         const QString stats=shell.first().at(2).toString();
         qInfo().noquote()<<"SERIAL FINAL"<<stats;
-        QVERIFY(stats.contains("uart rx-drop 0 tx-drop 0 errors 0"));
+        const QRegularExpression counters(QStringLiteral("uart rx-drop ([0-9]+) tx-drop ([0-9]+) errors ([0-9]+)"));
+        const auto before=counters.match(initialStats), after=counters.match(stats);
+        QVERIFY(before.hasMatch() && after.hasMatch());
+        // Preserve cumulative errors from earlier runs/cable changes. Recovery
+        // must add no new errors; never reset the board just to make counters zero.
+        for (int i=1;i<=3;++i) QCOMPARE(after.captured(i),before.captured(i));
         link.stopScope();link.disconnectDevice();
-        qInfo()<<"PASS physical USB_232: ten frames, ten maximum PINGs, three client reconnects; no SD operations";
+        qInfo()<<"PASS physical USB_232: ten frames, ten maximum PINGs, 38400-byte image, telemetry, RTC, three client reconnects; no SD operations";
+    }
+
+    void serialStandaloneReboot()
+    {
+        const QString port=qEnvironmentVariable("VC_SERIAL_TEST_PORT");
+        if (port.isEmpty() || qEnvironmentVariableIntValue("VC_SERIAL_TEST_REBOOT")!=1)
+            QSKIP("Opt-in standalone software reset; set VC_SERIAL_TEST_REBOOT=1 as well as the serial port");
+        DeviceLink link;
+        link.connectSerial(port,115200);
+        QTRY_VERIFY_WITH_TIMEOUT(!link.info().isEmpty(),5000);
+        const QString uid=link.info().value("uid").toString();
+        const auto uptime=link.info().value("uptimeMs").toUInt();
+        QSignalSpy shell(&link,&DeviceLink::shellReply);
+        link.shell("diag");
+        QTRY_COMPARE_WITH_TIMEOUT(shell.size(),1,3000);
+        QVERIFY(shell.first().at(1).toBool());
+        const QString state=shell.first().at(2).toString();
+        QVERIFY(state.contains("active 0") && !state.contains("pending 1"));
+        qInfo().noquote()<<"PRE-RESET diagnostic state"<<state;
+        shell.clear();link.shell("reboot");
+        QTRY_COMPARE_WITH_TIMEOUT(shell.size(),1,3000);
+        QVERIFY(shell.first().at(1).toBool());
+        QVERIFY(shell.first().at(2).toString().contains("rebooting"));
+        link.disconnectDevice();
+        QTest::qWait(3000);
+        link.connectSerial(port,115200);
+        QTRY_VERIFY_WITH_TIMEOUT(!link.info().isEmpty(),5000);
+        QTRY_VERIFY_WITH_TIMEOUT(!link.monitor().isEmpty(),5000);
+        QCOMPARE(link.info().value("uid").toString(),uid);
+        QVERIFY(link.info().value("uptimeMs").toUInt()<uptime);
+        QVERIFY(!(link.monitor().value("reset_flags").toUInt() & (1u<<29)));
+        QCOMPARE(link.monitor().value("fault_kind").toUInt(),0u);
+        QVERIFY(link.monitor().value("reset_flags").toUInt() & (1u<<28));
+        qInfo().noquote()<<"STANDALONE INFO"<<QJsonDocument::fromVariant(link.info()).toJson(QJsonDocument::Compact);
+        qInfo().noquote()<<"STANDALONE MONITOR"<<QJsonDocument::fromVariant(link.monitor()).toJson(QJsonDocument::Compact);
+        shell.clear();link.shell("link");
+        QTRY_COMPARE_WITH_TIMEOUT(shell.size(),1,3000);
+        qInfo().noquote()<<"STANDALONE LINK"<<shell.first().at(2).toString();
+        QVERIFY(shell.first().at(1).toBool());
+        QVERIFY(shell.first().at(2).toString().contains("uart rx-drop 0 tx-drop 0 errors 0"));
+        link.disconnectDevice();
+        qInfo()<<"PASS software reset and reconnect over USB_232 without ST-Link; no SD operations; not a power-cycle test";
     }
 
     void serialPseudoTerminalRoundTripAndRecovery()
@@ -524,6 +588,12 @@ private slots:
         QVERIFY(link.startScope(50000,1024));
         QTRY_VERIFY_WITH_TIMEOUT(!link.scopeFrame().isEmpty(),5000);
         link.disconnectDevice();
+#if QT_VERSION >= QT_VERSION_CHECK(6, 9, 0)
+        termios settings{};
+        QVERIFY(tcgetattr(master,&settings)==0);
+        QVERIFY(!(settings.c_lflag & ECHO));
+        QCOMPARE(cfgetospeed(&settings),speed_t(B115200));
+#endif
         link.connectSerial(port,115200);
         QTRY_VERIFY_WITH_TIMEOUT(!link.info().isEmpty(),3000);
         // Adapter still exists, but board no longer answers. Heartbeat must

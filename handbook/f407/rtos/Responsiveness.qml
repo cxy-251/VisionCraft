@@ -27,7 +27,10 @@ Section {
         text: qsTr("受控工作只有调试器写入请求才执行，一次最长 250 ms，执行前清掉请求，默认关闭。实验用 180 ms，不关闭中断和任务调度，也不访问外设；LinkTask 和 EnvTask 是否还能运行由回包和遥测验证。")
     }
     CodeRef { file: "firmware/station/App/station.c"; region: "controlled-work" }
-    CodeRef { file: "handbook/f407/rtos/response-test.txt"; from: "==== 0"; to: "==== 2"; caption: qsTr("实验条件和四种负载的实板峰值") }
+    Para {
+        text: qsTr("2026-10-15历史窗口分为空闲、终端、图片和受控工作四阶段，每阶段清统计，均并发50 ms遥测；分别执行30次短PING、24条诊断命令、五张38400字节图片、五次180 ms工作。五图等待峰值7.9555 ms、消费峰值3.3356 ms；StationTask最小剩栈3996/8192字节、LVGL峰值31080/45056字节、FreeRTOS最小剩堆18904字节。原始逐项统计保留在仓库，不与后来RTT满缓冲窗口合并。")
+    }
+    CodeRef { file: "handbook/f407/rtos/response-test.txt"; match: "^PASS: four non-storage"; caption: qsTr("四阶段历史窗口的原始汇总") }
     KeyPoints {
         label: qsTr("本轮能得出的结论")
         points: [
@@ -38,7 +41,6 @@ Section {
             qsTr("暂时保留当前任务划分。后续确有慢计算/等待的功能应采用分步执行或工作任务交付结果，由 StationTask 更新 LVGL；不能据此把所有终端命令都移到另一个任务，因为有的命令直接操作界面或硬件。")
         ]
     }
-    CodeRef { file: "handbook/f407/rtos/response-test.txt"; from: "==== 2"; to: "==== 3"; caption: qsTr("任务栈、内存与真实 Qt DeviceLink 传图") }
     Try {
         task: qsTr("如果 PING 只有 6 ms，而 input_mark 达到 188 ms，能否通过调低 LinkTask 优先级解决界面卡顿？")
         answerNote: qsTr("本次卡顿来自 StationTask 自己执行 180 ms 工作；调低通信任务优先级不会让它同时轮询输入。应先让慢工作分段让出控制，或放到有界工作任务，明确输入/结果/缓冲所有权与队列满时的处理方式。")
@@ -46,7 +48,6 @@ Section {
     Pitfall {
         text: qsTr("主机 PING 时间含 TCP、OpenOCD 轮询、传输队列和 Python 调度；传图阶段的 PING 还排在四个图片分块之后，不可拿它推算板内的互斥锁等待。超过 20 ms 的次数只是严格阈值计数，周期略高于 20 ms 也会计入，不能当成丢帧数。鼠标、蜂鸣、结果槽的计数为零也不表示这些路径经过了满队列压力测试。")
     }
-    CodeRef { file: "handbook/f407/rtos/response-test.txt"; from: "==== 3"; caption: qsTr("完整计时统计和复现方式") }
     InSystem {
         text: qsTr("tools/response_probe.py 独占自己启动的 OpenOCD，解析当前 ELF 的符号，协议编码和 CRC 直接复用 protocol/vc_protocol.c。它只进入 HOME、DEVICE、STATION，命令白名单为 uptime/sensors/ps/free；实验后关遥测，留在设备页。")
     }

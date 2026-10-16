@@ -20,7 +20,10 @@ Section {
     CodeRef { file: "firmware/station/App/nor.c"; from: "int nor_reserve_from_fat"; to: "static int writable" }
     CodeRef { file: "firmware/station/App/spiflash.c" }
     CodeRef { file: "firmware/station/App/flash_diag.c"; region: "steps" }
-    CodeRef { file: "handbook/f407/storage/board-diagnostics-test.txt"; caption: qsTr("正式固件实板验收、故障注入、内存与边界") }
+    Para {
+        text: qsTr("统一诊断历史验收逐字节比较EEPROM全片、Flash卷头和卷边界及测试末扇区，原值均保留；图像错块/重复/溢出拒绝后仍可重新接收完整帧。桌面注入备份、读写及恢复失败，检查保留备份和互斥；相关九项最终回归通过。后续不复位接入探针再次完成六阶段，两个窗口分别归档，峰值不拼接。本轮只整理文档，不重复擦写或读卡。")
+    }
+    CodeRef { file: "handbook/f407/storage/board-diagnostics-test.txt"; match: "^PASS: board-only|^100% tests passed, 0 tests failed out of 9$"; caption: qsTr("两轮历史诊断及最终主机回归的短汇总") }
     Para { text: qsTr("以下保留早期裸寄存器实验及其原始输出。本轮没有重跑这些脚本；当前 SPI1 由 StationTask 和正式驱动拥有。") }
 
     Why {

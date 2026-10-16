@@ -19,7 +19,10 @@ Section {
     }
     CodeRef { file: "firmware/station/App/page_device.c"; region: "diagnostics" }
     CodeRef { file: "firmware/station/App/diagnostics.c"; region: "ownership" }
-    CodeRef { file: "handbook/f407/storage/board-diagnostics-test.txt"; from: "==== 6\\."; to: "==== 桌面测试"; caption: qsTr("实板重进、内存和失败定位") }
+    Para {
+        text: qsTr("历史重进窗口的LVGL最终使用32440字节，各次32428–32464字节，峰值33636/45056字节；StationTask最小剩栈3996/8192字节，LinkTask1672/2048字节，FreeRTOS最小剩堆18816字节。随后不复位接入的另一完整窗口峰值33620字节，不能与前一轮拼成一组测量；两轮都未操作SD，历史文件页更高峰值仍保留。")
+    }
+    CodeRef { file: "handbook/f407/storage/board-diagnostics-test.txt"; match: "^PASS: board-only"; caption: qsTr("两个历史实板窗口分别通过，保留原始记录") }
     Para { text: qsTr("以下图片和用量保留为早期三页统一时的历史记录；当前诊断和任务明细增加了控件，当前资源以上方验收为准。") }
 
     Why {

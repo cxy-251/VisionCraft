@@ -17,7 +17,7 @@ Section {
     CodeRef { file: "firmware/station/App/random.c" }
     CodeRef { file: "firmware/station/App/game.c"; from: "void game_new_seed"; to: "uint32_t game_rand" }
     CodeRef { file: "tests/tst_game_seed.cpp" }
-    CodeRef { file: "handbook/f407/storage/board-diagnostics-test.txt"; from: "==== 5\\."; to: "==== 6\\."; caption: qsTr("正式固件实板取数、脚本保护及通信检查") }
+    CodeRef { file: "handbook/f407/storage/board-diagnostics-test.txt"; match: "^RNG 32 samples"; caption: qsTr("两轮历史实板取数；小样本不等于随机质量认证") }
     Para { text: qsTr("以下为启用前的副本生成及裸寄存器实验。单项增加136字节Flash、16字节RAM是当时副本差值，不能当作本次全部集成的资源增量。") }
 
     Why {

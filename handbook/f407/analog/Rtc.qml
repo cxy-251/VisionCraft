@@ -26,8 +26,10 @@ Section {
     CodeRef { file: "firmware/station/App/clock.c"; region: "read" }
     CodeRef { file: "firmware/station/App/link.c"; region: "clock" }
     CodeRef { file: "src/device/DeviceLink.cpp"; region: "clock" }
-    CodeRef { file: "handbook/f407/analog/clock-sync-test.txt"; from: "==== 0"; to: "==== 6"; caption: qsTr("当前固件实板回归与资源") }
-    CodeRef { file: "handbook/f407/analog/clock-sync-test.txt"; from: "==== 6"; caption: qsTr("Qt 链路、桌面测试和复现边界") }
+    Para {
+        text: qsTr("2026-10-15历史资源窗口：StationTask最小剩栈3996字节、LinkTask1672字节、FreeRTOS最小剩堆18816字节，LVGL峰值31628/45056字节。Qt也实际验证SET_TIME后GET_TIME读回；这些结果属于当时固件和软件复位/RTT重连窗口，不能推出电池供电或冷断电保持。")
+    }
+    CodeRef { file: "handbook/f407/analog/clock-sync-test.txt"; match: "^PASS: invalid state|PASS: SET_TIME"; caption: qsTr("历史实板日历边界与Qt对时的原始汇总") }
     Para { text: qsTr("以下为历史独立实验，当时正式固件尚未启用 RTC。旧 rtc_probe.tcl 会复位备份域，现在检测到 RTC 已启用就拒绝运行；当前功能回归使用 clock_probe.py，不要用旧脚本覆盖正在走时的日历。历史 ppm 数值保留，本轮未重新测量。") }
 
     CodeRef { file: "tools/rtc_probe.tcl"; region: "backup-access" }

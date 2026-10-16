@@ -64,7 +64,7 @@ Item {
     function progress(vol) {
         let done = 0, total = 0
         for (const ch of vol.chapters)
-            for (const e of ch.entries) { total++; if (e.file) done++ }
+            for (const e of ch.entries) { if (e.retired) continue; total++; if (e.file) done++ }
         return [done, total]
     }
 
@@ -200,7 +200,7 @@ Item {
                         for (const ch of page.volume.chapters) {
                             rows.push({ kind: "chapter", title: ch.title, chapter: ch.title, file: "", from: "" })
                             for (const e of ch.entries)
-                                rows.push({ kind: "entry", title: e.title, chapter: ch.title, file: e.file, from: e.from })
+                                rows.push({ kind: "entry", title: e.title, chapter: ch.title, file: e.file, from: e.from, retired: e.retired })
                         }
                         return rows
                     }
@@ -241,7 +241,7 @@ Item {
                             anchors.rightMargin: 8
                             anchors.verticalCenter: parent.verticalCenter
                             visible: !row.isChapter && !row.ready
-                            text: qsTr("待写")
+                            text: row.modelData.retired ? qsTr("不排期") : qsTr("待写")
                             font.pixelSize: 11
                             color: Theme.textFaint
                         }
@@ -252,7 +252,7 @@ Item {
                         }
                         ToolTip.visible: rowHover.hovered && row.modelData.from.length > 0
                         ToolTip.delay: 600
-                        ToolTip.text: qsTr("迁移自旧版：") + row.modelData.from
+                        ToolTip.text: (row.modelData.retired ? qsTr("已退出当前排期。历史来源：") : qsTr("迁移自旧版：")) + row.modelData.from
                         TapHandler {
                             enabled: row.ready
                             onTapped: page.open(row.modelData.file, page.volume.title, row.modelData.chapter)

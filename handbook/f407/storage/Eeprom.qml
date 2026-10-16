@@ -25,7 +25,10 @@ Section {
     CodeRef { file: "firmware/station/App/eeprom_diag.c"; region: "steps" }
     CodeRef { file: "firmware/station/App/eeprom.c"; region: "reserved-page" }
     CodeRef { file: "firmware/station/App/shell.c"; region: "eetest" }
-    CodeRef { file: "handbook/f407/storage/eeprom-selftest.txt"; caption: qsTr("实板、桌面故障注入、资源与验证边界") }
+    Para {
+        text: qsTr("历史实板验证前后全部256字节保持一致，并通过四种模式、重复自检、取消恢复，以及三帧波形/遥测并发；没有制造物理I2C断线。该窗口最小剩堆18816字节，StationTask剩栈3996字节、LVGL峰值31628/45056字节。桌面另验证备份失败不写入、部分写入后恢复、恢复失败保留备份、取消和时钟回绕；状态机13项及驱动9项通过。本轮只整理归档，没有再次执行EEPROM写入测试。")
+    }
+    CodeRef { file: "handbook/f407/storage/eeprom-selftest.txt"; match: "^PASS: full 256|^Totals:"; caption: qsTr("历史数据一致性及桌面故障注入的原始汇总") }
     Para { text: qsTr("以下保留早期调试器实验和原始输出；本轮未重跑这些寄存器脚本。当前自检通过正式 HAL 驱动和任务调度完成，不接触 SD 卡。") }
 
     Why {

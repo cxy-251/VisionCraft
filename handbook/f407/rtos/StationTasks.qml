@@ -96,15 +96,22 @@ Section {
         columns: 1
         captions: [qsTr("桌面模拟器的设备页，使用假任务数据；实板测量见下方记录")]
     }
-    CodeRef { file: "handbook/f407/rtos/task-monitor-test.txt"; from: "==== 0"; to: "==== 5"; caption: qsTr("实板：快照、刷新频率、重复进入、ps/free 与内存") }
-    CodeRef { file: "handbook/f407/rtos/task-monitor-test.txt"; from: "==== 5"; caption: qsTr("桌面错误分支回归与测量边界") }
+    KeyPoints {
+        label: qsTr("任务快照的历史验收 · 2026-10-15")
+        points: [
+            qsTr("实板六任务名称稳定排序，优先级正确，栈余量均按字节显示且不超过分配值。三秒内更新三次，快照峰值104681个DWT周期，在168 MHz下约623.1微秒；包含抢占，不是纯CPU耗时。"),
+            qsTr("设备页离开重建四次，LVGL使用量依次29908、29812、29812、29812字节，没有持续增长；峰值31080/45056字节。StationTask最小剩栈4012/8192字节，FreeRTOS最小剩堆18904字节，仅覆盖当时设备页与ps/free路径，不能替代后续版本或历史读图峰值。"),
+            qsTr("桌面受控数据检查列表缩减、快照失败清旧行及恢复；实板没有额外创建任务制造这些分支。本轮整理只阅读归档，不重跑需要复位的旧探针，也不操作SD卡。")
+        ]
+    }
+    CodeRef { file: "handbook/f407/rtos/task-monitor-test.txt"; match: "^3-second update|^PASS: DEVICE"; caption: qsTr("历史实板刷新计数与桌面错误分支的短输出") }
 
     Try {
         task: qsTr("当前 configCHECK_FOR_STACK_OVERFLOW=2 已启用。先用 ps、free 记录栈余量和内存池，再反复进入设备页、执行不涉及存储的终端命令进行比较。为什么不能只凭本轮最小余量就宣布所有路径都不会溢出？")
         answerNote: qsTr("高水位只覆盖已执行过的路径，更深调用、错误处理和并发时序可能使用更多栈。历史文件页验证最少剩余 2668 字节；本次设备页验证最少剩余 4012 字节，分配 8192 字节，各自只覆盖对应路径。本次未重跑读卡测试。当前溢出钩子会记录任务并复位，故障注入见「看门狗、栈溢出与 HardFault 现场」，无需重新开启检查。")
     }
     CodeRef { file: "firmware/station/Core/Inc/FreeRTOSConfig.h"; match: "define configCHECK_FOR_STACK_OVERFLOW" }
-    CodeRef { file: "handbook/f407/gui/files-browser-test.txt"; from: "==== 8"; to: "==== 9"; caption: qsTr("历史文件页测量，保留作路径比较，本项未重跑") }
+    CodeRef { file: "handbook/f407/gui/files-browser-test.txt"; match: "^PASS: five forced"; caption: qsTr("历史失联恢复结果，仅作路径比较；本轮未读卡复测") }
 
     InSystem {
         text: qsTr("三个应用任务分别在 App/link.c、App/station.c、App/env.c。上位机「设备」页历史测得的往返时间（5~7 ms）与当时 OpenOCD 轮询间隔有关；当前仍需结合命令耗时、发送锁等待和实际负载评估，不能作为所有场景的延迟保证。")

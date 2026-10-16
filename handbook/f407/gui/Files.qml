@@ -104,9 +104,16 @@ Section {
         ]
     }
 
-    CodeRef { file: "handbook/f407/gui/files-browser-test.txt"; from: "==== 1"; to: "==== 2"; caption: qsTr("本轮构建与烧录") }
-    CodeRef { file: "handbook/f407/gui/files-browser-test.txt"; from: "==== 2"; to: "==== 3"; caption: qsTr("桌面模拟器回归，使用假目录与假照片") }
-    CodeRef { file: "handbook/f407/gui/files-browser-test.txt"; from: "==== 3"; caption: qsTr("本轮实板测量、故障修复与验证范围") }
+    KeyPoints {
+        label: qsTr("历史文件页验收，当前不再执行")
+        points: [
+            qsTr("桌面用假目录、假照片覆盖照片/文本/二进制打开、滚动重绑、图标返回列表；实板历史覆盖JPG、下一张、缩略图滚动和RAW十六进制预览。桌面文本测试不代表真实卡上的文本路径已经验证。"),
+            qsTr("早期真实插拔曾仅凭最终挂载输出通过，随后发现目录计数被清零，实际是看门狗复位，因此该次不算通过。定位并修复SDIO/SCR等待和DMA后空闲超时后，五次强制CMD失联/重新初始化通过，寄存器恢复原值。"),
+            qsTr("修复后的历史窗口LVGL峰值35664/45056字节、StationTask最小剩栈2668/8192字节、FreeRTOS最小剩堆18816字节。用户后来实际拔插完成，后验读回仍挂载、无看门狗标志、浏览计数保留；监测窗口未覆盖人工操作，不能称为完整插拔时序抓取。"),
+            qsTr("遵循用户后续要求，SD相关验证退出当前排期。本轮只整理既有记录，不进入FILES、不读写卡、不重跑旧存储脚本；不同卡、坏图、长目录及快速换卡等历史边界没有因此得到补测。")
+        ]
+    }
+    CodeRef { file: "handbook/f407/gui/files-browser-test.txt"; match: "^PASS: five forced|^PASS: mounted"; caption: qsTr("历史强制失联与人工插拔后验检查；本轮未访问SD") }
 
     InSystem {
         text: qsTr("首页第四行的 FILES。终端 sd / ls / photo 命令可以分别检查卡、目录和照片解码；页面和终端都只读，不会修改相机卡中的文件。")

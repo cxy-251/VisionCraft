@@ -222,8 +222,8 @@ HandbookIndex {
         Chapter {
             title: qsTr("串行通信")
             Entry { title: qsTr("UART：轮询、中断、DMA"); file: "handbook/f407/serial/Uart.qml"; from: "Linux 串口终端与调试波特率监测" }
-            Entry { title: qsTr("RS232"); from: "SP3232 RS232 串口与 DB9 接口" }
-            Entry { title: qsTr("RS485"); from: "SP3485 差分 RS485 通信与半双工控制" }
+            Entry { title: qsTr("RS232"); retired: true; from: "SP3232 RS232 串口与 DB9 接口" }
+            Entry { title: qsTr("RS485"); retired: true; from: "SP3485 差分 RS485 通信与半双工控制" }
             Entry { title: qsTr("RTT：经调试口通信"); file: "handbook/f407/serial/Rtt.qml" }
         }
         Chapter {
@@ -278,7 +278,7 @@ HandbookIndex {
         }
         Chapter {
             title: qsTr("其他外设")
-            Entry { title: qsTr("红外遥控 NEC 解码"); from: "板载外设全量驱动（红外遥控部分）" }
+            Entry { title: qsTr("红外遥控 NEC 解码"); retired: true; from: "板载外设全量驱动（红外遥控部分）" }
             Entry { title: qsTr("WM8978 音频"); file: "handbook/f407/misc/Wm8978.qml"; from: "WM8978 音频 CODEC 与 I2S2 飞利浦标准传输" }
             Entry { title: qsTr("USB Host 鼠标"); file: "handbook/f407/misc/UsbHost.qml"; from: "USB OTG FS 主机 HID 鼠标协议栈与光标渲染" }
             Entry { title: qsTr("独立看门狗"); file: "handbook/f407/misc/Iwdg.qml"; from: "独立看门狗 (IWDG) 硬件防死锁监控" }

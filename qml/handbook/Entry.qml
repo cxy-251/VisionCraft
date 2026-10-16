@@ -5,4 +5,5 @@ QtObject {
     property string title
     property string file
     property string from
+    property bool retired: false
 }

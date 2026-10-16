@@ -16,6 +16,20 @@ from response_probe import ROOT, require
 BASE = 0xfff000
 
 
+def attach(p):
+    # 不复位：上次诊断可能尚持有唯一的 RAM 恢复备份。
+    p.start(reset=False, navigate=False)
+    out = state(p)
+    require("active 0" in out and "pending 0" in out, "diagnostic active/pending; preserve power and restore first: "+out)
+    require(p.title() in ("VISIONCRAFT", "DEVICE"), "open HOME or DEVICE before this non-storage probe")
+    for _ in range(2):
+        p.tap(40, 38)  # 首次可能只唤醒调暗的屏幕；标题栏不会启动诊断。
+        if p.title() == "VISIONCRAFT": break
+    require(p.title() == "VISIONCRAFT", "could not return HOME")
+    p.tap(392, 190)
+    require(p.title() == "DEVICE", "could not enter DEVICE")
+
+
 def shell(p, text):
     return p.request(11, text.encode())[0].decode()
 
@@ -191,11 +205,14 @@ def main():
         flags = ["--sysroot="+os.environ["VC_SYSROOT"]] if os.environ.get("VC_SYSROOT") else []
         subprocess.run(["cc", *flags, "-shared", "-fPIC", str(ROOT/"protocol/vc_protocol.c"), "-o", str(lib)], check=True)
         p = ScopeProbe(args.output, 6679, 19079, lib)
+        ready = False
         try:
-            p.start(); run(p)
+            attach(p)
+            ready = True
+            run(p)
         finally:
             try:
-                if p.rtt:
+                if ready:
                     shell(p, "diag cancel"); wait_done(p); p.request(15)
             finally: p.close()
 

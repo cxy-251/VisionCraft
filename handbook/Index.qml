@@ -265,6 +265,7 @@ HandbookIndex {
             Entry { title: qsTr("任务间通信"); file: "handbook/f407/rtos/Ipc.qml" }
             Entry { title: qsTr("工位固件的任务划分"); file: "handbook/f407/rtos/StationTasks.qml" }
             Entry { title: qsTr("界面响应：测量阻塞与任务协作"); file: "handbook/f407/rtos/Responsiveness.qml" }
+            Entry { title: qsTr("Qt运行监控与RTT背压"); file: "handbook/f407/rtos/RuntimeMonitor.qml" }
             Entry { title: qsTr("看门狗、栈溢出与 HardFault 现场"); file: "handbook/f407/rtos/Fault.qml" }
         }
         Chapter {

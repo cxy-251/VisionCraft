@@ -40,6 +40,8 @@ tools/                vclink_probe（命令行测通信）、cubemx_generate.sh�
 
 设备页和远程终端 `diag` 已统一板载 SRAM、EEPROM 保留页、SPI Flash 卷外保留扇区的分步自检，写入型测试会恢复并校验原值；`flash` 查看只读识别与布局。无需额外连线，不访问 SD。验收和恢复限制见 [板载诊断记录](handbook/f407/storage/board-diagnostics-test.txt)。
 
+Qt「设备」页新增 FreeRTOS 运行监控：任务与最小剩栈、堆/LVGL趋势、响应计时、复位和故障信息；支持暂停、手动刷新和旧固件降级。只读快照不触发板载自检。见 [运行监控与验证记录](handbook/f407/rtos/runtime-monitor-test.txt)。
+
 「数据」页已接通 PA4 的 DAC→ADC2 回环波形：无需跳线，可单帧或连续逐帧采集，暂停后放大、平移查看。采样与分块传输由正式固件完成；上位机用 OpenCV 计算 Hann 窗单边频谱，显示主峰栅格、频率间隔和交流 RMS。模拟通道会明确显示“模拟数据”。
 
 ## 构建与运行

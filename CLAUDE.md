@@ -16,6 +16,7 @@ Qt 6 + OpenCV 上位机（`src/`、`qml/`），STM32F407ZG 工位固件（`firmw
 - 界面：首页和标题栏是手写框架（`App/gui.c`），工位 / 传感器 / 设备页是 LVGL（`App/page_*.c`，共用 `App/lv_ui.c`），CLASSIC 里是手写版的旧页面（名字带 OLD）。中文字体改了界面文字要重跑 `tools/make_cjk_font.sh`。
 - 内存很紧：当前片内 RAM 链接占用约 93%，CCM 97%（LVGL 内存池、绘图缓冲及CPU专用组帧/应答缓冲），外部 SRAM（`.extsram`）放大缓冲。加功能后量三样：LVGL 内存池、StationTask 栈、FreeRTOS 堆（设备页及本项非存储探针；不要自动运行含 FILES 的旧页面脚本）。
 - EEPROM：末页 248–255 为 `eetest` 自检保留区，普通写入不允许进入。自检只由显式命令触发；恢复失败先用 `eetest retry` 保留/恢复 RAM 中的原值，不启动新测试或复位覆盖备份。
+- 运行监控：GET_MONITOR 0x10 由LinkTask投递独立单槽，StationTask汇总任务/LVGL/计时后回应；最大678字节数据，应答缓冲在外部SRAM。Qt历史最多120次成功快照，计时不是CPU占用率。背压回归使用 tools/runtime_probe.py，仅暂停自己启动的OpenOCD进程，必须在finally中恢复；不进入FILES，不自动重跑含写入型自检的脚本。
 - 统一诊断：StationTask 拥有 SRAM/EEPROM/Flash 状态机；设备页与 `diag` 共用互斥。Flash 只开放经卷头确认在现有卷外的末扇区 `0xFFF000..0xFFFFFF`，未知布局保持只读；禁止格式化旧卷。`diag` 显示待恢复时先 `diag retry`，成功前不复位、不重新烧录、不开始新测试。RAM备份不能跨断电保存。SPI1/RNG 已由正式固件管理，旧裸寄存器脚本禁止接管；使用 `flash` / `rng` 命令。
 - 内存分区：CPU_BUFFER 在 CCM，不得用于 DMA；外部静态数据须位于 `0x680F0000` 之前（链接 ASSERT），尾部64 KiB为暂存。设备页任务行按需创建，改界面后需实板重复进入验证，桌面128 KiB池不能代替板上44 KiB池。
 - PA4 波形：`.ioc` 生成 ADC2/PA4/TIM2/TIM6，CubeMX 不支持在同一 PA4 同时登记 DAC_OUT1，因此 DAC1 和 DMA1 流5由 `App/scope.c` 扩展配置，中断入口也在此文件。不要为补 DAC 再给 PA4 改另一复用或占用第二根引脚。旧裸寄存器 `scope_probe.tcl` 的固定 RAM 已不安全，使用 `scope_link_probe.py` 或 Qt 数据页。

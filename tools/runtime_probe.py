@@ -111,7 +111,7 @@ def suite(p, seconds, backpressure):
     result=dict(seconds=round(time.monotonic()-start,2),frames=frames,pings=len(pings),max_ping_ms=round(max(pings,default=0),3),
                 reconnects=reconnects,initial=first,after_backpressure=baseline,final=last,samples=samples)
     (p.folder/'results.json').write_text(json.dumps(result,indent=2)+'\n')
-    print('PASS runtime monitoring, acquisition, PING, page recreation and reconnect; no storage operations',flush=True)
+    print('PASS requested runtime window; covered workload is reported by counts below; no storage operations',flush=True)
     print(json.dumps({k:v for k,v in result.items() if k not in ('initial','after_backpressure','final','samples')}),flush=True)
 
 
@@ -128,7 +128,6 @@ def main():
             attach(p);ready=True;suite(p,args.seconds,args.backpressure)
         finally:
             try:
-                p.cmd('rtt setup 0x20000000 0x20000 {SEGGER RTT}');p.cmd('rtt polling_interval 1');p.cmd('rtt start')
                 if ready:p.request(15)
             finally:p.close()
 

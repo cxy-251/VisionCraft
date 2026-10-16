@@ -28,7 +28,10 @@ private slots:
         std::unique_ptr<QObject> object(component.create());
         auto *panel=qobject_cast<QQuickItem *>(object.get());QVERIFY(panel);
         QQuickWindow window;panel->setParentItem(window.contentItem());panel->setWidth(1100);panel->setHeight(1000);
-        window.resize(1100,1000);window.show();link.connectSimulator();
+        window.resize(1100,1000);window.show();
+        // 默认始终使用模拟器；显式环境开关用于本机只读实板验收。
+        if(qEnvironmentVariableIntValue("VC_RUNTIME_TEST_RTT")==1) link.connectRtt();
+        else link.connectSimulator();
         QTRY_VERIFY(panel->property("available").toBool());
         QTRY_VERIFY(textExists(panel,QStringLiteral("stationTask")));
         QTRY_VERIFY(link.monitorHistory().size()>=2);

@@ -296,6 +296,7 @@ HandbookIndex {
             Entry { title: qsTr("视觉检测工位：分工与流程"); file: "handbook/system/overview/Station.qml" }
             Entry { title: qsTr("上位机分层"); file: "handbook/system/overview/Layers.qml" }
             Entry { title: qsTr("图像工坊：从Widgets到QML"); file: "handbook/system/workshop/ImageWorkshop.qml" }
+            Entry { title: qsTr("视觉实验工具与新版导航"); file: "handbook/system/workshop/LabTools.qml" }
         }
         Chapter {
             title: qsTr("通信")

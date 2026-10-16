@@ -3,12 +3,12 @@ import VisionCraft
 
 Section {
     title: qsTr("图像工坊：从Widgets到QML")
-    lead: qsTr("实验室里的单图工坊已迁到QML：打开电脑图片、调整四种基础处理、比较原图和结果并导出。旧Widgets入口继续保留，两种界面调用同一份ImageOperations，没有另写一套算法。")
+    lead: qsTr("视觉实验分组里的单图工坊已迁到QML：打开电脑图片、调整四种基础处理、比较原图和结果并导出。旧Widgets入口继续保留，两种界面调用同一份ImageOperations，没有另写一套算法。")
     Why {
         text: qsTr("旧ImageProcessorPage已提供灰度、高斯、固定阈值和Canny，迁移的重点是把界面、后台任务与运算职责分开。ImageOperations处理Mat，ImageWorkshop管理文件、原图和参数快照，ImageWorkshopPage负责交互，ImageViewer负责图片查看。算法由新旧页面共同复用。")
     }
     KeyPoints {
-        label: qsTr("在实验室使用")
+        label: qsTr("在图像工坊使用")
         points: [
             qsTr("点击打开图片，或使用固定种子的划痕工件示例。屏幕取图也保留为明确的手动按钮，不在进入页面时自动执行；桌面未返回图像时显示原因，可以继续使用本地图片。无需连接开发板。"),
             qsTr("选择灰度、高斯、固定阈值或Canny。自动预览默认开启，短时间连续调整参数以180 ms窗口合并；关闭后点击执行处理。高斯核直接输入奇数边长1–51，1表示不模糊；不沿用旧滑条除以10再转奇数的界面映射。"),
@@ -44,6 +44,6 @@ Section {
         answerNote: qsTr("不会。查看器只做显示变换；控制器导出的是算法产生的完整结果图，宽高仍与输入一致。要改变图像实际尺寸，需要单独执行缩放运算，而不是操作查看器。")
     }
     InSystem {
-        text: qsTr("入口在实验室的QML图像工坊；保留旧版工具按钮。源码分别位于src/vision/ImageOperations、src/app/ImageWorkshop、qml/workshop/ImageWorkshopPage.qml与qml/data/ImageViewer.qml。设备通信和下位机均不参与这条单图处理路径。")
+        text: qsTr("入口在侧栏视觉实验分组的图像工坊；侧栏底部保留旧版工具按钮。源码分别位于src/vision/ImageOperations、src/app/ImageWorkshop、qml/workshop/ImageWorkshopPage.qml与qml/data/ImageViewer.qml。设备通信和下位机均不参与这条单图处理路径。")
     }
 }

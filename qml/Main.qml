@@ -15,6 +15,9 @@ ApplicationWindow {
 
     // 启动时显示哪一页（main.cpp 可以通过环境变量 VC_PAGE 指定）
     property int startPage: 3
+    // 前五个索引兼容原VC_PAGE，页面分组和显示顺序不再改变路由身份。
+    readonly property var routes: ["station", "device", "data", "handbook", "image", "matcher", "batch", "stream", "nodes", "tools"]
+    property string pageKey: routes[startPage] || "handbook"
 
     // 旧界面是独立的 Widgets 窗口，主窗口关闭时一并退出
     onClosing: Qt.quit()
@@ -29,26 +32,25 @@ ApplicationWindow {
         NavRail {
             id: nav
             Layout.fillHeight: true
-            model: [
-                { key: "station",  label: qsTr("工位") },
-                { key: "device",   label: qsTr("设备") },
-                { key: "data",     label: qsTr("数据") },
-                { key: "handbook", label: qsTr("手册") },
-                { key: "lab",      label: qsTr("实验室") }
-            ]
-            currentIndex: window.startPage
+            currentKey: window.pageKey
+            onRouteRequested: key => window.pageKey = key
         }
 
         StackLayout {
             Layout.fillWidth: true
             Layout.fillHeight: true
-            currentIndex: nav.currentIndex
+            currentIndex: Math.max(0, window.routes.indexOf(window.pageKey))
 
             StationPage { }
             DevicePage { }
             DataPage { }
             HandbookPage { }
             LabPage { }
+            MatcherPage { }
+            BatchPage { }
+            StreamPage { }
+            NodesPage { }
+            DevToolsPage { }
         }
     }
 }

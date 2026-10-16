@@ -76,7 +76,7 @@ int main(int argc, char *argv[])
     QQmlApplicationEngine engine;
     QObject::connect(&engine, &QQmlApplicationEngine::objectCreationFailed, &app,
                      [] { QCoreApplication::exit(1); }, Qt::QueuedConnection);
-    // 开发辅助：VC_PAGE=0..4；VC_AUTOCONNECT=sim|rtt|serial，串口另设VC_SERIAL_PORT。
+    // 开发辅助：VC_PAGE=0..9（前五项保持兼容）；VC_AUTOCONNECT=sim|rtt|serial，串口另设VC_SERIAL_PORT。
     if (qEnvironmentVariableIsSet("VC_PAGE"))
         engine.setInitialProperties({{QStringLiteral("startPage"), qEnvironmentVariableIntValue("VC_PAGE")}});
     engine.loadFromModule("VisionCraft", "Main");

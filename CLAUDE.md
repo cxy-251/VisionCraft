@@ -3,7 +3,7 @@
 Qt 6 + OpenCV 上位机（`src/`、`qml/`），STM32F407ZG 工位固件（`firmware/station/`），以及一本写在程序里的手册（`handbook/`，按「卷 / 章 / 节」组织）。项目的目的是学原理、出结果：每个功能都配一节手册，每个结论都要能验证。
 
 ## 构建
-- 开始上位机新功能前先查 `PROJECT_MAP.md` 和实验室旧实现，不能只看QML主导航就判断未实现。图像处理/节点/匹配/批量/屏幕流已有Widgets实现；四种图像工坊运算已提取为src/vision/ImageOperations。ImageView通用缩放/平移/坐标及ImageViewer工具栏已接入工位与记录，单图工坊已迁移至qml/workshop/ImageWorkshopPage，由src/app/ImageWorkshop管理文件和单任务后台处理；实验室默认显示QML工坊，旧工具按钮保留。四种运算、转换与查看器均复用已有代码。
+- 开始上位机新功能前先查 `PROJECT_MAP.md` 和实验室旧实现，不能只看QML主导航就判断未实现。图像处理/节点/匹配/批量/屏幕流已有Widgets实现；四种图像工坊运算已提取为src/vision/ImageOperations。ImageView通用缩放/平移/坐标及ImageViewer工具栏已接入工位与记录，单图工坊已迁移至qml/workshop/ImageWorkshopPage，由src/app/ImageWorkshop管理文件和单任务后台处理；新版侧栏按工作台/视觉实验/学习与工具分组，旧Widgets入口常驻底部且实现继续保留。剩余匹配、批量、屏幕流、节点、开发工具已由qml/tools和VisionRunner/BatchInspector/DevTools承接，Mat算法在LabAlgorithms；连续执行离页停止。四种运算、转换与查看器均复用已有代码。不得为迁移删除或改写旧Widgets工具。
 - 环境：`source scripts/steamdeck-env.sh`（Qt、OpenCV、CMake、arm-none-eabi、OpenOCD 都在 `~/Applications` 下）。
 - 上位机：`nice -n 19 cmake --build build -j2`。示例和板上调试工具可以关掉：`-DVC_BUILD_EXAMPLES=OFF -DVC_BUILD_TOOLS=OFF`。
 - 固件：`cd firmware/station && cmake --preset Release && nice -n 19 cmake --build --preset Release -j2`。

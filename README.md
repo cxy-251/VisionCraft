@@ -5,7 +5,7 @@
 
 - **上位机**：C++17 / Qt 6（QML 界面）/ OpenCV 4，Linux 与 Windows
 - **下位机**：正点原子探索者 STM32F407ZGT6 + 4.3 寸屏，STM32CubeMX 生成的 HAL + FreeRTOS 工程
-- **通信**：自定义二进制协议，经 ST-Link 调试口（SEGGER RTT）传输，一根线完成烧录、调试和通信；也支持串口
+- **通信**：自定义二进制协议；日常使用板载 USB_232（CH340 / USART1，115200 8N1）。ST-Link 的 RTT 通信、调试和烧录入口保留，按硬件条件切换使用，不能同时连接
 
 ## 它做什么
 
@@ -36,13 +36,13 @@ tests/                单元测试（协议、通信链路、检测准确率、�
 tools/                vclink_probe（命令行测通信）、cubemx_generate.sh（命令行重新生成固件）
 ```
 
-下位机的现状、原计划与待办见 [扩充方案](firmware/station/扩充方案.md)；任务职责、队列、共享缓冲和阻塞关系见 [任务架构](firmware/station/任务架构.md)。
+**下位机当前范围已完成，进入维护阶段。** 构建、代码导航与使用约束见 [下位机维护入口](firmware/station/README.md)；任务职责、队列、共享缓冲和阻塞关系见 [任务架构](firmware/station/任务架构.md)。[扩充方案](firmware/station/扩充方案.md) 保留旧编号和历史候选，不是当前待办。数日运行验证不排期，不增加外设或接线，也不再操作用户 SD 卡。
 
-设备页和远程终端 `diag` 已统一板载 SRAM、EEPROM 保留页、SPI Flash 卷外保留扇区的分步自检，写入型测试会恢复并校验原值；`flash` 查看只读识别与布局。无需额外连线，不访问 SD。验收和恢复限制见 [板载诊断记录](handbook/f407/storage/board-diagnostics-test.txt)。
+设备页和远程终端 `diag` 已统一板载 SRAM、EEPROM 保留页、SPI Flash 卷外保留扇区的分步自检，写入型测试会恢复并校验原值；`flash` 查看只读识别与布局。无需额外连线，不访问 SD。验收和恢复限制见 [板载诊断手册](handbook/f407/storage/SpiFlash.qml)。
 
-Qt「设备」页新增 FreeRTOS 运行监控：任务与最小剩栈、堆/LVGL趋势、响应计时、复位和故障信息；支持暂停、手动刷新和旧固件降级。只读快照不触发板载自检。见 [运行监控与验证记录](handbook/f407/rtos/runtime-monitor-test.txt)。
+Qt「设备」页新增 FreeRTOS 运行监控：任务与最小剩栈、堆/LVGL趋势、响应计时、复位和故障信息；支持暂停、手动刷新和旧固件降级。只读快照不触发板载自检。见 [运行监控手册](handbook/f407/rtos/RuntimeMonitor.qml)。
 
-「数据」页已接通 PA4 的 DAC→ADC2 回环波形：无需跳线，可单帧或连续逐帧采集，暂停后放大、平移查看。采样与分块传输由正式固件完成；上位机用 OpenCV 计算 Hann 窗单边频谱，显示主峰栅格、频率间隔和交流 RMS。模拟通道会明确显示“模拟数据”。
+「数据」页已接通 PA4 的 DAC→ADC2 回环波形：无需跳线，可单帧或连续逐帧采集，暂停后放大、平移查看。采样与分块传输由正式固件完成；上位机用 OpenCV 计算 Hann 窗单边频谱，显示主峰栅格、频率间隔和交流 RMS。模拟通道会明确显示“模拟数据”。支持将单帧保存为电脑上的 `.vcscope.json`，断开开发板后继续用同一波形和频谱流程回放，见 [保存与离线回放](handbook/system/data/ScopeArchive.qml)。
 
 ## 构建与运行
 
@@ -76,7 +76,7 @@ cd firmware/station
 cmake --preset Release && cmake --build --preset Release    # 需要 arm-none-eabi-gcc
 ```
 
-烧录：在上位机「设备」页连接 ST-Link 后点「烧录并启动」，或用 OpenOCD：
+固件在本机编译。需要更新时，将连接切换为 ST-Link，在上位机「设备」页连接后点「烧录并启动」，或从仓库根目录用 OpenOCD；日常 USB_232 通信不需要重新烧录：
 
 ```bash
 openocd -f interface/stlink.cfg -f target/stm32f4x.cfg \

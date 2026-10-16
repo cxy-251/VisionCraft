@@ -12,15 +12,17 @@
 /* 在 MX_FREERTOS_Init 之后、调度器启动之前调用：建队列、互斥锁、初始化 RTT/串口 */
 void app_init(void);
 
-/* 发一帧给上位机。任何任务都可以调用（内部加锁）；不能在中断里调用。 */
-enum { APP_LINK_RTT, APP_LINK_UART };
+/* 同一协议的两种可选传输。当前板子按硬件条件切换连接，不要求同时接线。
+ * LinkTask 选择最近的有效命令来源；异步应答另存来源，不能依赖之后的活动通道。 */
+enum { APP_LINK_RTT, APP_LINK_UART, APP_LINK_COUNT };
 uint8_t app_link_channel(void);
 void app_link_stats(uint32_t stats[4]); /* channel, UART RX drop, TX drop, errors */
 void app_link_select(uint8_t channel); /* LinkTask only, after a valid command */
 void app_send_on(uint8_t channel, uint8_t type, uint8_t seq, const void *payload, uint16_t len);
 int app_tx_flush_on(uint8_t channel, uint32_t timeout_ms);
+/* 发一帧给上位机：仅任务上下文，内部发送锁保护共用编码缓冲。 */
 void app_send(uint8_t type, uint8_t seq, const void *payload, uint16_t len);
-/* 等已经发出的帧全被上位机取走（最多 timeout_ms 毫秒），复位前用。取走了返回 1 */
+/* 复位前限时排空发送：RTT 等主机取走，UART 等硬件发完；不代表电脑业务已处理。 */
 int app_tx_flush(uint32_t timeout_ms);
 
 /* 让蜂鸣器响 ms 毫秒，立即返回（由 StationTask 负责开关） */

@@ -1,6 +1,6 @@
+/* LinkTask：RTT / USART1 各自拆帧，共用协议处理；异步应答保留来源。 */
 #include "memory.h"
 #include "monitor.h"
-/* LinkTask：RTT / USART1 各自拆帧，共用协议处理；异步应答保留来源。 */
 #include "app.h"
 #include "fault.h"
 #include "perf.h"
@@ -16,14 +16,14 @@
 
 #include <string.h>
 
-static vc_decoder s_decoder[2];
+static vc_decoder s_decoder[APP_LINK_COUNT];
 extern const char app_build_stamp[];   /* build_stamp.c，每次编译生成 */
 
 static volatile uint32_t s_lastRxTick;
 
-uint32_t app_rx_frames(void) { return s_decoder[0].frames+s_decoder[1].frames; }
+uint32_t app_rx_frames(void) { return s_decoder[APP_LINK_RTT].frames+s_decoder[APP_LINK_UART].frames; }
 uint32_t app_last_rx_tick(void) { return s_lastRxTick; }
-uint32_t app_rx_errors(void) { return s_decoder[0].errors+s_decoder[1].errors; }
+uint32_t app_rx_errors(void) { return s_decoder[APP_LINK_RTT].errors+s_decoder[APP_LINK_UART].errors; }
 
 static size_t make_info(uint8_t *dst)
 {
@@ -191,8 +191,8 @@ static void handle(const vc_frame *f)
 void LinkTask(void *argument)
 {
     (void)argument;
-    vc_decoder_init(&s_decoder[0]);
-    vc_decoder_init(&s_decoder[1]);
+    for (uint8_t channel=0; channel<APP_LINK_COUNT; ++channel)
+        vc_decoder_init(&s_decoder[channel]);
     app_scope_init();
 
     uint8_t info[VC_INFO_SIZE];
@@ -208,7 +208,7 @@ void LinkTask(void *argument)
         }
         health_checkin(HEALTH_LINK);   /* 看门狗监工：我还活着 */
         size_t received=0;
-        for (uint8_t channel=APP_LINK_RTT; channel<=APP_LINK_UART; ++channel) {
+        for (uint8_t channel=APP_LINK_RTT; channel<APP_LINK_COUNT; ++channel) {
             const size_t n=channel==APP_LINK_UART ? vc_uart_read(chunk,sizeof chunk) : vc_rtt_read(chunk,sizeof chunk);
             received+=n;
             vc_frame f;

@@ -10,9 +10,10 @@ Qt 6 + OpenCV 上位机（`src/`、`qml/`），STM32F407ZG 工位固件（`firmw
 - 第三方源码不在仓库里：第一次配置时 `firmware/third_party/fetch.cmake` 从 GitHub 拉 LVGL（v9.6.0）和 STM32CubeF4（v1.28.3，文件清单见 `stm32cubef4_files.txt`）。不要把 `firmware/station/Drivers`、`Middlewares`、`firmware/third_party/lvgl` 提交进来。
 
 ## 固件
-- USB_232实线已验收（2026-10-16，Qt6.9.1）：115200 8N1，打开时显式DTR有效、RTS释放，保持板载自动下载电路正常运行态；普通连接不自动复位。Qt6.9+关闭settingsRestoredOnClose，防止恢复Linux默认9600/回显。UART错误计数比较窗口增量，保留历史；显式reboot前先只读diag确认active/pending均零。无ST-Link的软件复位/重连通过；后续USB重枚举和0x0e000000电源复位后的串口窗口也通过，未自动测量断电时长/屏幕外观，不能外推数日或所有供电组合。
+- 当前下位机范围已完成并收尾（2026-10-16）。维护入口 `firmware/station/README.md`，架构见 `任务架构.md`，旧编号见 `扩充方案.md`。用户明确不需要数日运行验证；硬件不允许同时接ST-Link与USB_232，按需切换，不能再列双连接/供电组合为待办。仅在实际故障或新需求出现时修改固件，不自动扩展外设。
+- USB_232实线已验收（2026-10-16，Qt6.9.1）：115200 8N1，打开时显式DTR有效、RTS释放，保持板载自动下载电路正常运行态；普通连接不自动复位。Qt6.9+关闭settingsRestoredOnClose，防止恢复Linux默认9600/回显。UART错误计数比较窗口增量，保留历史；显式reboot前先只读diag确认active/pending均零。无ST-Link的软件复位/重连通过；后续USB重枚举和0x0e000000电源复位后的串口窗口也通过，未自动测量断电时长/屏幕外观，测量边界保留在手册中。
 - 用户最新使用方式（2026-10-16）：以后日常只接板载梯形 USB_232（CH340 / USART1），必须支持脱离 ST-Link 的协议通信与启动；这是恢复 USB 串口通信的明确授权，DB9 RS232、RS485等取消项不随之恢复。应用原有 ST-Link（RTT）连接入口、调试与烧录功能必须保留。
-- 用户范围调整（2026-10-16）：串口、RS232/485、红外、SPI Flash 文件系统及卷切换不再列为待办；不要自动恢复这些任务。SPI Flash 已完成的识别、只读驱动和保留区诊断保留。
+- 用户范围调整（2026-10-16）：DB9 RS232、RS485、红外、SPI Flash 文件系统及卷切换不再列为待办（板载USB_232已按后续要求完成）；不要自动恢复这些任务。SPI Flash 已完成的识别、只读驱动和保留区诊断保留。
 - 用户最新要求（2026-10-15）：不要再操作他的 SD 卡。后续开发与验证不进入 FILES、不执行读写卡/存储诊断/插拔测试；使用设备页、任务信息、RTT 等其他路径。保留既有 SD 实验记录，不把旧回归脚本自动带进新任务。
 - 外设配置改 `firmware/station/station.ioc`，再用 `tools/cubemx_generate.sh` 重新生成（约 3 分钟，会自动重打 USB 库补丁 `firmware/third_party/patch_usbh_hid.cmake`）。生成后看 `git diff`。CubeMX 的 ioc 参数名先到 `~/Applications/STM32CubeMX/db/mcu/IP/*.xml` 里查，别猜。
 - 界面：首页和标题栏是手写框架（`App/gui.c`），工位 / 传感器 / 设备页是 LVGL（`App/page_*.c`，共用 `App/lv_ui.c`），CLASSIC 里是手写版的旧页面（名字带 OLD）。中文字体改了界面文字要重跑 `tools/make_cjk_font.sh`。

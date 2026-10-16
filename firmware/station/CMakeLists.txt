@@ -71,9 +71,11 @@ add_custom_target(build_stamp
 add_dependencies(${CMAKE_PROJECT_NAME} build_stamp)
 
 # Add sources to executable
+# 应用源码按职责标注；保持原有链接顺序，目录/模块入口见 README.md。
 target_sources(${CMAKE_PROJECT_NAME} PRIVATE
     # Add user sources here
     ${CMAKE_CURRENT_BINARY_DIR}/build_stamp.c
+    # 任务交接、计时、RTC、采集及三个任务入口
     App/app.c
     App/perf.c
     App/clock.c
@@ -81,8 +83,10 @@ target_sources(${CMAKE_PROJECT_NAME} PRIVATE
     App/link.c
     App/station.c
     App/env.c
+    # 协议传输驱动（共用 protocol/ 编解码）
     App/vc_rtt.c
     App/vc_uart.c
+    # 显示与板载器件、显式诊断和运行快照
     App/lcd.c
     App/lcd_font.c
     App/station_ui.c
@@ -94,6 +98,7 @@ target_sources(${CMAKE_PROJECT_NAME} PRIVATE
     App/flash_diag.c
     App/monitor.c
     App/diagnostics.c
+    # 界面框架、页面、终端与设置
     App/gui.c
     App/page_home.c
     App/page_station.c
@@ -108,16 +113,19 @@ target_sources(${CMAKE_PROJECT_NAME} PRIVATE
     App/page_term.c
     App/settings.c
     App/page_settings.c
+    # 游戏与画板
     App/game.c
     App/page_games.c
     App/page_mines.c
     App/page_snake.c
     App/page_tetris.c
     App/page_paint.c
+    # 触摸、鼠标和指针
     App/touch.c
     App/mouse.c
     App/cursor.c
     App/page_lvgl.c
+    # 历史只读文件功能：保留实现，不运行用户 SD 验证
     App/sdcard.c
     App/diskio.c
     App/fs.c
@@ -125,6 +133,7 @@ target_sources(${CMAKE_PROJECT_NAME} PRIVATE
     App/page_files.c
     Middlewares/Third_Party/FatFs/src/ff.c
     Middlewares/Third_Party/FatFs/src/option/ccsbcs.c
+    # LVGL 适配与字体
     lvgl_port/lv_port.c
     lvgl_port/vc_font_cjk_20.c
     lvgl_port/vc_font_big_72.c

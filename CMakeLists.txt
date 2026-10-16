@@ -117,6 +117,7 @@ qt_add_qml_module(VisionCraft
         qml/Theme.qml
         qml/shell/NavRail.qml
         qml/shell/LabPage.qml
+        qml/workshop/ImageWorkshopPage.qml
         qml/device/DevicePage.qml
         qml/device/RuntimePanel.qml
         qml/station/StationPage.qml
@@ -176,6 +177,8 @@ qt_add_qml_module(VisionCraft
         src/app/ScopeArchive.cpp
         src/app/ScopeAnalysis.h
         src/app/ScopeAnalysis.cpp
+        src/app/ImageWorkshop.h
+        src/app/ImageWorkshop.cpp
         src/app/ImageView.h
         src/app/ImageView.cpp
         src/app/InspectionSession.h

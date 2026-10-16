@@ -184,8 +184,10 @@ qt_add_qml_module(VisionCraft
 )
 # [endregion]
 
-# 视觉：模拟产线与检测算法
+# 视觉：可复用图像运算、模拟产线与检测算法
 target_sources(VisionCraft PRIVATE
+    src/vision/ImageOperations.h
+    src/vision/ImageOperations.cpp
     src/vision/PartGenerator.h
     src/vision/PartGenerator.cpp
     src/vision/Inspector.h

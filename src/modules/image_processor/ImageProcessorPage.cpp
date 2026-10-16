@@ -1,12 +1,12 @@
 #include "ImageProcessorPage.h"
 #include "core/ScreenCapture.h"
+#include "vision/ImageOperations.h"
 #include <QVBoxLayout>
 #include <QHBoxLayout>
 #include <QFileDialog>
 #include <QScrollArea>
 #include <QFrame>
 #include <QMessageBox>
-#include <opencv2/imgproc.hpp>
 #include <opencv2/imgcodecs.hpp>
 
 ImageProcessorPage::ImageProcessorPage(QWidget *parent) : IToolPage(parent) {
@@ -52,7 +52,7 @@ void ImageProcessorPage::setupUI() {
     m_modeCombo = new QComboBox(leftPanel);
     m_modeCombo->addItem("Canny 边缘检测 (Edge Detection)", "canny");
     m_modeCombo->addItem("高斯滤波模糊 (Gaussian Blur)", "blur");
-    m_modeCombo->addItem("自适应二值化 (Thresholding)", "threshold");
+    m_modeCombo->addItem("固定阈值二值化 (Thresholding)", "threshold");
     m_modeCombo->addItem("灰度化 (Grayscale)", "gray");
     connect(m_modeCombo, QOverload<int>::of(&QComboBox::currentIndexChanged), this, &ImageProcessorPage::applyProcessing);
     leftLayout->addWidget(m_modeCombo);
@@ -166,15 +166,16 @@ void ImageProcessorPage::applyProcessing() {
     int p1 = m_param1Slider->value();
     int p2 = m_param2Slider->value();
 
+    ImageOperations::Params params;
+    ImageOperations::Operation operation;
     if (mode == "canny") {
         m_param1NameLabel->setText("低阈值 (Low):");
         m_param2NameLabel->setText("高阈值 (High):");
         m_param1Slider->setEnabled(true);
         m_param2Slider->setEnabled(true);
 
-        cv::Mat gray;
-        cv::cvtColor(m_originalMat, gray, cv::COLOR_BGR2GRAY);
-        cv::Canny(gray, m_processedMat, p1, p2);
+        operation=ImageOperations::Operation::Canny;
+        params.lowThreshold=p1; params.highThreshold=p2;
         m_infoLabel->setText(QString("Canny 算子：提取图像梯度边缘 (低=%1, 高=%2)").arg(p1).arg(p2));
     } 
     else if (mode == "blur") {
@@ -184,7 +185,8 @@ void ImageProcessorPage::applyProcessing() {
         m_param2Slider->setEnabled(false);
 
         int ksize = (p1 / 10) * 2 + 1; // 必须是奇数
-        cv::GaussianBlur(m_originalMat, m_processedMat, cv::Size(ksize, ksize), 0);
+        operation=ImageOperations::Operation::GaussianBlur;
+        params.kernelSize=ksize;
         m_infoLabel->setText(QString("高斯模糊：卷积核大小 %1 x %1").arg(ksize));
     }
     else if (mode == "threshold") {
@@ -193,17 +195,25 @@ void ImageProcessorPage::applyProcessing() {
         m_param1Slider->setEnabled(true);
         m_param2Slider->setEnabled(false);
 
-        cv::Mat gray;
-        cv::cvtColor(m_originalMat, gray, cv::COLOR_BGR2GRAY);
-        cv::threshold(gray, m_processedMat, p1, 255, cv::THRESH_BINARY);
+        operation=ImageOperations::Operation::BinaryThreshold;
+        params.threshold=p1;
         m_infoLabel->setText(QString("二值化分割：以灰度值 %1 为界将像素二分为黑白").arg(p1));
     }
     else if (mode == "gray") {
         m_param1Slider->setEnabled(false);
         m_param2Slider->setEnabled(false);
-        cv::cvtColor(m_originalMat, m_processedMat, cv::COLOR_BGR2GRAY);
+        operation=ImageOperations::Operation::Grayscale;
         m_infoLabel->setText("灰度化：单通道亮度映射");
     }
+
+    else return;
+
+    const auto processed=ImageOperations::run(m_originalMat,operation,params);
+    if(!processed.error.isEmpty()) {
+        m_infoLabel->setText(processed.error);
+        return;
+    }
+    m_processedMat=processed.image;
 
     // 显示到界面
     QImage qImg = ScreenCapture::matToQImage(m_processedMat);

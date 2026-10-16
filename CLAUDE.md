@@ -3,6 +3,7 @@
 Qt 6 + OpenCV 上位机（`src/`、`qml/`），STM32F407ZG 工位固件（`firmware/station/`），以及一本写在程序里的手册（`handbook/`，按「卷 / 章 / 节」组织）。项目的目的是学原理、出结果：每个功能都配一节手册，每个结论都要能验证。
 
 ## 构建
+- 开始上位机新功能前先查 `PROJECT_MAP.md` 和实验室旧实现，不能只看QML主导航就判断未实现。图像处理/节点/匹配/批量/屏幕流已有Widgets实现；四种图像工坊运算已提取为src/vision/ImageOperations。后续先补ImageView通用缩放/平移，再迁移入口，不重复造已有算法。
 - 环境：`source scripts/steamdeck-env.sh`（Qt、OpenCV、CMake、arm-none-eabi、OpenOCD 都在 `~/Applications` 下）。
 - 上位机：`nice -n 19 cmake --build build -j2`。示例和板上调试工具可以关掉：`-DVC_BUILD_EXAMPLES=OFF -DVC_BUILD_TOOLS=OFF`。
 - 固件：`cd firmware/station && cmake --preset Release && nice -n 19 cmake --build --preset Release -j2`。

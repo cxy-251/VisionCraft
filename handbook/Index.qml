@@ -104,7 +104,7 @@ HandbookIndex {
     Volume {
         key: "opencv"
         title: "OpenCV"
-        summary: qsTr("从 Mat 到工业检测。每节都可以拖参数看结果。")
+        summary: qsTr("从 Mat 到工业检测，结合可运行示例、处理结果和部分章节的交互演示。")
 
         Chapter {
             title: qsTr("基础")

@@ -55,6 +55,18 @@ Section {
                        + "如果放进检测层，检测算法就依赖了文件系统和业务字段，那几千张图的准确率测试每跑一次都会写一堆文件。")
     }
 
+    KeyPoints {
+        label: qsTr("现有功能如何复用 · 2026-10-16")
+        points: [
+            qsTr("新版QML界面之外，实验室仍保留Widgets图像工坊、屏幕流、模板匹配、批量质检和节点编辑器。打开图片、灰度、高斯、阈值、Canny和图像导出已经有实现；迁移应先抽出运算，再复用到新界面。"),
+            qsTr("图像工坊的四种基础运算已提取为src/vision/ImageOperations，旧页面改为调用这个公共入口。算法接收Mat与参数，返回独立结果和错误，不认识控件、文件或设备；页面保留滑条到参数的映射和说明。"),
+            qsTr("工位、手册交互演示与旧批处理各有样本语义，不能因为都有图像和统计就强行合并。ImageView已经能等比显示，但通用缩放/平移/ROI尚未实现；后续从这些实际缺口推进。"),
+            qsTr("设备和视觉是并列能力，由应用控制器组合。旧工具中的GUI与算法仍在逐步分离，不把此处的目标结构误写成全仓库已经完成的状态。")
+        ]
+    }
+    CodeRef { file: "src/vision/ImageOperations.h" }
+    CodeRef { file: "src/vision/ImageOperations.cpp"; region: "operations" }
+
     InSystem {
         text: qsTr("规则在 tests/tst_layering.cpp。各层的入口：protocol/vc_protocol.h、src/vision/Inspector.h、src/device/DeviceLink.h、src/app/StationController.h、qml/Main.qml。")
     }

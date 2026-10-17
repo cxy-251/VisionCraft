@@ -106,6 +106,15 @@ HandbookIndex {
             Entry { title: qsTr("视频纹理与读回：显示结果属于哪一层"); file: "handbook/qt/gpu/Readback.qml" }
         }
         Chapter {
+            title: qsTr("三维场景")
+            Entry { title: qsTr("三维场景：Item、Node与View3D"); file: "handbook/qt/spatial/Scene.qml" }
+            Entry { title: qsTr("空间变换：父坐标、局部坐标与顺序"); file: "handbook/qt/spatial/Transforms.qml" }
+            Entry { title: qsTr("相机与投影：视野、距离与裁剪"); file: "handbook/qt/spatial/Camera.qml" }
+            Entry { title: qsTr("表面外观：材质、光照与透明度"); file: "handbook/qt/spatial/Materials.qml" }
+            Entry { title: qsTr("三维交互：拾取结果与拖动约束"); file: "handbook/qt/spatial/Picking.qml" }
+            Entry { title: qsTr("界面与场景联动：一份参数、两种表达"); file: "handbook/qt/spatial/Linkage.qml" }
+        }
+        Chapter {
             title: "Model / View"
             Entry { title: qsTr("Model / View 架构"); file: "handbook/qt/modelview/ModelView.qml"; from: "Model / View 架构设计哲学" }
             Entry { title: qsTr("委托：自定义单元格"); file: "handbook/qt/modelview/Delegate.qml"; from: "自定义单元格委托代理；自定义项委托与单元格嵌入组件" }

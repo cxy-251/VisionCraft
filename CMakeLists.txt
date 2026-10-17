@@ -305,8 +305,14 @@ if(WIN32 AND EXISTS "C:/02Programmer/Qt/6.7.3/msvc2019_64/bin/Qt6Concurrent.dll"
 endif()
 
 
+add_subdirectory(src/vision/teaching)
+
 # 手册引用的独立示例程序
 option(VC_BUILD_EXAMPLES "Build handbook examples" ON)
+option(VC_BUILD_SPATIAL_EXAMPLE "Build optional Qt Quick 3D teaching example" OFF)
+if(VC_BUILD_SPATIAL_EXAMPLE AND NOT VC_BUILD_EXAMPLES)
+    message(FATAL_ERROR "VC_BUILD_SPATIAL_EXAMPLE requires VC_BUILD_EXAMPLES=ON")
+endif()
 if(VC_BUILD_EXAMPLES)
     vc_fetch_lvgl()
     add_subdirectory(examples)

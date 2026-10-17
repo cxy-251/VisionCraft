@@ -1,0 +1,16 @@
+input=[1, 2, 3;
+ 4, 5, 6;
+ 7, 8, 9]
+kernel=[0, 0, 0;
+ -1, 0, 1;
+ 0, 0, 0]
+correlation=[2, 2, -2;
+ 5, 2, -5;
+ 8, 2, -8]
+center: correlation=2 convolution=-2
+constant: corner=2 center=2
+replicate: corner=1 center=2
+reflect101: corner=0 center=2
+anchor(0,1): center=-5
+mean: center=5 corner=1.33333
+falling center: signed=-190 byte=0 abs-display=190

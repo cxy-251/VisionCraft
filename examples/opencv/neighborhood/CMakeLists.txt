@@ -1,0 +1,3 @@
+qt_add_executable(example_opencv_neighborhood main.cpp)
+target_include_directories(example_opencv_neighborhood PRIVATE ${OpenCV_INCLUDE_DIRS})
+target_link_libraries(example_opencv_neighborhood PRIVATE ${OpenCV_LIBS})

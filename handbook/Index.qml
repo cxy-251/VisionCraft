@@ -75,6 +75,9 @@ HandbookIndex {
         Chapter {
             title: qsTr("界面：QML")
             Entry { title: qsTr("QML 基础与属性绑定"); file: "handbook/qt/qml/Bindings.qml" }
+            Entry { title: qsTr("Qt Quick布局与尺寸协商"); file: "handbook/qt/qml/Layouts.qml" }
+            Entry { title: qsTr("组件接口、作用域与生命周期"); file: "handbook/qt/qml/Components.qml" }
+            Entry { title: qsTr("QML列表、角色与模型更新"); file: "handbook/qt/qml/Models.qml" }
             Entry { title: qsTr("把 C++ 类型交给 QML"); file: "handbook/qt/qml/CppToQml.qml" }
             Entry { title: qsTr("解剖本程序的外壳"); file: "handbook/qt/qml/Shell.qml" }
         }
@@ -112,6 +115,7 @@ HandbookIndex {
 
         Chapter {
             title: qsTr("基础")
+            Entry { title: qsTr("图像作为数组：类型、通道与步长"); file: "handbook/opencv/basics/ImageArray.qml" }
             Entry { title: qsTr("cv::Mat 内存模型"); file: "handbook/opencv/basics/MatMemory.qml"; from: "cv::Mat 内存模型与深浅拷贝" }
             Entry { title: qsTr("图像混合"); file: "handbook/opencv/basics/Blend.qml"; from: "图像线性混合与加权融合" }
             Entry { title: qsTr("位运算与掩膜"); file: "handbook/opencv/basics/Masks.qml"; from: "逻辑位运算与非规则掩膜" }
@@ -125,6 +129,7 @@ HandbookIndex {
         }
         Chapter {
             title: qsTr("滤波")
+            Entry { title: qsTr("邻域运算：核、锚点、边界与输出"); file: "handbook/opencv/filter/Neighborhood.qml" }
             Entry { title: qsTr("高斯滤波"); file: "handbook/opencv/filter/Gaussian.qml"; from: "高斯滤波" }
             Entry { title: qsTr("中值滤波"); file: "handbook/opencv/filter/Median.qml"; from: "中值滤波" }
             Entry { title: qsTr("双边滤波"); file: "handbook/opencv/filter/Bilateral.qml"; from: "双边滤波" }

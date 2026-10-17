@@ -1,0 +1,12 @@
+rows=2 cols=4 channels=3 depth=0 type=16 elemSize=3 elemSize1=1 step=12
+BGR(y=1,x=2)=[12, 21, 32]
+ROI: cols=2 rowBytes=6 step=12 continuous=0
+clone: step=6 continuous=1
+ROI row 0: [1, 20, 31] [2, 20, 32]
+ROI row 1: [11, 21, 31] [12, 21, 32]
+ROI write: parent=[99, 20, 31] clone=[1, 20, 31]
+RGB(y=1,x=2)=[32, 21, 12]
++20 saturated=[ 30, 140, 255]
+-20 saturated=[  0, 100, 230]
+normalized=[0.039215688, 0.47058827, 0.98039222]
+unsigned byte cast(270)=14

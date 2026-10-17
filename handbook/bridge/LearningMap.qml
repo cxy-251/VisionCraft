@@ -3,7 +3,7 @@ import VisionCraft
 
 Section {
     title: qsTr("Qt与OpenCV：学习内容盘点与路线")
-    lead: qsTr("2026-10-17盘点：Qt已有35节，OpenCV已有43节，共78节，均配有练习。已有内容覆盖面较广，下一步应补知识之间的衔接，不以增加工具按钮衡量学习进度。")
+    lead: qsTr("2026-10-17盘点：Qt现有38节，OpenCV现有45节，共83节，均配有练习。已有内容覆盖面较广，本批已补齐五个基础衔接单元，不以增加工具按钮衡量学习进度。")
     Why { text: qsTr("VisionCraft的主线是学习Qt/QML和OpenCV。工位是综合案例，F407提供通信与FreeRTOS学习材料；它们不是全部课程的边界。一个算法有正文、真实源码、已有结果与练习，就已经是教学内容，不必再做一个独立工具才算完成。") }
     KeyPoints {
         label: qsTr("Qt：哪些已经有")
@@ -11,7 +11,7 @@ Section {
             qsTr("对象模型3节、事件与定时2节、线程并发4节：信号槽、对象树、事件过滤、定时、防抖、QThread、Concurrent、环形队列与日志均已有。信号/死锁与并发还有应用内演示。"),
             qsTr("Widgets界面7节、Model/View 4节：布局、样式、绘图、控件、动画、拖放，模型、委托、代理和图形视图已有独立示例。旧Widgets窗口保留作为实际代码材料。"),
             qsTr("通信与进程6节、工程化6节：串口、TCP/UDP、HTTP、共享内存、子进程，以及配置、文件监视、国际化、插件、状态机和崩溃转储均已有。无需为了学习这些概念再接新硬件或重写一套业务功能。"),
-            qsTr("QML目前3节：绑定、C++接入、应用外壳。绑定讲解较细；另外两节偏本项目解剖。专门的QML最小示例目前只有bindings，尚未形成完整的Qt Quick基础路线。")
+            qsTr("QML目前6节：绑定、布局、组件与生命周期、列表与模型、C++接入、应用外壳。前三个新单元分别配有layouts、components、models独立窗口，先解释机制，再回到本项目源码。")
         ]
     }
     KeyPoints {
@@ -23,16 +23,16 @@ Section {
         ]
     }
     KeyPoints {
-        label: qsTr("下一阶段：建议补的五个教学单元")
+        label: qsTr("本批已完成：五个教学单元")
         points: [
-            qsTr("① Qt Quick布局与尺寸：坐标、anchors与Layout的分工，implicit尺寸与实际尺寸，布局循环。现有Widgets布局章不能代替这一课。"),
-            qsTr("② QML组件与生命周期：property/alias/required、自定义信号、默认内容槽、Component/Loader。手册组件和页面已有用法，但缺连贯讲解。"),
-            qsTr("③ QML列表与模型更新：Repeater/ListView、ListModel/JS数组、角色和delegate，再衔接C++模型。已有Widgets Model/View不能直接代替这一课。"),
-            qsTr("④ 图像作为数组：坐标、通道、depth/type、BGR/RGB、步长与ROI连续性。现有章节已分散涉及部分概念，缺统一先修路线，不能把它们说成完全没讲过。"),
-            qsTr("⑤ 邻域运算的基础：用小矩阵讲核、锚点、边界、输出深度，以及相关和卷积的区别，再连接已有高斯、Sobel和DNN章节。这是补基础，不是新增滤波按钮。")
+            qsTr("① Qt Quick布局与尺寸：坐标、anchors与Layout的分工，implicit尺寸与实际尺寸，布局循环。配套example_qml_layouts，观察固定坐标、锚点和空间分配。"),
+            qsTr("② QML组件与生命周期：property/alias/required、自定义信号、默认内容槽、Component/Loader。配套example_qml_components，观察加载、卸载和状态归属。"),
+            qsTr("③ QML列表与模型更新：Repeater/ListView、ListModel/JS数组、角色和delegate，再衔接C++模型。配套example_qml_models，对比JS数组、ListModel和C++通知。"),
+            qsTr("④ 图像作为数组：坐标、通道、depth/type、BGR/RGB、步长与ROI连续性。配套example_opencv_arrays，以固定小数组串起原先分散的概念。"),
+            qsTr("⑤ 邻域运算的基础：用小矩阵讲核、锚点、边界、输出深度，以及相关和卷积的区别，再连接已有高斯、Sobel和DNN章节。配套example_opencv_neighborhood，手算中心和边界，与程序数值对读。")
         ]
     }
-    Para { text: qsTr("建议按上述顺序推进：先补Qt Quick的布局、组件、模型，再补OpenCV的数组与邻域运算。每课围绕一个学习问题，用固定小例子、真实代码、现有结果与练习说明；只有交互确实帮助理解时才增加小演示。五项是接续建议，当前并未作为新课程全部写完。") }
+    Para { text: qsTr("五节正文、最小示例和练习已接入目录。Qt按绑定→布局→组件→模型→C++接入→外壳阅读；OpenCV先读图像数组与Mat内存，再在滤波前读邻域运算。OpenCV两例附有固定矩阵的实际输出，QML三例通过独立窗口直接观察机制。") }
     KeyPoints {
         label: qsTr("已有工具在学习中承担什么")
         points: [

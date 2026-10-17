@@ -38,6 +38,7 @@ Qt 6 + OpenCV 上位机（`src/`、`qml/`），STM32F407ZG 工位固件（`firmw
 
 ## 发版
 - `.github/workflows/ci.yml` 只在推 `X.Y.0` 标签或手动触发时运行，出 Linux AppImage、Windows MSI / setup EXE / portable EXE、macOS dmg（Apple Silicon，Homebrew `opencv@4`）和固件。
+- 独立发布入口 `.github/workflows/publish.yml`：传入成功的构建 run_id 和 tag_name，GitHub Actions 校验来源/版本并直接将原产物挂到 Release，不重新构建、不经本机中转。
 - 先 `gh workflow run ci.yml --ref main -f tag_name=X.Y.0 -f publish=false` 只构建，全部通过再打标签推送。
 - Windows 打包入口 `packaging/windows/package.ps1`，WiX 4.0.6 + NSIS；便携模式通过 `VC_PORTABLE_HOME` 持久保存 QSettings。发布说明在 `packaging/releases/`。
 - 版本号只写在根目录 `CMakeLists.txt` 的 `project(... VERSION ...)`，改之前先问；固件版本在 `firmware/station/App/app.h`。

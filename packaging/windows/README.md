@@ -15,3 +15,5 @@ Windows runner 使用 Qt 的 `windeployqt` 收集 QML、插件及依赖，再补
 `generate_wix.py` 根据部署目录生成完整的文件清单，文件组件 GUID 按相对路径稳定生成，产品 UpgradeCode 固定。MSI 管理安装、升级与卸载；EXE 安装入口只启动内嵌 MSI。
 
 `package.ps1 -Payload dist -Version 0.2.0` 执行打包，版本参数由 CI 从根 CMakeLists.txt 读取。需要 Python、WiX 4.0.6（含 UI 扩展）和 NSIS。
+
+构建成功后通过 `Publish existing build` 工作流发布，传入构建 run ID 与版本标签。产物下载、SHA256 校验清单和 Release 上传均在 GitHub runner 完成，不经开发者本机中转。

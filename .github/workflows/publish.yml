@@ -1,0 +1,82 @@
+name: Publish existing build
+
+# Promote a successful release build without rebuilding or downloading it locally.
+on:
+  workflow_dispatch:
+    inputs:
+      run_id:
+        description: 'Successful VisionCraft Release build run ID'
+        required: true
+      tag_name:
+        description: 'Release tag (X.Y.0), matching the built version'
+        required: true
+
+permissions:
+  actions: read
+  contents: write
+
+concurrency:
+  group: publish-${{ inputs.tag_name }}
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+      TAG: ${{ inputs.tag_name }}
+      BUILD_RUN: ${{ inputs.run_id }}
+    steps:
+      - name: Verify successful source build
+        id: source
+        run: |
+          [[ "$TAG" =~ ^[0-9]+\.[0-9]+\.0$ ]]
+          [[ "$BUILD_RUN" =~ ^[0-9]+$ ]]
+          gh api "repos/$GH_REPO/actions/runs/$BUILD_RUN" > run.json
+          jq -e --arg repo "$GH_REPO" '
+            .conclusion == "success" and .head_branch == "main" and
+            .head_repository.full_name == $repo and
+            .path == ".github/workflows/ci.yml"
+          ' run.json
+          echo "sha=$(jq -r .head_sha run.json)" >> "$GITHUB_OUTPUT"
+          gh api "repos/$GH_REPO/actions/runs/$BUILD_RUN/artifacts" > artifacts.json
+          jq -e '[.artifacts[] | select(.expired == false) | .name] | sort ==
+            (["VisionCraft-linux", "VisionCraft-windows", "VisionCraft-macos", "VisionCraft-firmware"] | sort)' artifacts.json
+
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ steps.source.outputs.sha }}
+
+      - name: Verify version
+        run: |
+          version=$(sed -nE 's/^project\(VisionCraft VERSION ([0-9.]+).*/\1/p' CMakeLists.txt)
+          test "$version" = "$TAG"
+          test -f "packaging/releases/$TAG.md"
+
+      - uses: actions/download-artifact@v4
+        with:
+          github-token: ${{ github.token }}
+          run-id: ${{ inputs.run_id }}
+          pattern: VisionCraft-*
+          path: assets
+          merge-multiple: true
+
+      - name: Verify packages and publish
+        env:
+          SOURCE_SHA: ${{ steps.source.outputs.sha }}
+        run: |
+          expected=(
+            "VisionCraft-$TAG-windows-x64.msi"
+            "VisionCraft-$TAG-windows-x64-setup.exe"
+            "VisionCraft-$TAG-windows-x64-portable.exe"
+            "VisionCraft-linux-x86_64.AppImage"
+            "VisionCraft-macos-arm64.dmg"
+            "station.elf"
+            "station.bin"
+          )
+          for name in "${expected[@]}"; do test -s "assets/$name"; done
+          test "$(find assets -type f | wc -l)" -eq "${#expected[@]}"
+          (cd assets && sha256sum * > SHA256SUMS.txt)
+          gh release create "$TAG" assets/* --target "$SOURCE_SHA" \
+            --title "VisionCraft $TAG" --notes-file "packaging/releases/$TAG.md" --latest

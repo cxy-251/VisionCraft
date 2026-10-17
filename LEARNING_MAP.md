@@ -1,10 +1,10 @@
 # Qt / OpenCV 教学内容盘点
 
-盘点日期：2026-10-17。依据 `handbook/Index.qml`、各节正文、`examples/CMakeLists.txt`、示例源码与已有输出、`src/demos` / `qml/demos`、应用源码。范围是教学内容，不是工具功能待办。
+盘点日期：2026-10-18。依据 `handbook/Index.qml`、各节正文、`examples/CMakeLists.txt`、示例源码与已有输出、`src/demos` / `qml/demos`、应用源码。范围是教学内容，不是工具功能待办。
 
 ## 结论
 
-盘点时Qt有35节、OpenCV有43节；基础五节、十二项进阶、六节补充及音视频/GPU两专题完成后，Qt为56节、OpenCV为54节，共110节，均有练习。原先主要问题是QML基础教学不成体系、OpenCV的数值与空间运算基础分散；本批已针对这些断点补课。已有章节不能因为没有单独的工具按钮或交互控件，就被判为未实现。
+盘点时Qt有35节、OpenCV有43节；基础五节、十二项进阶、六节补充及音视频/GPU两专题完成后，Qt为56节、OpenCV为54节，共110节，均有练习。空间与多图成像整轮新增后，当前Qt62节、OpenCV60节，共122节；系统卷另增三节综合课程及一节练习。原先主要问题是QML基础教学不成体系、OpenCV的数值与空间运算基础分散；本批已针对这些断点补课。已有章节不能因为没有单独的工具按钮或交互控件，就被判为未实现。
 
 下表“已有”表示正文、示例或真实源码等材料已经存在，不等于已逐句评审完教学质量。应用内路线见 `handbook/bridge/LearningMap.qml`。
 
@@ -18,6 +18,7 @@
 | Widgets界面 | 7 | 布局、QSS、无边框、绘图、控件、动画、拖放；对应独立示例和结果图 | 覆盖较齐，旧窗口也是可读的学习材料，保留 |
 | QML界面 | 12 | 绑定、布局、组件/生命周期、列表/模型、输入、焦点、校验提交、无障碍、状态、动画、C++接入、外壳；`examples/qml/` | 已配齐基础与交互机制路线 |
 | 音视频 | 6 | MediaPlayer、状态、时间轴、PCM、QVideoFrame、抽帧协作；`qml/media` | 新专题一，区别于已有OpenCV读写视频 |
+| 三维场景 | 6 | 场景/变换/相机/材质/拾取/联动；`qml/spatial` | 独立选配Quick3D示例；主应用不增加Quick3D依赖 |
 | GPU绘制 | 6 | 纹理、qsb、采样、预乘alpha、两遍模糊、视频与读回；`qml/gpu` | 新专题二，构建ShaderTools产物，不承诺GPU性能或平台验收 |
 | Model / View | 4 | 模型、委托、代理、GraphicsView；`examples/qt/modelview`、`graphicsview` | 已有，主要按Widgets讲，不能视为已经教完QML列表 |
 | 通信与进程 | 6 | 串口、TCP、UDP、HTTP、共享内存、子进程；对应示例及DeviceLink/RTT源码 | 已有，不需要新接硬件补课 |
@@ -42,6 +43,7 @@
 | 视频与运动 | 3 | 视频读写、背景建模、光流；`video` | 已有，使用生成视频，无需采购摄像头 |
 | 三维与标定 | 3 | 标定、PnP、双目；`calib3d` | 已有，虚拟相机/已知真值足以支持现阶段教学 |
 | 聚类与结果评价 | 3 | K-means、前景IoU/Dice、MSE/PSNR；`interpretation`固定数据与输出 | 本轮新增，区分簇编号、像素重叠与图像误差 |
+| 多图成像 | 6 | 画布/对齐/掩膜/融合/曝光/失败；`multiimage` | 共享算法、固定素材、正文按需演示 |
 | 深度学习 | 1 | 最小Sobel卷积网络、blob、前向计算与错误预处理；`dnn` | 已有推理入门，不是完整的训练课程，也不必接入真实商用模型 |
 
 ## 本批已补齐的教学单元
@@ -123,6 +125,8 @@ Qt/音视频六节已接入目录，example_media_lessons复用ImageView、Scree
 
 Qt/GPU绘制六节接入目录，Qt现56节、OpenCV54节，共110节。example_gpu_lessons以半透明QML色块或第一轮视频为输入；两个片元shader由qt_add_shaders构建，describe_shaders.py提取本次qsb反射输出作为教学材料。两遍模糊采用明确中间纹理，读回按钮只在视频非播放时由读者手动触发。系统新增MediaGpuExercises六题与答案。ShaderTools仅为独立GPU示例的构建依赖；不改主应用业务工具、旧Widgets或固件。
 
-## 下一阶段（设计状态）
+## 空间与多图成像（已实现，未发布）
 
-架构与完整工作包见 [NEXT_CONTENT_ARCHITECTURE.md](NEXT_CONTENT_ARCHITECTURE.md)。计划新增 Qt 三维场景、OpenCV 多图成像、系统空间与图像综合课程，复用已有标定/PnP/单应性/金字塔。安装版计划提供融合与投影两个按需演示；Quick3D 为独立选配源码示例。尚未实施，不计入当前 Qt 56 / OpenCV 54 节的完成数。
+完整架构见 [NEXT_CONTENT_ARCHITECTURE.md](NEXT_CONTENT_ARCHITECTURE.md)，实施与构建记录见 [SPATIAL_IMAGING_ROUND.md](SPATIAL_IMAGING_ROUND.md)。Qt新增三维场景六课、OpenCV新增多图成像六课，系统新增三节空间与图像课程和综合练习；复用已有标定/PnP/单应性/金字塔。
+
+应用内提供融合与投影两个按需演示，通过现有Demo体系挂在正文中。MultiImageOps与ProjectionMath供应用和数值示例共用，固定素材、生成脚本与实际output.txt入库。Quick3D示例是独立源码选配，不进入主安装包。当前Qt62/OpenCV60节；本地源码已实现，远程0.2.0发布包不包含这批未推送内容。

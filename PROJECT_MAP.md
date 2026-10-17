@@ -1,12 +1,12 @@
 # 项目现状与上位机接续架构
 
-核对：2026-10-17，基于代码、构建清单和应用入口的静态梳理。本次不运行测试、不制作截图、不连接下位机。本文是维护导航；面向读者的架构说明继续写在应用 QML 手册中。
+核对：2026-10-18，基于代码、构建清单和应用入口的静态梳理。本次不运行测试、不制作截图、不连接下位机。本文是维护导航；面向读者的架构说明继续写在应用 QML 手册中。
 
 ## 教学接续
 
-下一阶段内容架构见 [NEXT_CONTENT_ARCHITECTURE.md](NEXT_CONTENT_ARCHITECTURE.md)：三维场景、多图成像、空间与图像综合课程。当前为设计状态，尚未实现；计划明确两个应用内教学演示、独立选配 Quick3D 示例、共享数值层与交付边界。
+空间与多图成像内容架构见 [NEXT_CONTENT_ARCHITECTURE.md](NEXT_CONTENT_ARCHITECTURE.md)：三维场景、多图成像、空间与图像综合课程。已实现两个应用内教学演示、独立选配Quick3D示例、共享数值层与课程；实施记录见 [SPATIAL_IMAGING_ROUND.md](SPATIAL_IMAGING_ROUND.md)。本轮仅本地提交，尚未发布。
 
-Qt / OpenCV教学盘点见[LEARNING_MAP.md](LEARNING_MAP.md)，读者入口是手册“衔接 → 学习路线”。本批已完成Qt Quick布局、组件/生命周期、列表/模型，以及OpenCV数组与邻域运算五节，配套五个独立教学示例；本轮另已补齐十二项进阶任务，当前Qt56节、OpenCV54节。已有内容不重新列为工具功能待办。工具服务教学，不再围绕管线存档等能力扩展成实用产品。系统卷已补齐“Qt与OpenCV协作”三节：图像交付、后台结果发布、步骤顺序与中间图；配套examples/integration三个固定数据示例，直接复用ScreenCapture/ImageOperations及已有查看器说明。
+Qt / OpenCV教学盘点见[LEARNING_MAP.md](LEARNING_MAP.md)，读者入口是手册“衔接 → 学习路线”。本批已完成Qt Quick布局、组件/生命周期、列表/模型，以及OpenCV数组与邻域运算五节，配套五个独立教学示例；本轮另已补齐十二项进阶任务，当前Qt62节、OpenCV60节。已有内容不重新列为工具功能待办。工具服务教学，不再围绕管线存档等能力扩展成实用产品。系统卷已补齐“Qt与OpenCV协作”三节：图像交付、后台结果发布、步骤顺序与中间图；配套examples/integration三个固定数据示例，直接复用ScreenCapture/ImageOperations及已有查看器说明。
 
 十二项进阶课程入口：Qt/QML三节交互，OpenCV/方法对照三节与测量匹配三节，系统/综合课程三节。清单见[TEACHING_ROUND.md](TEACHING_ROUND.md)，本轮只增加课程与教学示例。
 
@@ -122,3 +122,9 @@ flowchart TD
 example_gpu_lessons与Qt/GPU绘制六课完成，复用上一轮视频素材，提供QML图层纹理化、颜色效果、预乘alpha处理、横纵两遍模糊与显式读回；qsb反射实际输出记录在示例output.txt。Qt当前56节、OpenCV54节；系统另增两轮综合练习。主应用保持既有页面，课程与源码作为手册资源打包；ShaderTools依赖只在独立GPU示例中查找。
 
 两轮收尾：example_media_lessons、example_gpu_lessons与主应用构建通过，正文与示例QML、qsb均编译通过；音视频/GPU实际交互未自动执行。第一轮独立提交8166d02，第二轮集中本地提交，不推送。
+
+## 空间与多图成像整轮
+
+Qt六课位于handbook/qt/spatial，OpenCV六课位于handbook/opencv/multiimage，系统三课与十二题/综合作业位于handbook/system/spatial。数值层src/vision/teaching通过vc_teaching_vision库共享给主程序和独立示例；MultiImageDemo/ProjectionDemo只负责局部状态、图像交付和参数适配，不进入工位、设备或业务管线。
+
+LessonDemo通过局部Loader按需创建演示，HandbookPage把活动状态传给Section；离页或换章停止。多图运算为单任务快照，参数变化使在途结果失效；投影少量点按输入变化即时更新，无常驻定时器。主应用增加OpenCV photo依赖，Quick3D只受VC_BUILD_SPATIAL_EXAMPLE控制。已有发布工作流不触发，本轮未推送。

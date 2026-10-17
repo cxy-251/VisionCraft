@@ -1,0 +1,2 @@
+qt_add_executable(example_projection_lesson main.cpp)
+target_link_libraries(example_projection_lesson PRIVATE vc_teaching_vision)

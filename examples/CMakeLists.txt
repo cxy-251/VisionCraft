@@ -76,3 +76,5 @@ if(VC_BUILD_SPATIAL_EXAMPLE)
 endif()
 
 add_subdirectory(opencv/multiimage)
+
+add_subdirectory(integration/projection)

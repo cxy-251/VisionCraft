@@ -1,0 +1,10 @@
+point 0 object=[-100.00, -75.00, 0.00] world=[-100.00, -75.00, 0.00] camera=[-180.00, 75.00, 500.00] pixel=[139.50, 314.50] inFront=1 inside=1
+point 1 object=[100.00, -75.00, 0.00] world=[100.00, -75.00, 0.00] camera=[20.00, 75.00, 500.00] pixel=[339.50, 314.50] inFront=1 inside=1
+point 2 object=[100.00, 75.00, 0.00] world=[100.00, 75.00, 0.00] camera=[20.00, -75.00, 500.00] pixel=[339.50, 164.50] inFront=1 inside=1
+point 3 object=[-100.00, 75.00, 0.00] world=[-100.00, 75.00, 0.00] camera=[-180.00, -75.00, 500.00] pixel=[139.50, 164.50] inFront=1 inside=1
+point 4 object=[-100.00, -75.00, 100.00] world=[-100.00, -75.00, 100.00] camera=[-180.00, 75.00, 400.00] pixel=[94.50, 333.25] inFront=1 inside=1
+point 5 object=[100.00, -75.00, 100.00] world=[100.00, -75.00, 100.00] camera=[20.00, 75.00, 400.00] pixel=[344.50, 333.25] inFront=1 inside=1
+point 6 object=[100.00, 75.00, 100.00] world=[100.00, 75.00, 100.00] camera=[20.00, -75.00, 400.00] pixel=[344.50, 145.75] inFront=1 inside=1
+point 7 object=[-100.00, 75.00, 100.00] world=[-100.00, 75.00, 100.00] camera=[-180.00, -75.00, 400.00] pixel=[94.50, 145.75] inFront=1 inside=1
+zero-yaw translation residual between Z=500 and Z=400: 20.00 px
+camera at world Z=50: 4 points rejected before division

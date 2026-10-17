@@ -27,16 +27,21 @@ ApplicationWindow {
             Label { text: "焦距 px（640×480）" }
             Slider { id: focal; from: 250; to: 850; value: 500; Layout.fillWidth: true }
         }
-        RowLayout {
-            CheckBox { id: ortho; text: "正交投影" }
-            CheckBox { id: orbit; text: "平移受父旋转影响"; enabled: lesson.currentIndex === 1 }
-            CheckBox { id: checker; text: "棋盘纹理" }
-            CheckBox { id: unlit; text: "不受光照影响" }
-            Label { text: "粗糙度" }
-            Slider { id: roughness; from: 0; to: 1; value: .5; Layout.preferredWidth: 120 }
-            Label { text: "透明度" }
-            Slider { id: alpha; from: .15; to: 1; value: 1; Layout.preferredWidth: 110 }
-            Button { text: "重置"; onClicked: { yaw.value=20; distance.value=500; cameraX.value=0; focal.value=500; ortho.checked=false; orbit.checked=false; unlit.checked=false; checker.checked=false; roughness.value=.5; alpha.value=1; window.selected=false } }
+        Item {
+            Layout.fillWidth: true
+            implicitHeight: options.implicitHeight
+            Flow {
+                id: options; width: parent.width; spacing: 8
+                CheckBox { id: ortho; text: "正交投影" }
+                CheckBox { id: orbit; text: "平移受父旋转影响"; enabled: lesson.currentIndex === 1 }
+                CheckBox { id: checker; text: "棋盘纹理" }
+                CheckBox { id: unlit; text: "不受光照影响" }
+                Label { text: "粗糙度" }
+                Slider { id: roughness; from: 0; to: 1; value: .5; width: 120 }
+                Label { text: "透明度" }
+                Slider { id: alpha; from: .15; to: 1; value: 1; width: 110 }
+                Button { text: "重置"; onClicked: { yaw.value=20; distance.value=500; cameraX.value=0; focal.value=500; ortho.checked=false; orbit.checked=false; unlit.checked=false; checker.checked=false; roughness.value=.5; alpha.value=1; window.selected=false } }
+            }
         }
         RowLayout {
             Layout.fillWidth: true; Layout.fillHeight: true

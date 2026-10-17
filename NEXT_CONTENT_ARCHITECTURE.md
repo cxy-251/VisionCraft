@@ -1,7 +1,7 @@
 # 下一阶段内容架构：空间、成像与可解释的综合案例
 
-状态：**架构设计，尚未实现**。基线：已发布的 `0.2.0`；核对日期：2026-10-17。
-本文用于开发接续；读者正文在实施时进入 `handbook/*.qml`。计划中的课程不计入当前完成数，不创建空目录条目充当已完成内容。本次不修改版本号、不推送、不发布。
+状态：**本地实现已完成，尚未推送或发布**。设计基线：已发布的 `0.2.0`；实现收尾：2026-10-18。
+本文保留设计依据、契约与实施顺序；读者正文已进入 `handbook/*.qml`。实际完成记录见 [SPATIAL_IMAGING_ROUND.md](SPATIAL_IMAGING_ROUND.md)。当前Qt62节、OpenCV60节；系统新增三课和综合练习。本轮不修改版本号、不推送、不发布。
 
 ## 1. 项目的实际目标与边界
 
@@ -29,7 +29,7 @@ VisionCraft 的主线是学习 Qt / QML 与 OpenCV，并通过真实源码、最
 | 正文与源码由统一入口读取 | `SourceProvider.*`、`HandbookPage.qml`、根 CMake 的 `vc_handbook_content` | 新正文、源码、素材均需确认资源路径，开发目录可读不等于发行版可读 |
 | 新示例当前独立编译，发布构建关闭所有 examples | `examples/CMakeLists.txt`、`.github/workflows/ci.yml` | 安装包带正文和示例源码，不代表自带独立示例可执行文件 |
 | 主程序当前没有 Quick3D 和 OpenCV photo 显式组件依赖 | 根 `CMakeLists.txt` | Quick3D 采用选配示例；曝光课增加 photo 依赖时同步各平台部署 |
-| 当前本机 Qt 工具目录未找到 Quick3D CMake 配置或 QML 模块 | `scripts/steamdeck-env.sh` 指向的 Qt 目录静态检查 | 实施 Quick3D 前补齐与本机 Qt 匹配的组件，不能把计划写成已可构建 |
+| 设计时本机 Qt 工具目录缺 Quick3D 开发组件；P1已补齐同版6.9.1组件 | `scripts/steamdeck-env.sh` 指向的 Qt 目录静态检查 | 实施 Quick3D 前补齐与本机 Qt 匹配的组件，不能把计划写成已可构建 |
 | 0.2.0 已完成四平台构建和正式发布 | `.github/workflows/ci.yml`、`publish.yml`、`packaging/` | 新阶段沿用远程构建、远程发布，Windows 保留 MSI / setup EXE / portable EXE |
 
 已有教材覆盖面广，但“有章节”不等于每句表述均重新评审；本轮只核对被新课程引用的前提，不启动全库重写。过去的编译记录与人工运行边界继续保留。
@@ -59,7 +59,7 @@ flowchart LR
 | A5 三维交互 | 拾取、选择、转动与拖动约束 | 先选对象再操作；明确射线/平面约束，避免直接把鼠标像素当世界距离 |
 | A6 场景与界面 | 属性由谁持有，如何联动与重置 | 单向状态驱动的独立教学窗口，参数可恢复到预设 |
 
-计划路径：`handbook/qt/spatial/`、`examples/qml/spatial/`；目标 `example_spatial_lessons`。采用基本几何体和生成纹理，优先不引入外部模型资产工具链。
+落地路径：`handbook/qt/spatial/`、`examples/qml/spatial/`；目标 `example_spatial_lessons`。采用基本几何体和生成纹理，优先不引入外部模型资产工具链。
 
 ### B：OpenCV 多图成像
 
@@ -72,7 +72,7 @@ flowchart LR
 | B5 多曝光成像 | 曝光融合、辐照度恢复与色调映射的区别 | 同一合成曝光组走两条明确链路；输出数据语义分别标注 |
 | B6 失败边界 | 视差、运动、低纹理和重复纹理为何失败 | 有标注的固定反例；能判断应改输入/模型还是融合方法 |
 
-计划路径：`handbook/opencv/multiimage/`、`examples/opencv/multiimage/`；目标 `example_multiimage_lessons`。使用可拆解的算法步骤，暂不以 `cv::Stitcher` 的一键结果代替解释。
+落地路径：`handbook/opencv/multiimage/`、`examples/opencv/multiimage/`；目标 `example_multiimage_lessons`。使用可拆解的算法步骤，暂不以 `cv::Stitcher` 的一键结果代替解释。
 
 ### C：空间与图像综合理解
 
@@ -82,7 +82,7 @@ flowchart LR
 | C2 相机与位姿 | 改焦距、移动相机、移动物体分别改变什么 | 对比已知真值和投影；复用已有 projectPoints/PnP 知识，不再重写标定课 |
 | C3 平面模型边界 | 为什么平面可对齐、不同深度的物体会错位 | 两个深度层的固定场景，显示单应性残差与重影原因 |
 
-计划路径：`handbook/system/spatial/`、`examples/integration/projection/`；目标 `example_projection_lesson`。另有一节综合练习及答案，连接 A/B/C。预计新内容为 15 个主题单元 + 1 个综合练习单元，具体章节拆分服从学习问题，不以数量验收。
+落地路径：`handbook/system/spatial/`、`examples/integration/projection/`；目标 `example_projection_lesson`。另有一节综合练习及答案，连接 A/B/C。已交付新内容为 15 个主题单元 + 1 个综合练习单元，具体章节拆分服从学习问题，不以数量验收。
 
 ## 4. 用户实际能看到什么
 
@@ -176,7 +176,7 @@ flowchart TD
 ## 9. 构建、资源与发行边界
 
 - 主程序新增多图数值代码及其 OpenCV `photo` 依赖；常规几何、图像转换与查看器复用现有能力。多频段融合优先用已讲过的金字塔步骤实现，避免为黑盒流程增加 stitching 依赖。
-- 拟增选项 `VC_BUILD_SPATIAL_EXAMPLE=OFF`，只控制独立 Quick3D 示例，并要求 `VC_BUILD_EXAMPLES=ON`；显式开启时查找匹配的 Qt Quick3D/相关组件，缺失则给出清楚的配置错误，不悄悄跳过后宣称构建成功。
+- 选项 `VC_BUILD_SPATIAL_EXAMPLE=OFF`，只控制独立 Quick3D 示例，并要求 `VC_BUILD_EXAMPLES=ON`；显式开启时查找匹配的 Qt Quick3D/相关组件，缺失则给出清楚的配置错误，不悄悄跳过后宣称构建成功。
 - `VC_BUILD_EXAMPLES=OFF` 的正式应用构建仍包含两个嵌入式演示；演示不能因为放在 examples 的条件分支里而从发行包消失。
 - Quick3D 的 QML 只作为文本进入主程序的源码资源，不作为可实例化组件注册到主程序模块。部署工具扫描 QML 的目录也要与实际运行内容一致，避免扫描 `examples/qml/spatial` 意外收集 Quick3D。
 - 新素材放到明确的资源前缀，核对生成脚本、CMake 文件和 CodeRef 的资源清单。现有 `examples/*.png` 并不在正文资源 glob 中，不能凭本地路径可读就认为打包完整。
@@ -212,3 +212,9 @@ flowchart TD
 - [OpenCV 4.10 HDR 示例](https://docs.opencv.org/4.10.0/d3/db7/tutorial_hdr_imaging.html)：用于区分 HDR 合成、色调映射和曝光融合，也与当前 Windows 发布使用的 OpenCV 版本对齐。
 
 外部资料用于核对模块边界与 API 语义；课程正文在实施时用本项目最小代码和明确的结果讲解，不整篇搬用外部教程。
+
+## 实施落点与边界补记
+
+实际交付与上文模块一致。素材由共享C++生成器和generate_assets.sh生成，应用演示从同一固定生成参数构造输入，不依赖用户目录或网络；PNG为离线阅读材料。几何案例使用两张观测，HDR使用三张曝光；当前不提供任意图像导入。多频段是掩膜归一化的教学实现，局部错位是明确标注的二维反例，真实两深度关系由ProjectionMath解释。
+
+本机完成必要构建和数值素材生成；没有执行界面截图、图形/音视频交互验收或板上任务。运行交互与跨平台部署没有被本地编译替代。本次不触发远程流水线。

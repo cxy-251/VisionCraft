@@ -64,7 +64,7 @@ Qt「设备」页新增 FreeRTOS 运行监控：任务与最小剩栈、堆/LVGL
 [GitHub Releases](https://github.com/cxy-251/VisionCraft/releases) 提供 Linux AppImage、macOS Apple Silicon DMG，以及 Windows x64 的 MSI、EXE 安装程序和单文件便携版。
 Windows 任选 MSI 或 setup EXE 安装；便携版运行时临时解压程序，设置保存在 EXE 旁的 `VisionCraft-data/`，请放在可写目录。详见 [Windows 发布说明](packaging/windows/README.md)。
 
-下一阶段的教学目标、模块边界、课程依赖与交付顺序见 [新内容架构设计](NEXT_CONTENT_ARCHITECTURE.md)（设计状态，尚未实现）。
+空间与多图成像整轮已在本地源码实现：三维六课、多图六课、空间与图像三课及综合练习；手册提供融合与投影两个按需演示。架构见 [新内容架构](NEXT_CONTENT_ARCHITECTURE.md)，构建与完成边界见 [实施记录](SPATIAL_IMAGING_ROUND.md)。这批内容尚未推送，不包含在远程0.2.0安装包中。
 
 ## 构建与运行
 
@@ -83,6 +83,7 @@ VC_DEV=1 ./run.sh     # 开发模式：手册正文从源码目录读取，保�
 
 需要 Qt 6.7+（Core、Gui、Widgets、Concurrent、SerialPort、Network、Qml、Quick、QuickControls2、Multimedia）、
 OpenCV 4、fmt、nlohmann-json、CMake 3.21+。
+多图成像还使用OpenCV `photo`模块。三维独立示例另需匹配版本的Qt Quick3D，默认不构建；显式配置`-DVC_BUILD_SPATIAL_EXAMPLE=ON`并构建`example_spatial_lessons`。
 Linux另需Qt DBus，用于显式关闭应用创建的屏幕共享会话。
 
 新版屏幕输入需要 Qt Multimedia 的 FFmpeg 后端；Wayland 会话还需要桌面的 ScreenCast portal 与 PipeWire，点击取图后由系统选择共享屏幕。应用内说明见“系统 → 视觉实验工具与新版导航”。Steam Deck 脚本仅在系统与本地 Qt Core 精确版本相同时补充系统插件路径。

@@ -361,6 +361,13 @@ HandbookIndex {
         summary: qsTr("VisionCraft 自己是怎么设计和实现的：上位机、协议、下位机，以及它们怎么配合。")
 
         Chapter {
+            title: qsTr("空间与图像")
+            Entry { title: qsTr("同一个点：物体、世界、相机与图像"); file: "handbook/system/spatial/Coordinates.qml" }
+            Entry { title: qsTr("相机、物体与焦距：相对关系和投影尺度"); file: "handbook/system/spatial/CameraMotion.qml" }
+            Entry { title: qsTr("平面模型边界：两个深度层为何不能一起对齐"); file: "handbook/system/spatial/Parallax.qml" }
+            Entry { title: qsTr("空间与多图成像：综合作业与答案"); file: "handbook/system/spatial/Exercises.qml" }
+        }
+        Chapter {
             title: qsTr("总体")
             Entry { title: qsTr("视觉检测工位：分工与流程"); file: "handbook/system/overview/Station.qml" }
             Entry { title: qsTr("上位机分层"); file: "handbook/system/overview/Layers.qml" }

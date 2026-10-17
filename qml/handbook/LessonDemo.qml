@@ -17,6 +17,7 @@ Demo {
     }
     Loader {
         Layout.fillWidth: true
+        Layout.minimumWidth: 0
         active: host.started && host.visible && host.pageActive
         sourceComponent: host.activity
     }

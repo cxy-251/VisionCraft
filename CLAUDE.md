@@ -28,6 +28,7 @@ Qt 6 + OpenCV 上位机（`src/`、`qml/`），STM32F407ZG 工位固件（`firmw
 - 需要人动手的（看屏、按键、插线）一次问清楚。
 
 ## 手册
+- 空间与多图成像整轮已实现：Qt62/OpenCV60节，新增系统空间三课与综合练习。两个按需演示通过LessonDemo加载，离开手册停止；数学层src/vision/teaching由应用和示例共用。Quick3D仅独立选配，主程序只新增OpenCV photo依赖。入口与边界见SPATIAL_IMAGING_ROUND.md，不重复列为待办。
 - 图片查看：ImageView默认不接收交互；ImageViewer显式开启，Ctrl+滚轮缩放、拖动、适应/1:1、原图坐标/RGB。工位conveyor是独立完整捕获层，交互查看器是另一个同源图层；不得直接用变换后的查看器抓图喂检测，或把工具栏截入样本。换图恢复适应，手动缩放在resize时保留实际比例。
 - 工位已增加电脑端记录与参数对比（2026-10-16）：Station.review由InspectionSession持有，最近60条实际输入图/答案/配方/原判定，可生成固定种子样本并在同图上重测；.vcinspect.json保存原记录及已有对比，64 MiB上限。ReviewPanel显示漏检/误报/类型误判和分母；不连接板子、不写板上存储。截图请求编号与配方/答案快照避免在途错配。生成器噪声使用实例RNG，旧图库/百分比保留历史窗口。说明见handbook/system/inspection/Review.qml。
 - 电脑端波形记录：ScopeArchive仅访问本地.vcscope.json单帧文件，128 KiB上限、版本1、原始ADC/实际采样率/UTC电脑接收时间/来源；不访问板上SD。离线回放与DeviceLink实时帧分别保存状态，共用ScopeFrame统计与ScopeAnalysis频谱。加载失败保留有效回放，返回实时不会自动开始采集。

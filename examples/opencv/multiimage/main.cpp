@@ -14,7 +14,7 @@ int main(int argc,char **argv) {
         if(!output.empty()) {
             // Keep just the input pair and final result as offline classroom materials.
             for(size_t i=0;i<result.images.size();++i) {
-                if(i>1 && i+1<result.images.size()) continue;
+                if(preset!=7 && i>1 && i+1<result.images.size()) continue;
                 const auto &view=result.images[i];
                 if(!cv::imwrite((output/("case-"+std::to_string(preset)+"-"+view.first+".png")).string(),view.second)) return 2;
             }

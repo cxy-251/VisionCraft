@@ -163,6 +163,7 @@ qt_add_qml_module(VisionCraft
         qml/demos/qt/DeadlockView.qml
         qml/demos/qt/ConcurrencyView.qml
         qml/demos/system/FrameDemoView.qml
+        qml/demos/system/ProjectionView.qml
         qml/demos/opencv/EvalView.qml
         qml/demos/opencv/MultiImageView.qml
         qml/demos/opencv/MatView.qml
@@ -180,6 +181,8 @@ qt_add_qml_module(VisionCraft
         src/demos/qt/DeadlockDemo.cpp
         src/demos/qt/ConcurrencyDemo.h
         src/demos/qt/ConcurrencyDemo.cpp
+        src/demos/system/ProjectionDemo.h
+        src/demos/system/ProjectionDemo.cpp
         src/demos/system/FrameDemo.h
         src/demos/system/FrameDemo.cpp
         src/demos/opencv/MultiImageDemo.h

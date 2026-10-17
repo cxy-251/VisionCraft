@@ -1,0 +1,15 @@
+{
+  "version": 1,
+  "generator": "examples/integration/projection/main.cpp",
+  "command": "bash examples/integration/projection/generate_assets.sh",
+  "lengthUnit": "mm",
+  "imageSize": [640, 480],
+  "intrinsics": {"fx": 500, "fy": 500, "cx": 319.5, "cy": 239.5},
+  "objectYawDegrees": 0,
+  "cameraPositionQtWorld": [80, 0, 500],
+  "cameraOrientation": "Qt local -Z forward, +Y up; explicit conversion to OpenCV +Z forward, +Y down",
+  "objectDepthPlanes": [0, 100],
+  "cameraDepthPlanes": [500, 400],
+  "zeroYawTranslationResidualPx": 20,
+  "limitations": ["no lens distortion", "no occlusion simulation", "not a GPU readback"]
+}

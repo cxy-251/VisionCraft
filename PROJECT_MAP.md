@@ -4,7 +4,7 @@
 
 ## 教学接续
 
-Qt / OpenCV教学盘点见[LEARNING_MAP.md](LEARNING_MAP.md)，读者入口是手册“衔接 → 学习路线”。本批已完成Qt Quick布局、组件/生命周期、列表/模型，以及OpenCV数组与邻域运算五节，配套五个独立教学示例；目前Qt38节、OpenCV45节。已有内容不重新列为工具功能待办。工具服务教学，不再围绕管线存档等能力扩展成实用产品。
+Qt / OpenCV教学盘点见[LEARNING_MAP.md](LEARNING_MAP.md)，读者入口是手册“衔接 → 学习路线”。本批已完成Qt Quick布局、组件/生命周期、列表/模型，以及OpenCV数组与邻域运算五节，配套五个独立教学示例；目前Qt38节、OpenCV45节。已有内容不重新列为工具功能待办。工具服务教学，不再围绕管线存档等能力扩展成实用产品。系统卷已补齐“Qt与OpenCV协作”三节：图像交付、后台结果发布、步骤顺序与中间图；配套examples/integration三个固定数据示例，直接复用ScreenCapture/ImageOperations及已有查看器说明。
 
 ## 项目目标与当前形态
 

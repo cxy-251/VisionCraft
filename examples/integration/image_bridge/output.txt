@@ -1,0 +1,7 @@
+Mat ROI: width=2 height=2 channels=3 step=12
+QImage: width=2 height=2 bytesPerLine=8
+delivered RGB=200,20,10
+after Mat scope RGB=200,20,10
+returned BGR=[10, 20, 200]
+borrowed after owner write RGB=0,255,0
+owned after owner write RGB=255,0,0

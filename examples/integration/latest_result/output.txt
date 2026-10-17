@@ -1,0 +1,7 @@
+submit revision=1 threshold=128
+GUI changes source and threshold; revision=2
+finished revision=1 threshold=128 workerOnGui=0 publishOnGui=1 pixels=0,0,255,255
+discard stale result; current revision=2
+submit revision=2 threshold=200
+finished revision=2 threshold=200 workerOnGui=0 publishOnGui=1 pixels=255,255,255,255
+publish current result

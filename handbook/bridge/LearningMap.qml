@@ -34,6 +34,14 @@ Section {
     }
     Para { text: qsTr("五节正文、最小示例和练习已接入目录。Qt按绑定→布局→组件→模型→C++接入→外壳阅读；OpenCV先读图像数组与Mat内存，再在滤波前读邻域运算。OpenCV两例附有固定矩阵的实际输出，QML三例通过独立窗口直接观察机制。") }
     KeyPoints {
+        label: qsTr("基础之后：Qt与OpenCV协作")
+        points: [
+            qsTr("系统卷新增Qt与OpenCV协作三节。先读图像交付：格式、步长、像素所有权怎样落实到QImage属性和QML查看器；配套example_image_bridge复用实际转换函数。"),
+            qsTr("再读后台结果发布：按值快照、请求版本、完成回调和属性通知分别管什么；配套example_latest_result用两个连续请求演示旧结果为何不采用。"),
+            qsTr("最后读步骤顺序与中间图：固定输入下对比模糊/阈值、掩膜/模糊、模糊/Canny的顺序；配套example_operation_order解释相同数据类型可能承载不同含义。")
+        ]
+    }
+    KeyPoints {
         label: qsTr("已有工具在学习中承担什么")
         points: [
             qsTr("图像工坊：观察一次处理前后发生什么。节点管线：观察步骤顺序和中间结果。工位：把界面、线程、算法、通信放回同一个案例。它们服务于理解原理，不需要持续扩展成实用工业软件。"),

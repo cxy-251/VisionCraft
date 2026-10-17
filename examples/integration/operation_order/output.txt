@@ -1,0 +1,10 @@
+input=[  0,   0,   0, 255,   0,   0,   0]
+blur intermediate=[  0,   0,  64, 128,  64,   0,   0]
+blur -> threshold=[  0,   0,   0,   0,   0,   0,   0]
+threshold intermediate=[  0,   0,   0, 255,   0,   0,   0]
+threshold -> blur=[  0,   0,  64, 128,  64,   0,   0]
+mask -> blur=[  0,   0,  50, 100,  50,   0,   0]
+blur -> mask=[  0,   0,  50, 150,   0,   0,   0]
+raw Canny nonzero=1117
+blur -> Canny nonzero=48 intermediateGray=0
+Canny -> blur nonzero=3071 intermediateGray=3071

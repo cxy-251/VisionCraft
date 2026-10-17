@@ -74,3 +74,18 @@
 五个构建目标：`example_qml_layouts`、`example_qml_components`、`example_qml_models`、`example_opencv_arrays`、`example_opencv_neighborhood`。前三者为独立教学窗口，从源码目录加载QML；后两者为固定矩阵的命令行示例，output.txt是本批运行生成的课堂材料。主应用没有增加业务工具。
 
 统一构建示例：`source scripts/steamdeck-env.sh`，再`cmake --build build --target example_qml_layouts example_qml_components example_qml_models example_opencv_arrays example_opencv_neighborhood -j2`。程序分别在`build/examples/qml/`与`build/examples/opencv/`的对应目录下。
+
+
+## Qt与OpenCV协作：基础之后的三节（已完成）
+
+入口：应用手册“系统 → Qt与OpenCV协作”。这三节属于系统卷，Qt38节/OpenCV45节的分卷统计不变。
+
+| 课程 | 学习问题 | 示例与已有代码 |
+|---|---|---|
+| 图像从算法到界面 | 格式、步长、所有权怎样交给QImage，再交给QML绘制 | `example_image_bridge`复用ScreenCapture，正文衔接ImageWorkshop属性、QML绑定与ImageView |
+| 后台计算与界面刷新 | 正常完成的旧任务为何不能发布；快照、版本、通知各自负责什么 | `example_latest_result`复用ImageOperations，以事件循环前的状态变更确定先后，不靠延时 |
+| 步骤顺序与中间图 | 为什么模糊/阈值、掩膜/模糊、模糊/Canny不能随意互换 | `example_operation_order`复用ImageOperations，用固定数组与固定噪声解释中间值和输出语义 |
+
+三个示例位于`examples/integration/`，对应目录中的`output.txt`由本批运行生成，是课堂数值材料。没有增加业务工具、采集设备画面或改动下位机。
+
+构建：`cmake --build build --target example_image_bridge example_latest_result example_operation_order -j2`。运行程序分别位于`build/examples/integration/image_bridge/`、`latest_result/`、`operation_order/`。

@@ -14,7 +14,7 @@ Section {
     CodeRef { file: "src/main.cpp"; from: "^int main"; to: "return app.exec" }
     KeyPoints {
         points: [
-            qsTr("用 QApplication 而不是 QGuiApplication：「实验室」页打开的旧版界面是 Widgets 窗口，Widgets 需要 QApplication。纯 QML 程序用 QGuiApplication 就够了。"),
+            qsTr("用 QApplication 而不是 QGuiApplication：侧栏底部打开的旧版界面是 Widgets 窗口，Widgets 需要 QApplication。纯 QML 程序用 QGuiApplication 就够了。"),
             qsTr("setApplicationName 和 setOrganizationName 决定配置文件的位置：Linux 上是 ~/.config/VisionCraftStudio/VisionCraft.conf，深浅色、上次读到哪一节都存在这里。"),
             qsTr("QQuickStyle 设成 Basic：所有控件的样子由我们自己画，Basic 风格最容易改，而且在各平台上一样。"),
             qsTr("loadFromModule(\"VisionCraft\", \"Main\")：从名为 VisionCraft 的 QML 模块里加载 Main 类型，也就是 qml/Main.qml。"),
@@ -29,7 +29,7 @@ Section {
     CodeRef { file: "handbook/qt/qml/shell-build.txt"; caption: qsTr("本机构建目录实测") }
 
     Para {
-        text: qsTr("主界面是一个窗口里放左右两栏：左边导航栏，右边一个 StackLayout 叠着五个页面，导航栏选中第几个就显示第几个。"
+        text: qsTr("主界面是一个窗口里放左右两栏：左边导航栏，右边一个 StackLayout 叠着十个页面。侧栏按工作台、视觉实验、学习与工具分组，点击条目后用稳定的路由键找到对应页面。"
                  + "StackLayout 里的页面启动时全部创建，切换只是改变哪个可见，所以切走再切回来，页面的状态（比如设备的连接、工位的统计）都还在：")
     }
     CodeRef { file: "qml/Main.qml"; from: "RowLayout \\{"; to: "^    \\}" }

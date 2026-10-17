@@ -10,6 +10,10 @@ HandbookIndex {
         summary: qsTr("写过 CRUD 的 C++ 程序员做 Qt / OpenCV / 单片机之前需要补的东西。")
 
         Chapter {
+            title: qsTr("学习路线")
+            Entry { title: qsTr("Qt与OpenCV：学习内容盘点与路线"); file: "handbook/bridge/LearningMap.qml" }
+        }
+        Chapter {
             title: qsTr("C++ 补课")
             Entry { title: qsTr("对象生命周期与所有权"); file: "handbook/bridge/cpp/Lifetime.qml" }
             Entry { title: qsTr("lambda 与捕获"); file: "handbook/bridge/cpp/Lambda.qml" }

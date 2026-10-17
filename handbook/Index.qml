@@ -125,6 +125,12 @@ HandbookIndex {
             Entry { title: qsTr("FileStorage 持久化"); file: "handbook/opencv/basics/FileStorage.qml"; from: "参数与矩阵持久化" }
         }
         Chapter {
+            title: qsTr("方法对照")
+            Entry { title: qsTr("方法选择：分割区域还是寻找边缘"); file: "handbook/opencv/comparisons/RegionOrEdge.qml" }
+            Entry { title: qsTr("方法选择：滤波与形态学改变了什么"); file: "handbook/opencv/comparisons/FilterOrMorphology.qml" }
+            Entry { title: qsTr("方法选择：连通域、轮廓与面积"); file: "handbook/opencv/comparisons/ComponentOrContour.qml" }
+        }
+        Chapter {
             title: qsTr("色彩与阈值")
             Entry { title: qsTr("HSV 颜色提取"); file: "handbook/opencv/color/Hsv.qml"; from: "HSV 颜色区间提取；HSV 色彩空间颜色阈值提取" }
             Entry { title: qsTr("全局阈值与 OTSU"); file: "handbook/opencv/threshold/Otsu.qml"; from: "阈值化与 OTSU 大津法" }

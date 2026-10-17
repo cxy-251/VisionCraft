@@ -1,0 +1,14 @@
+[segmentation] object pixels=270
+global: inside=270 outside=2256
+adaptive: inside=242 outside=0
+Canny boundary pixels=62 (not a region mask)
+[filtering] Gaussian intermediate gray=309
+input: count=607 dot=255 thinLine=255 hole=0
+Gaussian+threshold: count=576 dot=0 thinLine=0 hole=255
+median: count=572 dot=0 thinLine=0 hole=255
+opening: count=575 dot=0 thinLine=0 hole=0
+closing: count=608 dot=255 thinLine=255 hole=255
+[regions] foreground=27
+4-connected objects=4
+8-connected objects=3
+outer contours=3 child contours=1 sum outer polygon area=16 main component pixels=24

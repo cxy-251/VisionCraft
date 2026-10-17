@@ -122,3 +122,7 @@ Qt/音视频六节已接入目录，example_media_lessons复用ImageView、Scree
 ## GPU绘制专题（第二轮）
 
 Qt/GPU绘制六节接入目录，Qt现56节、OpenCV54节，共110节。example_gpu_lessons以半透明QML色块或第一轮视频为输入；两个片元shader由qt_add_shaders构建，describe_shaders.py提取本次qsb反射输出作为教学材料。两遍模糊采用明确中间纹理，读回按钮只在视频非播放时由读者手动触发。系统新增MediaGpuExercises六题与答案。ShaderTools仅为独立GPU示例的构建依赖；不改主应用业务工具、旧Widgets或固件。
+
+## 下一阶段（设计状态）
+
+架构与完整工作包见 [NEXT_CONTENT_ARCHITECTURE.md](NEXT_CONTENT_ARCHITECTURE.md)。计划新增 Qt 三维场景、OpenCV 多图成像、系统空间与图像综合课程，复用已有标定/PnP/单应性/金字塔。安装版计划提供融合与投影两个按需演示；Quick3D 为独立选配源码示例。尚未实施，不计入当前 Qt 56 / OpenCV 54 节的完成数。

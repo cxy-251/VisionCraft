@@ -4,6 +4,8 @@
 
 ## 教学接续
 
+下一阶段内容架构见 [NEXT_CONTENT_ARCHITECTURE.md](NEXT_CONTENT_ARCHITECTURE.md)：三维场景、多图成像、空间与图像综合课程。当前为设计状态，尚未实现；计划明确两个应用内教学演示、独立选配 Quick3D 示例、共享数值层与交付边界。
+
 Qt / OpenCV教学盘点见[LEARNING_MAP.md](LEARNING_MAP.md)，读者入口是手册“衔接 → 学习路线”。本批已完成Qt Quick布局、组件/生命周期、列表/模型，以及OpenCV数组与邻域运算五节，配套五个独立教学示例；本轮另已补齐十二项进阶任务，当前Qt56节、OpenCV54节。已有内容不重新列为工具功能待办。工具服务教学，不再围绕管线存档等能力扩展成实用产品。系统卷已补齐“Qt与OpenCV协作”三节：图像交付、后台结果发布、步骤顺序与中间图；配套examples/integration三个固定数据示例，直接复用ScreenCapture/ImageOperations及已有查看器说明。
 
 十二项进阶课程入口：Qt/QML三节交互，OpenCV/方法对照三节与测量匹配三节，系统/综合课程三节。清单见[TEACHING_ROUND.md](TEACHING_ROUND.md)，本轮只增加课程与教学示例。
@@ -32,7 +34,7 @@ Qt / OpenCV教学盘点见[LEARNING_MAP.md](LEARNING_MAP.md)，读者入口是�
 | 旧知识体系 | `KnowledgeRegistry*.cpp`、`KnowledgeExplorerPage.*` | Qt基础/架构、OpenCV视觉/工业、Linux环境、F407六类注册源码；新版目录用from记录来源 |
 | 正式固件 | `firmware/station/` | 当前范围已完成，维护入口为该目录README；不恢复SD、取消外设或数日运行验证 |
 | 历史固件与探针 | `firmware/f407zg/`、`tools/` | 驱动/实验参考与针对性工具；不是自动接续清单，不全量运行 |
-| 构建发布 | 根CMake、`scripts/steamdeck-env.sh`、`run.sh`、`.github/workflows/ci.yml` | 本机构建；已有Linux/Windows/macOS发布定义，固件独立构建；本次只做本地提交 |
+| 构建发布 | 根CMake、`scripts/steamdeck-env.sh`、`run.sh`、`.github/workflows/ci.yml`、`publish.yml` | 0.2.0 已远程构建并发布；Linux AppImage、Windows MSI/setup EXE/portable EXE、macOS DMG及固件；成功产物由 GitHub 直接发布 |
 
 ## 实验室中已经做过的功能
 

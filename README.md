@@ -64,6 +64,8 @@ Qt「设备」页新增 FreeRTOS 运行监控：任务与最小剩栈、堆/LVGL
 [GitHub Releases](https://github.com/cxy-251/VisionCraft/releases) 提供 Linux AppImage、macOS Apple Silicon DMG，以及 Windows x64 的 MSI、EXE 安装程序和单文件便携版。
 Windows 任选 MSI 或 setup EXE 安装；便携版运行时临时解压程序，设置保存在 EXE 旁的 `VisionCraft-data/`，请放在可写目录。详见 [Windows 发布说明](packaging/windows/README.md)。
 
+下一阶段的教学目标、模块边界、课程依赖与交付顺序见 [新内容架构设计](NEXT_CONTENT_ARCHITECTURE.md)（设计状态，尚未实现）。
+
 ## 构建与运行
 
 ### Steam Deck（SteamOS）

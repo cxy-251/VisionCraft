@@ -1,0 +1,10 @@
+case 0: canvas=480x240 origin=0,0 overlap=38400 linear MAE=0 inliers=0 alignment=known plane
+case 1: canvas=480x240 origin=0,0 overlap=38400 linear MAE=0.0906813 inliers=0 alignment=known plane
+case 2: canvas=480x240 origin=0,0 overlap=38400 linear MAE=0 inliers=0 alignment=known plane
+case 3: canvas=480x240 origin=0,0 overlap=38400 linear MAE=0.0258962 inliers=0 alignment=known plane; displaced foreground patch is a controlled mismatch, not a physical 3D renderer
+case 4: canvas=480x240 origin=0,0 overlap=38400 linear MAE=0.018746 inliers=0 alignment=known plane; moving object cannot be repaired by blending
+case 5: canvas=480x240 origin=0,0 overlap=38400 linear MAE=0 inliers=0 alignment=known plane; known H remains available even when appearance does not determine H
+case 6: canvas=480x240 origin=0,0 overlap=38400 linear MAE=0 inliers=0 alignment=known plane; known H remains available even when appearance does not determine H
+case 7: Generated linear radiance; gamma=2.2; times=0.125,0.5,2 seconds. Debevec uses KNOWN response (not estimated calibration). HDR max=8; Mertens display and Reinhard tone mapping are different outputs.
+estimated clean: canvas=485x245 origin=0,-3 overlap=38300 linear MAE=0.00292516 inliers=100 alignment=estimated (not truth)
+estimated low texture: No descriptors: low texture cannot determine alignment

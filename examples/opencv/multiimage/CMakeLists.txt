@@ -1,0 +1,2 @@
+qt_add_executable(example_multiimage_lessons main.cpp)
+target_link_libraries(example_multiimage_lessons PRIVATE vc_teaching_vision)

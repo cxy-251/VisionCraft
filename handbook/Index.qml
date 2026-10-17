@@ -147,6 +147,15 @@ HandbookIndex {
         summary: qsTr("从 Mat 到工业检测，结合可运行示例、处理结果和部分章节的交互演示。")
 
         Chapter {
+            title: qsTr("多图成像")
+            Entry { title: qsTr("多图画布：变换方向、原点与范围"); file: "handbook/opencv/multiimage/Canvas.qml" }
+            Entry { title: qsTr("对齐质量：已知变换与估计变换"); file: "handbook/opencv/multiimage/Alignment.qml" }
+            Entry { title: qsTr("有效区域与接缝：黑色像素也可能是内容"); file: "handbook/opencv/multiimage/Masks.qml" }
+            Entry { title: qsTr("融合方法：覆盖、羽化与多频段"); file: "handbook/opencv/multiimage/Blending.qml" }
+            Entry { title: qsTr("多曝光：曝光融合、HDR与显示映射"); file: "handbook/opencv/multiimage/Exposure.qml" }
+            Entry { title: qsTr("失败边界：纹理、运动与视差"); file: "handbook/opencv/multiimage/Failures.qml" }
+        }
+        Chapter {
             title: qsTr("基础")
             Entry { title: qsTr("图像作为数组：类型、通道与步长"); file: "handbook/opencv/basics/ImageArray.qml" }
             Entry { title: qsTr("cv::Mat 内存模型"); file: "handbook/opencv/basics/MatMemory.qml"; from: "cv::Mat 内存模型与深浅拷贝" }

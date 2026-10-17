@@ -1,0 +1,14 @@
+{
+  "version": 1,
+  "generator": "src/vision/teaching/MultiImageOps.cpp",
+  "command": "bash examples/opencv/multiimage/generate_assets.sh",
+  "seed": 20261017,
+  "panoramaSize": [480, 240],
+  "inputSize": [320, 240],
+  "secondCropOrigin": [160, 0],
+  "encoding": "BGR uint8, synthetic gamma 2.2; blend after decoding to float linear values",
+  "validity": "independent full masks; black is valid image content",
+  "cases": ["plane", "exposure x1.7", "valid black", "controlled foreground mismatch", "moving foreground", "low texture", "repeated texture", "synthetic exposures"],
+  "hdr": {"timesSeconds": [0.125, 0.5, 2.0], "response": "known gamma 2.2, not estimated", "radianceRange": [0.03125, 8.0]},
+  "evidence": "fixed numeric example output; no screenshot or hardware acquisition"
+}

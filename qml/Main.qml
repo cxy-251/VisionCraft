@@ -51,7 +51,7 @@ ApplicationWindow {
             StationPage { }
             DevicePage { }
             DataPage { }
-            HandbookPage { }
+            HandbookPage { studyActive: window.pageKey === "handbook" && window.visible }
             LabPage { }
             MatcherPage { }
             BatchPage { }

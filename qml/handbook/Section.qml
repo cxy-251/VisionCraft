@@ -9,6 +9,7 @@ import VisionCraft
 Flickable {
     id: section
     objectName: "handbookSection"
+    property bool studyActive: true
     property string title
     property string lead          // 标题下的一句话概括
     property string volumeTitle   // 由手册页填写，用于面包屑

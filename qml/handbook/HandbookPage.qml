@@ -9,6 +9,7 @@ import VisionCraft
 Item {
     id: page
 
+    property bool studyActive: visible
     property var index: null           // Index.qml 实例
     property int volumeIndex: 0
     property string currentFile: ""
@@ -272,6 +273,9 @@ Item {
                 anchors.fill: parent
                 asynchronous: false
                 onLoaded: {
+                    if (item && item.studyActive !== undefined)
+                        item.studyActive = Qt.binding(() => page.studyActive)
+
                     if (item && item.volumeTitle !== undefined) {
                         item.volumeTitle = page.currentVolume
                         item.chapterTitle = page.currentChapter

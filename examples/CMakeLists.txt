@@ -74,3 +74,5 @@ add_subdirectory(qml/gpu)
 if(VC_BUILD_SPATIAL_EXAMPLE)
     add_subdirectory(qml/spatial)
 endif()
+
+add_subdirectory(opencv/multiimage)

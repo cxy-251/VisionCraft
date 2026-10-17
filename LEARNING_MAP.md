@@ -4,7 +4,7 @@
 
 ## 结论
 
-盘点时Qt有35节、OpenCV有43节；基础五节、十二项进阶及六节补充完成后，Qt为44节、OpenCV为54节，共98节，均有练习。原先主要问题是QML基础教学不成体系、OpenCV的数值与空间运算基础分散；本批已针对这些断点补课。已有章节不能因为没有单独的工具按钮或交互控件，就被判为未实现。
+盘点时Qt有35节、OpenCV有43节；基础五节、十二项进阶及六节补充完成后，Qt为50节、OpenCV为54节，共104节，均有练习。原先主要问题是QML基础教学不成体系、OpenCV的数值与空间运算基础分散；本批已针对这些断点补课。已有章节不能因为没有单独的工具按钮或交互控件，就被判为未实现。
 
 下表“已有”表示正文、示例或真实源码等材料已经存在，不等于已逐句评审完教学质量。应用内路线见 `handbook/bridge/LearningMap.qml`。
 
@@ -17,6 +17,7 @@
 | 线程与并发 | 4 | QThread、Concurrent、SPSC环形队列、异步日志；`examples/qt/qthread`、`ringbuffer`及并发演示 | 已有，队列和日志适合进阶，不能反过来作为初学门槛 |
 | Widgets界面 | 7 | 布局、QSS、无边框、绘图、控件、动画、拖放；对应独立示例和结果图 | 覆盖较齐，旧窗口也是可读的学习材料，保留 |
 | QML界面 | 12 | 绑定、布局、组件/生命周期、列表/模型、输入、焦点、校验提交、无障碍、状态、动画、C++接入、外壳；`examples/qml/` | 已配齐基础与交互机制路线 |
+| 音视频 | 6 | MediaPlayer、状态、时间轴、PCM、QVideoFrame、抽帧协作；`qml/media` | 新专题一，区别于已有OpenCV读写视频 |
 | Model / View | 4 | 模型、委托、代理、GraphicsView；`examples/qt/modelview`、`graphicsview` | 已有，主要按Widgets讲，不能视为已经教完QML列表 |
 | 通信与进程 | 6 | 串口、TCP、UDP、HTTP、共享内存、子进程；对应示例及DeviceLink/RTT源码 | 已有，不需要新接硬件补课 |
 | 工程化 | 6 | 配置、文件监视、国际化、插件、状态机、崩溃转储；对应独立示例 | 已有，按兴趣选读，不必全部移植到主程序 |
@@ -112,3 +113,7 @@
 确定六个缺口：FocusScope/activeFocus与窗口快捷键、TextInput编辑中间态与明确提交、Accessible语义与自绘操作，以及K-means、前景IoU/Dice、MSE/PSNR。事件课仅提及焦点和QShortcut，未系统讲Qt Quick焦点作用域；已有Evaluation按件评价，未讲前景重叠度。
 
 六节均登记到应用目录，Qt现为44节（QML12节），OpenCV54节。example_qml_forms提供三个独立教学页；example_result_interpretation提供固定颜色/掩膜/误差数据，并保留一次实际运行生成的output.txt。综合练习追加四题与答案，学习路线同步。主应用业务工具、旧Widgets和下位机不扩展。
+
+## 音视频专题（第一轮）
+
+Qt/音视频六节已接入目录，example_media_lessons复用ImageView、ScreenCapture转换与Canny，提供MediaPlayer/AudioOutput/VideoOutput及FrameProbe。assets为生成的两秒FFV1+PCM视频与双通道WAV；generate_media.py与output.txt解释采样参数和容器信息。无自动播放、默认静音，抽帧分析单任务且约5Hz。文档明确Qt位置毫秒、帧时间戳微秒，以及图像交付和结果epoch边界。

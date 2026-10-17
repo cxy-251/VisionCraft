@@ -67,3 +67,5 @@ add_subdirectory(opencv/teaching_case)
 
 add_subdirectory(qml/forms)
 add_subdirectory(opencv/interpretation)
+
+add_subdirectory(qml/media)

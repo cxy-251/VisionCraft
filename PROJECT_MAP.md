@@ -110,3 +110,7 @@ flowchart TD
 ## 本轮教学补充：输入语义与结果解释
 
 排除已有ROI/坐标/掩膜/直方图内容后，补齐Qt Quick焦点、文本提交、Accessible三节，以及OpenCV K-means、IoU/Dice、MSE/PSNR三节。现Qt44节、OpenCV54节；此前41/51为上一阶段数量。新示例example_qml_forms和example_result_interpretation独立于主程序，后者output.txt为固定数据课堂材料。系统综合练习与应用内学习路线已关联这六课。任务清单见TEACHING_EXTENSION.md；本轮不扩展业务工具或设备功能。
+
+## 音视频教学专题
+
+独立example_media_lessons及Qt/音视频六课已实现，Qt课程数量为50；OpenCV54节不变。示例不嵌入业务工具，素材生成脚本不录音、不取桌面。第一轮示例构建与正文QML编译完成后本地提交；主应用资源在第二轮结束统一打包。两轮清单见MEDIA_GPU_ROUND.md。

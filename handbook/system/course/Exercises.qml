@@ -27,5 +27,8 @@ Section {
     Try { task: qsTr("⑩ 自绘按钮可点击，也加了Accessible.name，但Tab无法到达，辅助技术调用press没有效果。只改标签文字能解决吗？"); answerNote: qsTr("不能。语义名称、键盘焦点、键操作和Accessible动作分别要落实；各入口调用同一动作函数。需要完整按钮时优先使用标准Button。") }
     Try { task: qsTr("⑪ K-means返回label=0且SSE很小，能直接计入工位的合格品吗？若label编号交换，应如何解释？"); answerNote: qsTr("不能，簇编号没有合格语义，SSE只描述样本到中心的距离。编号交换而成员和中心对应关系未变时，聚类本身可以等价；需要独立的问题定义和真值才能评价业务正确性。") }
     Try { task: qsTr("⑫ 方法A的像素准确率99%，前景IoU为0；方法B的PSNR为34.15 dB。能比较谁更会检测缺陷吗？"); answerNote: qsTr("不能直接比较。A可能只是把占比1%的前景全部漏掉；B是在已约定参照、范围和峰值下的图像误差，缺少缺陷检测的真值与评价。先统一任务、数据和指标口径，不能把不同分母和含义的数值排列成性能榜。") }
+    KeyPoints { label: qsTr("音视频专题练习"); points: [qsTr("先读Qt/音视频六课，再区分播放状态、时间单位和分析的结果归属。") ] }
+    Try { task: qsTr("⑬ 媒体已经Loaded但还没Playing，是否矛盾？15fps文件拖动到1000ms就保证读到了第15帧吗？"); answerNote: qsTr("不矛盾，媒体准备与播放控制是不同状态。定位是时间请求，还受媒体时间戳、起始时刻、编码和后端精度影响，不能自动等同于精确逐帧读取。") }
+    Try { task: qsTr("⑭ 双通道48000Hz、16位PCM的两秒负载有多少字节？分析只处理5fps是否说明15fps视频损坏？"); answerNote: qsTr("48000×2秒×2通道×2字节=384000字节，不含容器头。示例有意抽帧，播放和分析各自推进，跳过分析不是视频损坏或播放丢帧的证据。") }
     InSystem { text: qsTr("前一轮十二项课程与本轮六节延伸课程在此对读。学习材料包括example_qml_interaction、example_method_choices、example_teaching_case、本轮example_qml_forms与example_result_interpretation，以及原有measure/geometry/features示例。先解释，再观察，再按需要修改小例子；不要求增加业务功能或连接开发板。") }
 }

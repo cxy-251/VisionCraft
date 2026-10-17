@@ -1,0 +1,14 @@
+PCM: rate=48000 Hz, channels=2, sample=s16le
+PCM: frames=96000, payload=384000 bytes, duration=2 s
+Tone: left=440 Hz, right=660 Hz, peak=0.2 full scale, 20 ms fade
+codec_name=ffv1
+codec_type=video
+width=320
+height=180
+r_frame_rate=15/1
+codec_name=pcm_s16le
+codec_type=audio
+sample_rate=48000
+channels=2
+r_frame_rate=0/0
+duration=2.000000

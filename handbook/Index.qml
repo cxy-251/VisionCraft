@@ -88,6 +88,15 @@ HandbookIndex {
             Entry { title: qsTr("解剖本程序的外壳"); file: "handbook/qt/qml/Shell.qml" }
         }
         Chapter {
+            title: qsTr("音视频")
+            Entry { title: qsTr("音视频对象：播放器、声音与画面"); file: "handbook/qt/media/Objects.qml" }
+            Entry { title: qsTr("异步媒体状态：加载、播放与结束"); file: "handbook/qt/media/States.qml" }
+            Entry { title: qsTr("时间轴：位置、时长与定位请求"); file: "handbook/qt/media/Timeline.qml" }
+            Entry { title: qsTr("音频数据：采样、通道与输出音量"); file: "handbook/qt/media/Audio.qml" }
+            Entry { title: qsTr("视频帧：时间戳、格式与CPU图像交付"); file: "handbook/qt/media/Frames.qml" }
+            Entry { title: qsTr("播放与分析：独立节奏和结果时间"); file: "handbook/qt/media/Analysis.qml" }
+        }
+        Chapter {
             title: "Model / View"
             Entry { title: qsTr("Model / View 架构"); file: "handbook/qt/modelview/ModelView.qml"; from: "Model / View 架构设计哲学" }
             Entry { title: qsTr("委托：自定义单元格"); file: "handbook/qt/modelview/Delegate.qml"; from: "自定义单元格委托代理；自定义项委托与单元格嵌入组件" }

@@ -3,7 +3,7 @@ import VisionCraft
 
 Section {
     title: qsTr("Qt与OpenCV：学习内容盘点与路线")
-    lead: qsTr("2026-10-17盘点：Qt现有44节，OpenCV现有54节，共98节，均配有练习。已有内容覆盖面较广，已完成基础衔接与十二项进阶教学任务，不以增加工具按钮衡量学习进度。")
+    lead: qsTr("2026-10-17盘点：Qt现有50节，OpenCV现有54节，共104节，均配有练习。已有内容覆盖面较广，已完成基础衔接与十二项进阶教学任务，不以增加工具按钮衡量学习进度。")
     Why { text: qsTr("VisionCraft的主线是学习Qt/QML和OpenCV。工位是综合案例，F407提供通信与FreeRTOS学习材料；它们不是全部课程的边界。一个算法有正文、真实源码、已有结果与练习，就已经是教学内容，不必再做一个独立工具才算完成。") }
     KeyPoints {
         label: qsTr("Qt：哪些已经有")
@@ -56,6 +56,13 @@ Section {
             qsTr("Qt/QML新增三节：FocusScope与活动焦点、键盘导航与窗口快捷键；输入草稿、校验器与明确提交；自绘控件的Accessible语义和多入口动作。它们补充键盘、表单与辅助技术，不重复已有鼠标输入或绘图变换。配套example_qml_forms。"),
             qsTr("OpenCV新增聚类与结果评价三节：K-means的样本与簇编号、前景IoU/Dice与背景占比、MSE/PSNR与空间误差。配套example_result_interpretation，以八个颜色样本和固定小矩阵展示数值。已有HSV、掩膜、按件评价与对齐课程作为先修。"),
             qsTr("读完到系统/综合练习完成延伸题：明确参数何时提交、动作由谁触发，以及簇编号、像素重叠度和图像误差分别能说明什么。例子不连接设备，不要求采购图片或模型。")
+        ]
+    }
+    KeyPoints {
+        label: qsTr("新专题一：Qt音视频与视频帧")
+        points: [
+            qsTr("Qt/音视频新增六课：对象分工、异步媒体状态、时间轴、PCM音频、视频帧交付、播放与分析节奏。已有OpenCV视频读写、图像交付与后台结果发布作为先修。"),
+            qsTr("运行example_media_lessons，使用程序生成的两秒素材；默认不播放且静音。观察VideoOutput原画面与抽帧Canny的各自时间戳。素材生成脚本与实际格式输出随源码提供，不采集桌面、麦克风或开发板。")
         ]
     }
     KeyPoints {

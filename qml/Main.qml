@@ -20,7 +20,14 @@ ApplicationWindow {
     property string pageKey: routes[startPage] || "handbook"
 
     // 旧界面是独立的 Widgets 窗口，主窗口关闭时一并退出
-    onClosing: Qt.quit()
+    property bool closeApproved: false
+    onClosing: event => {
+        if(!closeApproved && nodePage.dirty) {
+            event.accepted=false
+            window.pageKey="nodes"
+            nodePage.requestAction("quit")
+        } else Qt.quit()
+    }
 
     // 工位把检测结果下发给板子
     Component.onCompleted: Station.link = DeviceLink
@@ -49,7 +56,10 @@ ApplicationWindow {
             MatcherPage { }
             BatchPage { }
             StreamPage { }
-            NodesPage { }
+            NodesPage {
+                id: nodePage
+                onExitRequested: { window.closeApproved=true;window.close() }
+            }
             DevToolsPage { }
         }
     }

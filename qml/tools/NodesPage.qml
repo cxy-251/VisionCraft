@@ -18,6 +18,55 @@ ToolPage {
     property int selected: 4
     property int nextId: 5
     property string editStatus: ""
+    property string savedState: ""
+    property string pendingAction: ""
+    readonly property bool dirty: savedState.length > 0 && JSON.stringify(snapshot()) !== savedState
+    signal exitRequested()
+    Component.onCompleted: savedState = JSON.stringify(snapshot())
+    NodeProject { id: project }
+    function snapshot() {
+        return {nodes:nodes.map(n => {
+            const params={}
+            Object.keys(n.params).sort().forEach(key => params[key]=n.params[key])
+            return {id:n.id,type:n.type,label:n.label,x:Math.round(n.x),y:Math.round(n.y),params:params}
+        }),edges:edges.map(e => ({from:e.from,to:e.to})),selected:selected}
+    }
+    function requestAction(action) {
+        if(pendingAction.length > 0) return
+        pendingAction=action
+        if(dirty) unsaved.open()
+        else proceedPending()
+    }
+    function proceedPending() {
+        const action=pendingAction
+        pendingAction=""
+        if(action === "open") projectOpen.open()
+        else if(action === "preset") { preset();project.detach() }
+        else if(action === "clear") { clear();project.detach() }
+        else if(action === "quit") exitRequested()
+    }
+    function saveProject(saveAs) {
+        if(saveAs || project.fileUrl.toString().length === 0) {
+            projectSave.selectedFile=project.fileUrl
+            projectSave.open()
+        } else writeProject(project.fileUrl)
+    }
+    function writeProject(url) {
+        const graph=snapshot()
+        if(project.save(url,graph)) {
+            savedState=JSON.stringify(graph)
+            proceedPending()
+        } else pendingAction=""
+    }
+    function openProject(url) {
+        const graph=project.load(url)
+        if(graph.nodes === undefined) return
+        runner.stop()
+        nodes=graph.nodes;edges=graph.edges;selected=graph.selected
+        nextId=nodes.reduce((next,n)=>Math.max(next,n.id+1),1)
+        canvas.contentX=0;canvas.contentY=0;editStatus=""
+        savedState=JSON.stringify(snapshot());wires.requestPaint()
+    }
     readonly property var selectedNode: nodes.find(n => n.id === selected) || {type:"",params:{}}
     readonly property var types: ["sample","screen","gray","blur","canny","threshold","morph","contours","qr"]
     readonly property var names: [qsTr("工件源"),qsTr("屏幕源"),qsTr("灰度"),qsTr("高斯"),"Canny",qsTr("二值化"),qsTr("形态学"),qsTr("轮廓"),qsTr("二维码")]
@@ -58,10 +107,18 @@ ToolPage {
     }
     Flow {
         Layout.fillWidth: true; spacing: 8
+        ToolAction { text: qsTr("打开工程…"); onClicked: page.requestAction("open") }
+        ToolAction { text: qsTr("保存工程"); onClicked: page.saveProject(false) }
+        ToolAction { text: qsTr("另存为…"); onClicked: page.saveProject(true) }
+    }
+    ToolNote { text: (page.dirty ? qsTr("● 未保存修改 · ") : "") + (project.fileUrl.toString().length ? decodeURIComponent(project.fileUrl.toString()) : qsTr("未命名工程")) }
+    ToolNote { text: project.status; visible: text.length > 0 }
+    Flow {
+        Layout.fillWidth: true; spacing: 8
         ComboBox { id: typeBox; model: page.names; palette.button: Theme.surface; palette.buttonText: Theme.text }
         ToolAction { text: qsTr("添加节点"); onClicked: page.addNode() }
-        ToolAction { text: qsTr("质检预设"); onClicked: page.preset() }
-        ToolAction { text: qsTr("清空画布"); onClicked: page.clear() }
+        ToolAction { text: qsTr("质检预设"); onClicked: page.requestAction("preset") }
+        ToolAction { text: qsTr("清空画布"); onClicked: page.requestAction("clear") }
         ToolAction { text: runner.running ? qsTr("停止连续运行") : qsTr("连续运行·30fps"); enabled: page.nodes.length > 0; onClicked: runner.running ? runner.stop() : runner.start(30) }
         ToolAction { text: qsTr("删除选中"); enabled: page.selected >= 0; onClicked: page.removeNode() }
         ToolAction { text: runner.busy ? qsTr("运行中…") : qsTr("运行管线"); enabled: !runner.busy && !runner.running && page.nodes.length > 0; onClicked: runner.run() }
@@ -123,7 +180,30 @@ ToolPage {
             ToolNote { text: runner.resultCurrent ? JSON.stringify(runner.summary[String(page.selected)] || {}) : qsTr("参数或输出节点改变后，请重新运行。") }
             Item { Layout.fillHeight: true }
         }
-        ImageViewer { Layout.fillWidth: true; Layout.fillHeight: true; image: { const version=runner.generation; return runner.nodeImage(page.selected) } }
+        ImageViewer { Layout.fillWidth: true; Layout.fillHeight: true; visible: runner.resultCurrent; image: { const version=runner.generation; return runner.nodeImage(page.selected) } }
+        ToolNote { Layout.fillHeight: true; visible: !runner.resultCurrent; text: qsTr("运行管线后显示当前节点图像。工程文件不包含上次运行结果。") }
+    }
+    Dialog {
+        id: unsaved; title: qsTr("节点工程有未保存修改")
+        modal: true; anchors.centerIn: Overlay.overlay
+        standardButtons: Dialog.Save | Dialog.Discard | Dialog.Cancel
+        contentItem: Label { text: qsTr("保存当前工程后继续，或放弃修改。"); color: Theme.text; padding: 16 }
+        background: Rectangle { color: Theme.surface; border.color: Theme.border; radius: Theme.radius }
+        palette.button: Theme.surface; palette.buttonText: Theme.text; palette.windowText: Theme.text
+        onAccepted: page.saveProject(false)
+        onDiscarded: page.proceedPending()
+        onRejected: page.pendingAction=""
+    }
+    FileDialog {
+        id: projectOpen; title: qsTr("打开节点工程")
+        nameFilters: [qsTr("VisionCraft节点工程 (*.vcgraph.json)"), qsTr("JSON (*.json)")]
+        onAccepted: page.openProject(selectedFile)
+    }
+    FileDialog {
+        id: projectSave; title: qsTr("保存节点工程"); fileMode: FileDialog.SaveFile
+        nameFilters: [qsTr("VisionCraft节点工程 (*.vcgraph.json)")]; defaultSuffix: "vcgraph.json"
+        onAccepted: page.writeProject(selectedFile)
+        onRejected: page.pendingAction=""
     }
     FileDialog { id: save; fileMode: FileDialog.SaveFile; nameFilters: ["PNG (*.png)"]; defaultSuffix: "png"; onAccepted: runner.save(selectedFile) }
 }

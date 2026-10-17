@@ -188,6 +188,8 @@ qt_add_qml_module(VisionCraft
         src/app/ScopeArchive.cpp
         src/app/ScopeAnalysis.h
         src/app/ScopeAnalysis.cpp
+        src/app/NodeProject.h
+        src/app/NodeProject.cpp
         src/app/VisionRunner.h
         src/app/VisionRunner.cpp
         src/app/BatchInspector.h

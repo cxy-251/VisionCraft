@@ -38,7 +38,7 @@
 | `LiveScreenPipelinePage` | 屏幕区域/鼠标跟随/整屏输入、滤波、阈值、形态学、轮廓、ORB/Harris、日志 | 新版StreamPage/VisionRunner/LabAlgorithms已承接；单任务丢弃过期采样，显示实际完成帧率，离开页停止 |
 | `VisionMatcherPage` | 屏幕图像、模板加载、相关匹配、阈值与结果定位 | 新版MatcherPage已承接；单处归一化相关匹配，明确分数不等于概率 |
 | `BatchInspectorPage` | 24件合成批次、本地目录、并行检测、PASS/NG筛选、明细和CSV | 新版BatchPage/BatchInspector已承接；保留装配板语义，独立线程池和CSV；修正标准安装孔误计与红色划痕漏提取，不改旧实现 |
-| `NodeGraphPipelinePage` / `VisionNodeItem` | 图元、连线、预设、输入节点、灰度/滤波/阈值/形态学/轮廓/二维码、连续执行 | 新版NodesPage已承接；9类节点、增删/拖动/连断/预设/参数/单次与连续执行/逐节点预览；新增单输入图校验，仍不提供多输入合流 |
+| `NodeGraphPipelinePage` / `VisionNodeItem` | 图元、连线、预设、输入节点、灰度/滤波/阈值/形态学/轮廓/二维码、连续执行 | 新版NodesPage已承接；9类节点、增删/拖动/连断/预设/参数/单次与连续执行/逐节点预览，NodeProject保存/打开.vcgraph.json工程与未保存提醒；新增单输入图校验，仍不提供多输入合流 |
 | `DevToolboxPage` | JSON格式化/压缩、系统信息 | 新版DevToolsPage已承接；复用nlohmann-json，显示实际编译器信息 |
 
 `F407WorkbenchPage` 是另一个旧工具，串口动作发送文本命令；当前正式固件通过DeviceLink使用二进制协议。它不是新版设备页的同义入口，不应把旧文本串口直接用于当前固件，也不为迁移图像工具改动它。
@@ -82,5 +82,7 @@ flowchart TD
 4. **单图入口已迁移到QML**：实验室直接展示ImageWorkshopPage，ImageWorkshop管理原图、文件与单任务后台处理，复用四种公共运算和ImageViewer。支持180 ms合并自动预览/手动执行、过期结果标记、中文路径、手动屏幕取图和PNG/JPEG原分辨率导出，旧Widgets入口保留。没有为本次迁移新增测试、截图或设备操作。
 5. **剩余工具已补齐QML入口（2026-10-17）**：模板匹配、装配板批量质检、屏幕流、节点编辑执行、开发工具箱。新版共用查看器、Theme、输入组件和小型页面控件；运算与文件适配放在vision/app。旧Widgets文件本轮不修改。
 6. **侧栏目录已重构**：工作台（工位/设备/数据），视觉实验（工坊/匹配/批量/屏幕流/节点），学习与工具（手册/开发工具）；底部常驻旧版与主题。VC_PAGE=0..4兼容，5..9扩展新页；切换工具不销毁状态，连续采集离页即停。说明见handbook/system/workshop/LabTools.qml。
+
+节点工程接续：NodeProject负责256 KiB版本1文件的结构校验与QSaveFile提交；NodesPage保存节点、布局、参数、连线及选中节点。支持草稿、另存为与替换/退出前未保存提醒，加载失败保留画布，打开后不自动执行，不保存运行图像。
 
 本轮只做代码核对和正式应用编译，不新增/运行测试或截图，不操作设备。QML功能迁移已实现；未进行交互运行验收，不宣称所有平台屏幕采集已验证。本地提交，不推送远程。

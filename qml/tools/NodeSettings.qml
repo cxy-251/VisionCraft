@@ -6,6 +6,7 @@ ColumnLayout {
     id: editor
     property string type
     property var params: ({})
+    property bool waylandCapture: false
     signal edited(string key, var value)
     ToolNote { text: qsTr("选中节点参数（修改后需重新运行）") }
     Repeater {
@@ -26,11 +27,13 @@ ColumnLayout {
         }
     }
     ComboBox {
-        visible: editor.type === "screen"; model: [qsTr("主屏中心"),qsTr("鼠标附近"),qsTr("主屏全屏")]
-        readonly property var keys: ["center","mouse","full"]
+        visible: editor.type === "screen"
+        model: editor.waylandCapture ? [qsTr("共享屏幕中心"),qsTr("共享屏幕全屏")] : [qsTr("主屏中心"),qsTr("鼠标附近"),qsTr("主屏全屏")]
+        readonly property var keys: editor.waylandCapture ? ["center","full"] : ["center","mouse","full"]
         currentIndex: Math.max(0, keys.indexOf(editor.params.mode || "center")); palette.button: Theme.surface; palette.buttonText: Theme.text
         onActivated: editor.edited("mode",keys[currentIndex])
     }
+    ToolNote { visible: editor.type === "screen" && editor.waylandCapture; text: editor.params.mode === "mouse" ? qsTr("此工程选择了鼠标跟随，Wayland不支持；请重新选择中心或全屏。") : qsTr("运行时由系统选择共享屏幕；Wayland不提供全局鼠标跟随。") }
     CheckBox { visible: editor.type === "sample"; text: qsTr("示例含缺陷"); palette.windowText: Theme.text; checked: editor.params.hasDefect !== false; onToggled: editor.edited("hasDefect",checked) }
     CheckBox { visible: editor.type === "threshold"; text: "OTSU"; palette.windowText: Theme.text; checked: editor.params.otsu !== false; onToggled: editor.edited("otsu",checked) }
     ComboBox { visible: editor.type === "morph"; model: ["Close","Open","Dilate","Erode"]; currentIndex: Math.max(0, model.indexOf(editor.params.op || "Close")); palette.button: Theme.surface; palette.buttonText: Theme.text; onActivated: editor.edited("op",currentText) }

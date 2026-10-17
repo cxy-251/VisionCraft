@@ -1,5 +1,6 @@
 #pragma once
 #include "ImageOperations.h"
+#include "core/DesktopCapture.h"
 #include <QFutureWatcher>
 #include <QImage>
 #include <QObject>
@@ -20,6 +21,7 @@ class ImageWorkshop : public QObject {
     Q_PROPERTY(bool hasInput READ hasInput NOTIFY imagesChanged)
     Q_PROPERTY(bool resultCurrent READ resultCurrent NOTIFY imagesChanged)
     Q_PROPERTY(bool busy READ busy NOTIFY busyChanged)
+    Q_PROPERTY(bool capturing READ capturing NOTIFY busyChanged)
     Q_PROPERTY(QString status READ status NOTIFY statusChanged)
     Q_PROPERTY(QString operation READ operation WRITE setOperation NOTIFY settingsChanged)
     Q_PROPERTY(QVariantMap parameters READ parameters NOTIFY settingsChanged)
@@ -34,6 +36,7 @@ public:
     bool hasInput() const { return !m_input.isNull(); }
     bool resultCurrent() const { return !m_result.isNull() && m_resultRevision==m_revision; }
     bool busy() const { return m_busy; }
+    bool capturing() const { return m_capturing; }
     QString status() const { return m_status; }
     QString operation() const { return m_operation; }
     void setOperation(const QString &operation);
@@ -45,6 +48,7 @@ public:
     Q_INVOKABLE bool save(const QUrl &url);
     Q_INVOKABLE void useSample();
     Q_INVOKABLE void captureScreen();
+    Q_INVOKABLE void cancelCapture();
     Q_INVOKABLE void process();
     Q_INVOKABLE void clear();
 signals:
@@ -73,4 +77,6 @@ private:
     Kind m_kind=Kind::Load;
     QTimer m_preview;
     QFutureWatcher<Job> m_watcher;
+    DesktopCapture m_capture;
+    bool m_capturing=false;
 };

@@ -9,22 +9,30 @@ Item {
     property alias image: view.image
     implicitWidth: 320
     implicitHeight: 300
+    Layout.minimumWidth: 0
     Rectangle { anchors.fill: parent; color: Theme.codeBg; radius: 5 }
     ColumnLayout {
         anchors.fill: parent
         spacing: 5
-        Flow {
+        Item {
             Layout.fillWidth: true
-            spacing: 5
-            Tool { text: "−"; onClicked: view.zoomOut() }
-            Tool { text: "+"; onClicked: view.zoomIn() }
-            Tool { text: qsTr("适应"); onClicked: view.fit() }
-            Tool { text: "1:1"; onClicked: view.actualSize() }
-            Tool { text: view.smooth ? qsTr("平滑") : qsTr("像素"); onClicked: view.smooth = !view.smooth }
-            Label {
-                height: 28; verticalAlignment: Text.AlignVCenter
-                text: view.imageSize.width > 0 ? (view.imageScale * 100).toFixed(1) + "%" : "—"
-                color: Theme.textMuted; font.pixelSize: 11
+            Layout.minimumWidth: 0
+            implicitHeight: toolbar.implicitHeight
+            // Flow的内容宽度随换行变化，不能让它反向决定外层Layout的最小宽度。
+            Flow {
+                id: toolbar
+                width: parent.width
+                spacing: 5
+                Tool { text: "−"; onClicked: view.zoomOut() }
+                Tool { text: "+"; onClicked: view.zoomIn() }
+                Tool { text: qsTr("适应"); onClicked: view.fit() }
+                Tool { text: "1:1"; onClicked: view.actualSize() }
+                Tool { text: view.smooth ? qsTr("平滑") : qsTr("像素"); onClicked: view.smooth = !view.smooth }
+                Label {
+                    height: 28; verticalAlignment: Text.AlignVCenter
+                    text: view.imageSize.width > 0 ? (view.imageScale * 100).toFixed(1) + "%" : "—"
+                    color: Theme.textMuted; font.pixelSize: 11
+                }
             }
         }
         Rectangle {
@@ -38,6 +46,8 @@ Item {
         }
         Label {
             Layout.fillWidth: true
+            Layout.minimumWidth: 0
+            Layout.preferredWidth: 0
             text: view.cursorPixel.x >= 0
                 ? qsTr("x %1 · y %2 · RGB %3, %4, %5").arg(view.cursorPixel.x).arg(view.cursorPixel.y)
                     .arg(Math.round(view.cursorColor.r * 255)).arg(Math.round(view.cursorColor.g * 255)).arg(Math.round(view.cursorColor.b * 255))

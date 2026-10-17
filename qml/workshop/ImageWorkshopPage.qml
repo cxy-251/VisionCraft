@@ -7,6 +7,7 @@ import VisionCraft
 
 Item {
     id: page
+    onVisibleChanged: if (!visible) workshop.cancelCapture()
     property bool saveJpeg: false
     ImageWorkshop { id: workshop }
     ScrollView {
@@ -25,6 +26,7 @@ Item {
                 Action { text: qsTr("打开图片…"); enabled: !workshop.busy; onClicked: openDialog.open() }
                 Action { text: qsTr("使用工件示例"); enabled: !workshop.busy; onClicked: workshop.useSample() }
                 Action { text: qsTr("从屏幕取图"); enabled: !workshop.busy; onClicked: workshop.captureScreen() }
+                Action { text: qsTr("取消取图"); visible: workshop.capturing; onClicked: workshop.cancelCapture() }
                 Action { text: qsTr("清空"); enabled: workshop.hasInput && !workshop.busy; onClicked: workshop.clear() }
                 ComboBox {
                     id: operationBox

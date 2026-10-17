@@ -2,31 +2,19 @@
 #include "LabAlgorithms.h"
 #include "core/ScreenCapture.h"
 #include <QtConcurrent/QtConcurrentRun>
-#include <QGuiApplication>
-#include <QScreen>
-#include <QPixmap>
-#include <QCursor>
 #include <QElapsedTimer>
 #include <QSaveFile>
 #include <QDateTime>
 #include <QSet>
 #include <stdexcept>
 
-namespace {
-QImage capture(const QString &kind) {
-    QScreen *screen=QGuiApplication::primaryScreen();
-    if(kind=="mouse") screen=QGuiApplication::screenAt(QCursor::pos());
-    if(!screen) return {};
-    const auto size=screen->size();
-    if(kind=="full") return screen->grabWindow(0).toImage().scaled(1280,720,Qt::KeepAspectRatio,Qt::FastTransformation);
-    const QSize region=QSize(kind=="mouse"?640:800,kind=="mouse"?400:500).boundedTo(size);
-    QPoint center=kind=="mouse"?QCursor::pos()-screen->geometry().topLeft():QPoint(size.width()/2,size.height()/2);
-    const int x=qBound(0,center.x()-region.width()/2,size.width()-region.width());
-    const int y=qBound(0,center.y()-region.height()/2,size.height()-region.height());
-    return screen->grabWindow(0,x,y,region.width(),region.height()).toImage();
-}
-}
 VisionRunner::VisionRunner(QObject *parent):QObject(parent) {
+    connect(&m_capture,&DesktopCapture::frameAvailable,this,[this] {
+        if(m_waitingCapture) { m_waitingCapture=false; run(); }
+    });
+    connect(&m_capture,&DesktopCapture::failed,this,[this](const QString &error) {
+        stop(); ++m_revision; m_status=error; emit changed();
+    });
     connect(this,&VisionRunner::inputsChanged,this,[this]{++m_revision; emit changed();});
     connect(&m_timer,&QTimer::timeout,this,&VisionRunner::run);
     connect(&m_watcher,&QFutureWatcher<Job>::finished,this,[this]{
@@ -43,39 +31,70 @@ VisionRunner::VisionRunner(QObject *parent):QObject(parent) {
                 QVariantMap record=m_summary; record["time"]=QDateTime::currentDateTime().toString("HH:mm:ss.zzz");
                 m_history.prepend(record); while(m_history.size()>40) m_history.removeLast();
             } else { stop(); m_status=job.error; }
-        } else m_status="输入或参数已变更，请重新运行";
+        } else if(running()) m_status="输入或参数已变更，等待下一帧";
+        else if(m_status=="处理中…") m_status="输入或参数已变更，请重新运行";
         emit changed();
     });
 }
-VisionRunner::~VisionRunner(){m_timer.stop(); m_watcher.waitForFinished();}
+VisionRunner::~VisionRunner(){m_timer.stop(); m_capture.stop(); m_watcher.waitForFinished();}
 void VisionRunner::run() {
-    if(m_busy) return; // 按完成速度处理，丢弃定时器的过期采样，不堆积帧。
+    if(m_busy || m_waitingCapture) return;
     QImage input=m_input;
     auto options=m_options;
-    const auto source=m_options.value("capture","input").toString();
-    if(source!="input") {
-        input=capture(source);
-        if(input.isNull()) {stop();m_status="屏幕捕获失败；请检查桌面会话的捕获权限";emit changed();return;}
+    const auto source=options.value("capture","input").toString();
+    const auto nodes=options.value("nodes").toList();
+    bool needsScreen=source!="input";
+    if(m_mode=="graph") for(const auto &value:nodes)
+        needsScreen=needsScreen || value.toMap().value("type").toString()=="screen";
+    if(needsScreen && !m_capture.ready()) {
+        m_waitingCapture=true;
+        m_status="等待屏幕共享；请在系统窗口中选择屏幕，也可点击停止取消";
+        emit changed();
+        m_capture.start();
+        return;
     }
+    auto screenImage=[this](const QString &kind) {
+        if(kind=="mouse" && waylandCapture()) return QImage{};
+        QImage image=m_capture.image(kind);
+        if(kind=="full" && (image.width()>1280 || image.height()>720))
+            image=image.scaled(1280,720,Qt::KeepAspectRatio,Qt::FastTransformation);
+        return image;
+    };
+    bool failed=false;
+    if(source!="input") { input=screenImage(source); failed=input.isNull(); }
     if(m_mode=="graph") {
         QVariantMap screens; QMap<QString,QImage> snapshots;
-        const auto nodes=options.value("nodes").toList();
-        if(nodes.size()<=24)for(const auto &value:nodes){const auto node=value.toMap();if(node.value("type").toString()!="screen")continue;
+        if(nodes.size()<=24) for(const auto &value:nodes) {
+            const auto node=value.toMap(); if(node.value("type").toString()!="screen") continue;
             const auto kind=node.value("params").toMap().value("mode","center").toString();
-            if(!snapshots.contains(kind)) snapshots[kind]=capture(kind);
+            if(!snapshots.contains(kind)) snapshots[kind]=screenImage(kind);
+            failed=failed || snapshots[kind].isNull();
             screens[QString::number(node.value("id").toInt())]=snapshots[kind];
         }
         options["screens"]=screens;
     }
+    if(failed) {
+        stop(); ++m_revision;
+        m_status=waylandCapture()?"共享画面不可读取，或选择了Wayland不支持的鼠标跟随；请改用中心/全屏":"屏幕共享没有返回可读取的图像";
+        emit changed(); return;
+    }
+    if(!running() || !needsScreen) m_capture.stop();
+    if(running() && !m_streamTime.isValid()) m_streamTime.start();
     m_busy=true; m_status="处理中…"; emit changed();
     m_watcher.setFuture(QtConcurrent::run(&VisionRunner::process,input,m_pattern,m_mode,options,m_revision));
 }
-void VisionRunner::start(int fps){ if(m_timer.isActive()) return; m_streamTime.start(); m_frameCount=0; m_timer.start(1000/qBound(1,fps,60)); emit changed(); run(); }
-void VisionRunner::stop(){
-    if(!m_timer.isActive())return;
-    const bool wasCurrent=resultCurrent();m_timer.stop();
-    if(m_busy){++m_revision;if(wasCurrent)m_resultRevision=m_revision;}
-    m_status="连续处理已停止";emit changed();
+void VisionRunner::start(int fps) {
+    if(m_timer.isActive() || busy()) return;
+    m_streamTime.invalidate(); m_frameCount=0;
+    m_timer.start(1000/qBound(1,fps,60)); emit changed(); run();
+}
+void VisionRunner::stop() {
+    const bool active=running() || m_waitingCapture || m_capture.active();
+    const bool wasCurrent=resultCurrent();
+    m_timer.stop(); m_waitingCapture=false; m_capture.stop();
+    if(!active) return;
+    if(m_busy) { ++m_revision; if(wasCurrent)m_resultRevision=m_revision; }
+    m_status="处理已停止，屏幕共享已释放"; emit changed();
 }
 void VisionRunner::centerTemplate(){
     if(m_input.isNull())return;
@@ -84,7 +103,7 @@ void VisionRunner::centerTemplate(){
 }
 void VisionRunner::clearHistory(){m_history.clear();emit changed();}
 bool VisionRunner::save(const QUrl &url){
-    if(m_busy||running()||!resultCurrent()||!url.isLocalFile())return false;
+    if(busy()||running()||!resultCurrent()||!url.isLocalFile())return false;
     const auto image=m_result;const auto path=url.toLocalFile();m_busy=true;m_status="导出中…";emit changed();
     m_watcher.setFuture(QtConcurrent::run([image,path]{
         Job job;job.saved=true;QSaveFile file(path);

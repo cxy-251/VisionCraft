@@ -28,13 +28,22 @@ export CMAKE_PREFIX_PATH="$VC_TOOLS/qt6/usr:$VC_TOOLS/opencv/usr:$VC_TOOLS/fmt/u
 export OpenCV_DIR="$VC_TOOLS/opencv/usr/lib/cmake/opencv4"
 export VC_SYSROOT="$VC_TOOLS/gcc"
 export QT_PLUGIN_PATH="$VC_TOOLS/qt6/usr/lib/qt6/plugins"
+# 本机工具目录未包含Wayland/FFmpeg插件时，可使用系统同版本Qt插件。
+# 仅在Qt Core精确版本一致时加入，避免不同Qt版本的插件混装。
+if [ -f "$VC_TOOLS/qt6/usr/lib/libQt6Core.so.6" ] && [ -f /usr/lib/libQt6Core.so.6 ] && \
+   [ "$(basename "$(readlink -f "$VC_TOOLS/qt6/usr/lib/libQt6Core.so.6")")" = \
+     "$(basename "$(readlink -f /usr/lib/libQt6Core.so.6)")" ] && \
+   [ -d /usr/lib/qt6/plugins ]; then
+    export QT_PLUGIN_PATH="$QT_PLUGIN_PATH:/usr/lib/qt6/plugins"
+fi
 export QML_IMPORT_PATH="$VC_TOOLS/qt6/usr/lib/qt6/qml"
 # [endregion]
 
 # [region rpath-link]
 # Qt6Network -> 系统 libproxy -> /usr/lib/libproxy/libpxbackend-1.0.so。libproxy 自带 RUNPATH /usr/lib/libproxy，
-# 但用了 --sysroot 之后，链接器会把 sysroot 加在 RUNPATH 前面去找，找不到；这里直接告诉它去哪找
-export LDFLAGS="-Wl,-rpath-link,/usr/lib/libproxy${LDFLAGS:+ $LDFLAGS}"
+# Qt Multimedia同样经libpulse引用/usr/lib/pulseaudio中的libpulsecommon。
+# 用了--sysroot后，链接器会把sysroot加在RUNPATH前面；显式提供两处间接依赖目录。
+export LDFLAGS="-Wl,-rpath-link,/usr/lib/libproxy -Wl,-rpath-link,/usr/lib/pulseaudio${LDFLAGS:+ $LDFLAGS}"
 # [endregion]
 
 unset _t _libs

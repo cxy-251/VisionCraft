@@ -16,7 +16,7 @@ set(CMAKE_AUTOUIC ON)
 if(WIN32 AND EXISTS "C:/02Programmer/Qt/6.7.3/msvc2019_64")
     list(APPEND CMAKE_PREFIX_PATH "C:/02Programmer/Qt/6.7.3/msvc2019_64")
 endif()
-find_package(Qt6 6.7 REQUIRED COMPONENTS Core Gui Widgets Concurrent SerialPort Network Qml Quick QuickControls2)
+find_package(Qt6 6.7 REQUIRED COMPONENTS Core Gui Widgets Concurrent SerialPort Network Qml Quick QuickControls2 Multimedia)
 qt_standard_project_setup(REQUIRES 6.7)
 
 # 2. OpenCV 4
@@ -46,6 +46,8 @@ set(SOURCES
     src/core/ToolManager.cpp
     src/core/ScreenCapture.h
     src/core/ScreenCapture.cpp
+    src/core/DesktopCapture.h
+    src/core/DesktopCapture.cpp
     src/core/KnowledgeModel.h
     src/core/KnowledgeRegistry.h
     src/core/KnowledgeRegistry.cpp
@@ -281,6 +283,7 @@ target_link_libraries(VisionCraft PRIVATE
     Qt6::Widgets
     Qt6::Concurrent
     Qt6::SerialPort
+    Qt6::Multimedia
     ${OpenCV_LIBS}
     fmt::fmt
     nlohmann_json::nlohmann_json

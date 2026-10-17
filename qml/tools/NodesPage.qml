@@ -122,6 +122,7 @@ ToolPage {
         ToolAction { text: runner.running ? qsTr("停止连续运行") : qsTr("连续运行·30fps"); enabled: page.nodes.length > 0; onClicked: runner.running ? runner.stop() : runner.start(30) }
         ToolAction { text: qsTr("删除选中"); enabled: page.selected >= 0; onClicked: page.removeNode() }
         ToolAction { text: runner.busy ? qsTr("运行中…") : qsTr("运行管线"); enabled: !runner.busy && !runner.running && page.nodes.length > 0; onClicked: runner.run() }
+        ToolAction { text: qsTr("取消取图"); visible: runner.capturing && !runner.running; onClicked: runner.stop() }
         ToolAction { text: qsTr("导出选中输出…"); enabled: runner.resultCurrent && !runner.busy && !runner.running; onClicked: save.open() }
     }
     RowLayout {
@@ -175,7 +176,7 @@ ToolPage {
         Layout.fillWidth: true; Layout.fillHeight: true
         ColumnLayout {
             Layout.preferredWidth: 310; Layout.fillHeight: true
-            NodeSettings { Layout.fillWidth: true; type: page.selectedNode.type; params: page.selectedNode.params; onEdited: (key,value) => page.setParam(key,value) }
+            NodeSettings { Layout.fillWidth: true; type: page.selectedNode.type; params: page.selectedNode.params; waylandCapture: runner.waylandCapture; onEdited: (key,value) => page.setParam(key,value) }
             ToolNote { text: qsTr("选中 #%1 · %2").arg(page.selected).arg(page.selectedNode.type) }
             ToolNote { text: runner.resultCurrent ? JSON.stringify(runner.summary[String(page.selected)] || {}) : qsTr("参数或输出节点改变后，请重新运行。") }
             Item { Layout.fillHeight: true }
@@ -185,9 +186,11 @@ ToolPage {
     }
     Dialog {
         id: unsaved; title: qsTr("节点工程有未保存修改")
+        implicitWidth: 440
+        width: Math.min(implicitWidth, page.width - 32)
         modal: true; anchors.centerIn: Overlay.overlay
         standardButtons: Dialog.Save | Dialog.Discard | Dialog.Cancel
-        contentItem: Label { text: qsTr("保存当前工程后继续，或放弃修改。"); color: Theme.text; padding: 16 }
+        contentItem: Label { text: qsTr("保存当前工程后继续，或放弃修改。"); wrapMode: Text.Wrap; color: Theme.text; padding: 16 }
         background: Rectangle { color: Theme.surface; border.color: Theme.border; radius: Theme.radius }
         palette.button: Theme.surface; palette.buttonText: Theme.text; palette.windowText: Theme.text
         onAccepted: page.saveProject(false)

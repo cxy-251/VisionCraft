@@ -30,6 +30,19 @@ QString describe(const QString &name, const ImageOperations::Params &p)
 }
 ImageWorkshop::ImageWorkshop(QObject *parent):QObject(parent)
 {
+    connect(&m_capture,&DesktopCapture::frameAvailable,this,[this] {
+        if(!m_capturing) return;
+        const auto image=m_capture.image();
+        m_capture.stop(); m_capturing=false; m_busy=false;
+        if(image.isNull()) message(tr("屏幕共享没有返回可读取的图像"));
+        else if(!allowedSize(image.size())) message(tr("屏幕图像超过24 Mi像素限制"));
+        else adoptInput(image.convertToFormat(QImage::Format_RGB888),tr("屏幕单帧"));
+        emit busyChanged();
+    });
+    connect(&m_capture,&DesktopCapture::failed,this,[this](const QString &error) {
+        if(!m_capturing) return;
+        m_capturing=false; m_busy=false; message(error); emit busyChanged();
+    });
     m_preview.setSingleShot(true); m_preview.setInterval(180);
     connect(&m_preview,&QTimer::timeout,this,&ImageWorkshop::process);
     connect(&m_watcher,&QFutureWatcher<Job>::finished,this,[this] {
@@ -154,11 +167,16 @@ void ImageWorkshop::useSample()
 void ImageWorkshop::captureScreen()
 {
     if(m_busy) return;
-    // QScreen采集只在GUI线程、明确点击时调用；不用于自动截图或验证。
-    const auto image=ScreenCapture::grabScreen();
-    if(image.isNull()) { message(tr("当前桌面未返回屏幕图像，请打开本地图片或使用示例")); return; }
-    if(!allowedSize(image.size())) { message(tr("屏幕图像超过24 Mi像素限制")); return; }
-    adoptInput(image.convertToFormat(QImage::Format_RGB888),tr("屏幕单帧"));
+    m_preview.stop(); m_pendingPreview=false;
+    m_capturing=true; m_busy=true; emit busyChanged();
+    message(tr("等待屏幕共享；如出现系统选择窗口，请选择要取图的屏幕"));
+    m_capture.start();
+}
+void ImageWorkshop::cancelCapture()
+{
+    if(!m_capturing) return;
+    m_capture.stop(); m_capturing=false; m_busy=false;
+    message(tr("已取消屏幕取图")); emit busyChanged();
 }
 // [region process]
 void ImageWorkshop::process()

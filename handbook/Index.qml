@@ -78,6 +78,9 @@ HandbookIndex {
             Entry { title: qsTr("Qt Quick布局与尺寸协商"); file: "handbook/qt/qml/Layouts.qml" }
             Entry { title: qsTr("组件接口、作用域与生命周期"); file: "handbook/qt/qml/Components.qml" }
             Entry { title: qsTr("QML列表、角色与模型更新"); file: "handbook/qt/qml/Models.qml" }
+            Entry { title: qsTr("输入事件：点击、拖动与事件归属"); file: "handbook/qt/qml/Input.qml" }
+            Entry { title: qsTr("界面状态：覆盖属性与恢复绑定"); file: "handbook/qt/qml/States.qml" }
+            Entry { title: qsTr("动画机制：目标变化与中途操作"); file: "handbook/qt/qml/Motion.qml" }
             Entry { title: qsTr("把 C++ 类型交给 QML"); file: "handbook/qt/qml/CppToQml.qml" }
             Entry { title: qsTr("解剖本程序的外壳"); file: "handbook/qt/qml/Shell.qml" }
         }

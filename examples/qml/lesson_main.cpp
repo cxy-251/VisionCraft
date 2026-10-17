@@ -1,4 +1,4 @@
-// 两个纯QML教学窗口共用启动代码；QML从源码读取，方便修改后重新打开。
+// 纯QML教学窗口共用启动代码；QML从源码读取，方便修改后重新打开。
 #include <QGuiApplication>
 #include <QQmlApplicationEngine>
 #include <QQuickStyle>

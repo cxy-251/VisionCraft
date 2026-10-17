@@ -129,4 +129,4 @@ Qt/GPU绘制六节接入目录，Qt现56节、OpenCV54节，共110节。example_
 
 完整架构见 [NEXT_CONTENT_ARCHITECTURE.md](NEXT_CONTENT_ARCHITECTURE.md)，实施与构建记录见 [SPATIAL_IMAGING_ROUND.md](SPATIAL_IMAGING_ROUND.md)。Qt新增三维场景六课、OpenCV新增多图成像六课，系统新增三节空间与图像课程和综合练习；复用已有标定/PnP/单应性/金字塔。
 
-应用内提供融合与投影两个按需演示，通过现有Demo体系挂在正文中。MultiImageOps与ProjectionMath供应用和数值示例共用，固定素材、生成脚本与实际output.txt入库。Quick3D示例是独立源码选配，不进入主安装包。当前Qt62/OpenCV60节；本地源码已实现，远程0.2.0发布包不包含这批未推送内容。
+应用内提供融合与投影两个按需演示，通过现有Demo体系挂在正文中。MultiImageOps与ProjectionMath供应用和数值示例共用，固定素材、生成脚本与实际output.txt入库。Quick3D示例是独立源码选配，不进入主安装包。当前Qt62/OpenCV60节；源码已实现并同步到main，版本仍为0.2.0；既有0.2.0发布包不包含这批后续内容。

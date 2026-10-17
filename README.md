@@ -64,7 +64,7 @@ Qt「设备」页新增 FreeRTOS 运行监控：任务与最小剩栈、堆/LVGL
 [GitHub Releases](https://github.com/cxy-251/VisionCraft/releases) 提供 Linux AppImage、macOS Apple Silicon DMG，以及 Windows x64 的 MSI、EXE 安装程序和单文件便携版。
 Windows 任选 MSI 或 setup EXE 安装；便携版运行时临时解压程序，设置保存在 EXE 旁的 `VisionCraft-data/`，请放在可写目录。详见 [Windows 发布说明](packaging/windows/README.md)。
 
-空间与多图成像整轮已在本地源码实现：三维六课、多图六课、空间与图像三课及综合练习；手册提供融合与投影两个按需演示。架构见 [新内容架构](NEXT_CONTENT_ARCHITECTURE.md)，构建与完成边界见 [实施记录](SPATIAL_IMAGING_ROUND.md)。这批内容尚未推送，不包含在远程0.2.0安装包中。
+空间与多图成像整轮已在源码实现：三维六课、多图六课、空间与图像三课及综合练习；手册提供融合与投影两个按需演示。架构见 [新内容架构](NEXT_CONTENT_ARCHITECTURE.md)，构建与完成边界见 [实施记录](SPATIAL_IMAGING_ROUND.md)。这批内容已同步到main源码分支，版本仍为0.2.0；既有0.2.0安装包不包含这批新内容。
 
 ## 构建与运行
 

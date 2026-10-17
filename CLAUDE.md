@@ -37,8 +37,9 @@ Qt 6 + OpenCV 上位机（`src/`、`qml/`），STM32F407ZG 工位固件（`firmw
 - 程序自动运行（截图、测试）用临时的 `XDG_CONFIG_HOME`，不要碰用户的 `~/.config/VisionCraftStudio`。
 
 ## 发版
-- `.github/workflows/ci.yml` 只在推 `X.Y.0` 标签或手动触发时运行，出 Linux AppImage、Windows zip、macOS dmg（Apple Silicon，Homebrew `opencv@4`）和固件。
+- `.github/workflows/ci.yml` 只在推 `X.Y.0` 标签或手动触发时运行，出 Linux AppImage、Windows MSI / setup EXE / portable EXE、macOS dmg（Apple Silicon，Homebrew `opencv@4`）和固件。
 - 先 `gh workflow run ci.yml --ref main -f tag_name=X.Y.0 -f publish=false` 只构建，全部通过再打标签推送。
+- Windows 打包入口 `packaging/windows/package.ps1`，WiX 4.0.6 + NSIS；便携模式通过 `VC_PORTABLE_HOME` 持久保存 QSettings。发布说明在 `packaging/releases/`。
 - 版本号只写在根目录 `CMakeLists.txt` 的 `project(... VERSION ...)`，改之前先问；固件版本在 `firmware/station/App/app.h`。
 - 推送和发版前先确认。
 

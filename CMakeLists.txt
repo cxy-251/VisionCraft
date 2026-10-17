@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.21)
-project(VisionCraft VERSION 0.1.0 LANGUAGES C CXX)
+project(VisionCraft VERSION 0.2.0 LANGUAGES C CXX)
 
 # 第三方源码不在仓库里，第一次配置时从 GitHub 拉：手册要引用几个 ST 的文件；模拟器（examples/gui_sim）要的 LVGL 在下面编示例时再拉
 include(${CMAKE_CURRENT_SOURCE_DIR}/firmware/third_party/fetch.cmake)

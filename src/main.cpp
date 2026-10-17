@@ -1,5 +1,8 @@
 #include <QApplication>
 #include <QWidget>
+#include <QDir>
+#include <QSettings>
+#include <QMessageBox>
 #include "DeviceLink.h"
 #include "StationController.h"
 #include "LegacyLab.h"
@@ -69,6 +72,17 @@ int main(int argc, char *argv[])
     app.setApplicationName("VisionCraft");
     app.setOrganizationName("VisionCraftStudio");
     app.setApplicationVersion(QStringLiteral(VC_VERSION));   // QML 里用 Qt.application.version 读
+
+    // 单文件便携启动器只解压程序；设置必须保存在启动器旁边的持久目录。
+    if (const QString home = qEnvironmentVariable("VC_PORTABLE_HOME"); !home.isEmpty()) {
+        if (!QDir().mkpath(home)) {
+            QMessageBox::critical(nullptr, QStringLiteral("VisionCraft"),
+                                  QStringLiteral("Cannot create portable settings directory: %1").arg(home));
+            return 1;
+        }
+        QSettings::setDefaultFormat(QSettings::IniFormat);
+        QSettings::setPath(QSettings::IniFormat, QSettings::UserScope, home);
+    }
 
     // 控件外观全部自绘，Basic 风格最容易定制，且各平台一致
     QQuickStyle::setStyle(QStringLiteral("Basic"));

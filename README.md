@@ -3,7 +3,7 @@
 以 **Qt、OpenCV 上位机学习**为主线的实践项目，配套可运行示例与学习手册。
 视觉检测工位是贯穿示例；下位机配合通信、采集和控制，同时用于学习 FreeRTOS，当前 STM32 开发板是其中一部分。
 
-- **上位机**：C++17 / Qt 6（QML 界面）/ OpenCV 4，Linux 与 Windows
+- **上位机**：C++17 / Qt 6（QML 界面）/ OpenCV 4，Linux、Windows 与 macOS
 - **下位机**：正点原子探索者 STM32F407ZGT6 + 4.3 寸屏，STM32CubeMX 生成的 HAL + FreeRTOS 工程
 - **通信**：自定义二进制协议；日常使用板载 USB_232（CH340 / USART1，115200 8N1）。ST-Link 的 RTT 通信、调试和烧录入口保留，按硬件条件切换使用，不能同时连接
 
@@ -58,6 +58,11 @@ Qt「设备」页新增 FreeRTOS 运行监控：任务与最小剩栈、堆/LVGL
 手册“系统 → Qt与OpenCV协作”接着讲图像交付、后台结果发布与处理顺序，配套三个固定数据示例，帮助把Qt与OpenCV的基础知识串起来。
 
 十二项进阶课程已串联Qt Quick输入/状态/动画、OpenCV方法选择/测量匹配，以及完整交互解剖、固定综合案例和练习答案。入口与完成清单见 [教学任务](TEACHING_ROUND.md)。
+
+## 下载发行版
+
+[GitHub Releases](https://github.com/cxy-251/VisionCraft/releases) 提供 Linux AppImage、macOS Apple Silicon DMG，以及 Windows x64 的 MSI、EXE 安装程序和单文件便携版。
+Windows 任选 MSI 或 setup EXE 安装；便携版运行时临时解压程序，设置保存在 EXE 旁的 `VisionCraft-data/`，请放在可写目录。详见 [Windows 发布说明](packaging/windows/README.md)。
 
 ## 构建与运行
 

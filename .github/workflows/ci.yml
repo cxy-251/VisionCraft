@@ -20,7 +20,7 @@ permissions:
   contents: write
 
 env:
-  QT_VERSION: '6.8.3'
+  QT_VERSION: '6.9.1'
 
 jobs:
   # ------------------------------------------------------------------ Linux
@@ -140,6 +140,7 @@ jobs:
         run: |
           $env:PATH = "C:/opencv/build/x64/vc16/bin;$env:QT_ROOT_DIR/bin;$env:VCPKG_INSTALLATION_ROOT/installed/x64-windows/bin;$env:PATH"
           ctest --test-dir build --output-on-failure -E tst_devicelink
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           # tst_devicelink 在 Windows 上失败，而且 ctest 抓不到任何输出（-V 也一样）。
           # 直接运行，让 QtTest 把结果写进文件，再打印退出码（十六进制，0xC0000005 之类说明是崩溃）
           Push-Location build/tests
@@ -150,20 +151,45 @@ jobs:
           Write-Host ("tst_devicelink exit code: {0} (0x{1:X8})" -f $rc, $rc)
           if ($rc -ne 0) { exit 1 }
 
-      - name: Package
+      - name: Packaging tools
+        env:
+          DOTNET_ROLL_FORWARD: Major
+        shell: pwsh
+        run: |
+          choco install nsis --yes --no-progress
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          dotnet tool install --global wix --version 4.0.6
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          wix extension add -g WixToolset.UI.wixext/4.0.6
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: Package MSI, setup EXE and portable EXE
+        env:
+          DOTNET_ROLL_FORWARD: Major
         shell: pwsh
         run: |
           New-Item -ItemType Directory -Force dist | Out-Null
           Copy-Item build/VisionCraft.exe dist/
-          & "$env:QT_ROOT_DIR/bin/windeployqt.exe" --release --no-translations --qmldir qml dist/VisionCraft.exe
-          Copy-Item -Path "C:/opencv/build/x64/vc16/bin/opencv_world4100.dll" -Destination dist -Force
-          Copy-Item -Path "$env:VCPKG_INSTALLATION_ROOT/installed/x64-windows/bin/*.dll" -Destination dist -Force
-          Compress-Archive -Path "dist/*" -DestinationPath VisionCraft-windows-x64.zip
+          & "$env:QT_ROOT_DIR/bin/windeployqt.exe" --release --no-translations --no-compiler-runtime --qmldir qml dist/VisionCraft.exe
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          Copy-Item "C:/opencv/build/x64/vc16/bin/opencv_world4100.dll" dist/
+          Copy-Item "$env:VCPKG_INSTALLATION_ROOT/installed/x64-windows/bin/*.dll" dist/
+          # App-local MSVC runtime: portable edition also works without a global VC redist install.
+          $crt = Get-ChildItem "$env:VCToolsRedistDir/x64/Microsoft.VC*.CRT" -Directory | Select-Object -First 1
+          if (!$crt) { throw 'MSVC runtime directory not found' }
+          Copy-Item "$($crt.FullName)/*.dll" dist/
+          Copy-Item LICENSE dist/
+          if (Test-Path "$env:QT_ROOT_DIR/licenses") { Copy-Item "$env:QT_ROOT_DIR/licenses" dist/qt-licenses -Recurse }
+          $version = (Select-String -Path CMakeLists.txt -Pattern 'project\(VisionCraft VERSION ([0-9.]+)').Matches[0].Groups[1].Value
+          ./packaging/windows/package.ps1 -Payload dist -Version $version
 
       - uses: actions/upload-artifact@v4
         with:
           name: VisionCraft-windows
-          path: VisionCraft-windows-x64.zip
+          path: |
+            release/VisionCraft-*-windows-x64.msi
+            release/VisionCraft-*-windows-x64-setup.exe
+            release/VisionCraft-*-windows-x64-portable.exe
           if-no-files-found: error
 
   # ------------------------------------------------------------------ macOS
@@ -240,6 +266,7 @@ jobs:
     if: github.event_name == 'push' || inputs.publish
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@v4
       - uses: actions/download-artifact@v4
         with:
           path: assets
@@ -251,6 +278,11 @@ jobs:
           GH_REPO: ${{ github.repository }}
           TAG: ${{ github.ref_type == 'tag' && github.ref_name || github.event.inputs.tag_name }}
         run: |
-          ls -la assets
-          gh release create "$TAG" assets/* --title "VisionCraft $TAG" --generate-notes \
-            || gh release upload "$TAG" assets/* --clobber
+          (cd assets && sha256sum * > SHA256SUMS.txt)
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            gh release upload "$TAG" assets/* --clobber
+          elif [ -f "packaging/releases/$TAG.md" ]; then
+            gh release create "$TAG" assets/* --target "$GITHUB_SHA" --title "VisionCraft $TAG" --notes-file "packaging/releases/$TAG.md"
+          else
+            gh release create "$TAG" assets/* --target "$GITHUB_SHA" --title "VisionCraft $TAG" --generate-notes
+          fi

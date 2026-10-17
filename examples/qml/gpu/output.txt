@@ -1,0 +1,31 @@
+=== color.frag: compiled package, not a rendering measurement ===
+Stage: Fragment
+QSB_VERSION: 9
+Has 6 shaders:
+  Shader 0: SPIR-V 100 [Standard]
+  Shader 1: GLSL 100 es [Standard]
+  Shader 2: GLSL 120 [Standard]
+  Shader 3: GLSL 150 [Standard]
+  Shader 4: HLSL 50 [Standard]
+  Shader 5: MSL 12 [Standard]
+UBO binding=0 size=76
+  qt_Matrix: mat4 offset=0 size=64
+  qt_Opacity: float offset=64 size=4
+  amount: float offset=68 size=4
+  mode: float offset=72 size=4
+sampler source: binding=1 type=sampler2D
+=== blur.frag: compiled package, not a rendering measurement ===
+Stage: Fragment
+QSB_VERSION: 9
+Has 6 shaders:
+  Shader 0: SPIR-V 100 [Standard]
+  Shader 1: GLSL 100 es [Standard]
+  Shader 2: GLSL 120 [Standard]
+  Shader 3: GLSL 150 [Standard]
+  Shader 4: HLSL 50 [Standard]
+  Shader 5: MSL 12 [Standard]
+UBO binding=0 size=80
+  qt_Matrix: mat4 offset=0 size=64
+  qt_Opacity: float offset=64 size=4
+  stepUV: vec2 offset=72 size=8
+sampler source: binding=1 type=sampler2D

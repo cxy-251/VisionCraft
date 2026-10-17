@@ -13,5 +13,6 @@ Section {
         qsTr("工作线程读取按值交付的QImage，不接触QML对象，也不长期保存解码器帧队列。图像格式能转换不代表颜色空间、HDR或色彩管理已完整校准。")
     ] }
     Try { task: qsTr("播放器position为1000，帧startTime为1000000时，单位是否一致？为什么不能从视频帧的首地址直接构造BGR图？"); answerNote: qsTr("前者是毫秒、后者是微秒，此例数值换算后相同。视频帧可能有不同格式、平面、步长或图形句柄，需要明确的转换与所有权交付。") }
+    Para { onLinkActivated: link => Qt.openUrlExternally(link); text: qsTr("接口参考：<a href='https://doc.qt.io/qt-6/qvideosink.html'>Qt QVideoSink</a>。示例只使用项目Qt 6.7基线及本机Qt 6.9.1已有的接口。") }
     InSystem { text: qsTr("独立窗口build/examples/qml/media/example_media_lessons；不自动播放，默认静音。源码在examples/qml/media。本节不修改主应用工具或使用开发板。") }
 }

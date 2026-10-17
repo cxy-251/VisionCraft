@@ -3,7 +3,7 @@ import VisionCraft
 
 Section {
     title: qsTr("Qt与OpenCV：学习内容盘点与路线")
-    lead: qsTr("2026-10-17盘点：Qt现有50节，OpenCV现有54节，共104节，均配有练习。已有内容覆盖面较广，已完成基础衔接与十二项进阶教学任务，不以增加工具按钮衡量学习进度。")
+    lead: qsTr("2026-10-17盘点：Qt现有56节，OpenCV现有54节，共110节，均配有练习。已有内容覆盖面较广，已完成基础衔接与十二项进阶教学任务，不以增加工具按钮衡量学习进度。")
     Why { text: qsTr("VisionCraft的主线是学习Qt/QML和OpenCV。工位是综合案例，F407提供通信与FreeRTOS学习材料；它们不是全部课程的边界。一个算法有正文、真实源码、已有结果与练习，就已经是教学内容，不必再做一个独立工具才算完成。") }
     KeyPoints {
         label: qsTr("Qt：哪些已经有")
@@ -63,6 +63,14 @@ Section {
         points: [
             qsTr("Qt/音视频新增六课：对象分工、异步媒体状态、时间轴、PCM音频、视频帧交付、播放与分析节奏。已有OpenCV视频读写、图像交付与后台结果发布作为先修。"),
             qsTr("运行example_media_lessons，使用程序生成的两秒素材；默认不播放且静音。观察VideoOutput原画面与抽帧Canny的各自时间戳。素材生成脚本与实际格式输出随源码提供，不采集桌面、麦克风或开发板。")
+        ]
+    }
+    KeyPoints {
+        label: qsTr("新专题二：Qt Quick GPU绘制")
+        points: [
+            qsTr("Qt/GPU绘制新增六课：渲染路径、qsb接口、纹理采样、预乘alpha、两遍模糊、视频纹理与读回。配套example_gpu_lessons，不改现有ImageView的CPU图像显示路径。"),
+            qsTr("先使用QML半透明色块理解纹理，再主动播放上一轮生成的短视频。颜色效果与两遍处理都在显示链中；读回只由按钮显式触发，参数变化会使旧回调失效。"),
+            qsTr("最后阅读系统/综合课程的音视频与GPU练习，区分媒体时间与经过时间、原始像素与显示图层、构建产物与平台运行证据。机器学习暂不继续扩展。")
         ]
     }
     KeyPoints {

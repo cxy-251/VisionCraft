@@ -13,5 +13,6 @@ Section {
     ] }
     Para { text: qsTr("本机已生成可读素材不等于所有平台都有相同解码器。Qt Multimedia所用后端与部署的编解码能力会影响能否打开；遇到格式错误先看errorString，不能用空白画面判定视频文件损坏。") }
     Try { task: qsTr("为什么同一播放器切到WAV后，时间还在前进但没有视频？增加一个FrameProbe是否意味着复制了一套播放器？"); answerNote: qsTr("WAV包含声音而没有视频轨，播放调度仍成立。FrameProbe观察同一个VideoOutput的接收端，不独立打开媒体或建立第二个播放时钟。") }
+    Para { onLinkActivated: link => Qt.openUrlExternally(link); text: qsTr("接口参考：<a href='https://doc.qt.io/qt-6/qml-qtmultimedia-mediaplayer.html'>Qt MediaPlayer</a>。示例只使用项目Qt 6.7基线及本机Qt 6.9.1已有的接口。") }
     InSystem { text: qsTr("独立窗口build/examples/qml/media/example_media_lessons；不自动播放，默认静音。源码在examples/qml/media。本节不修改主应用工具或使用开发板。") }
 }

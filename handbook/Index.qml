@@ -97,6 +97,15 @@ HandbookIndex {
             Entry { title: qsTr("播放与分析：独立节奏和结果时间"); file: "handbook/qt/media/Analysis.qml" }
         }
         Chapter {
+            title: qsTr("GPU绘制")
+            Entry { title: qsTr("Qt Quick渲染：从界面项到GPU纹理"); file: "handbook/qt/gpu/Rendering.qml" }
+            Entry { title: qsTr("Qt 6着色器：接口、布局与qsb构建"); file: "handbook/qt/gpu/Shaders.qml" }
+            Entry { title: qsTr("纹理采样：归一化坐标、纹素与边界"); file: "handbook/qt/gpu/Sampling.qml" }
+            Entry { title: qsTr("片元颜色：灰度、混合与预乘alpha"); file: "handbook/qt/gpu/Color.qml" }
+            Entry { title: qsTr("两遍模糊：可分离核与中间纹理"); file: "handbook/qt/gpu/Passes.qml" }
+            Entry { title: qsTr("视频纹理与读回：显示结果属于哪一层"); file: "handbook/qt/gpu/Readback.qml" }
+        }
+        Chapter {
             title: "Model / View"
             Entry { title: qsTr("Model / View 架构"); file: "handbook/qt/modelview/ModelView.qml"; from: "Model / View 架构设计哲学" }
             Entry { title: qsTr("委托：自定义单元格"); file: "handbook/qt/modelview/Delegate.qml"; from: "自定义单元格委托代理；自定义项委托与单元格嵌入组件" }
@@ -351,6 +360,7 @@ HandbookIndex {
             Entry { title: qsTr("综合解剖：一次检测操作如何走完"); file: "handbook/system/course/InteractionTrace.qml" }
             Entry { title: qsTr("综合案例：从问题定义到方法选择"); file: "handbook/system/course/CaseStudy.qml" }
             Entry { title: qsTr("综合练习：解释选择、结果与失败"); file: "handbook/system/course/Exercises.qml" }
+            Entry { title: qsTr("音视频与GPU：时间、纹理和结果边界"); file: "handbook/system/course/MediaGpuExercises.qml" }
         }
         Chapter {
             title: qsTr("通信")

@@ -69,3 +69,4 @@ add_subdirectory(qml/forms)
 add_subdirectory(opencv/interpretation)
 
 add_subdirectory(qml/media)
+add_subdirectory(qml/gpu)

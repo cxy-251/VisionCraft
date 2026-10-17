@@ -4,7 +4,7 @@
 
 ## 教学接续
 
-Qt / OpenCV教学盘点见[LEARNING_MAP.md](LEARNING_MAP.md)，读者入口是手册“衔接 → 学习路线”。本批已完成Qt Quick布局、组件/生命周期、列表/模型，以及OpenCV数组与邻域运算五节，配套五个独立教学示例；本轮另已补齐十二项进阶任务，当前Qt44节、OpenCV54节。已有内容不重新列为工具功能待办。工具服务教学，不再围绕管线存档等能力扩展成实用产品。系统卷已补齐“Qt与OpenCV协作”三节：图像交付、后台结果发布、步骤顺序与中间图；配套examples/integration三个固定数据示例，直接复用ScreenCapture/ImageOperations及已有查看器说明。
+Qt / OpenCV教学盘点见[LEARNING_MAP.md](LEARNING_MAP.md)，读者入口是手册“衔接 → 学习路线”。本批已完成Qt Quick布局、组件/生命周期、列表/模型，以及OpenCV数组与邻域运算五节，配套五个独立教学示例；本轮另已补齐十二项进阶任务，当前Qt56节、OpenCV54节。已有内容不重新列为工具功能待办。工具服务教学，不再围绕管线存档等能力扩展成实用产品。系统卷已补齐“Qt与OpenCV协作”三节：图像交付、后台结果发布、步骤顺序与中间图；配套examples/integration三个固定数据示例，直接复用ScreenCapture/ImageOperations及已有查看器说明。
 
 十二项进阶课程入口：Qt/QML三节交互，OpenCV/方法对照三节与测量匹配三节，系统/综合课程三节。清单见[TEACHING_ROUND.md](TEACHING_ROUND.md)，本轮只增加课程与教学示例。
 
@@ -114,3 +114,9 @@ flowchart TD
 ## 音视频教学专题
 
 独立example_media_lessons及Qt/音视频六课已实现，Qt课程数量为50；OpenCV54节不变。示例不嵌入业务工具，素材生成脚本不录音、不取桌面。第一轮示例构建与正文QML编译完成后本地提交；主应用资源在第二轮结束统一打包。两轮清单见MEDIA_GPU_ROUND.md。
+
+## GPU绘制教学专题
+
+example_gpu_lessons与Qt/GPU绘制六课完成，复用上一轮视频素材，提供QML图层纹理化、颜色效果、预乘alpha处理、横纵两遍模糊与显式读回；qsb反射实际输出记录在示例output.txt。Qt当前56节、OpenCV54节；系统另增两轮综合练习。主应用保持既有页面，课程与源码作为手册资源打包；ShaderTools依赖只在独立GPU示例中查找。
+
+两轮收尾：example_media_lessons、example_gpu_lessons与主应用构建通过，正文与示例QML、qsb均编译通过；音视频/GPU实际交互未自动执行。第一轮独立提交8166d02，第二轮集中本地提交，不推送。

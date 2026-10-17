@@ -46,7 +46,7 @@ jobs:
           host: linux
           target: desktop
           arch: linux_gcc_64
-          modules: qtserialport qtmultimedia
+          modules: qtserialport qtmultimedia qtshadertools
           cache: true
 
       - name: Configure & build
@@ -96,7 +96,7 @@ jobs:
           host: windows
           target: desktop
           arch: win64_msvc2022_64
-          modules: qtserialport qtmultimedia
+          modules: qtserialport qtmultimedia qtshadertools
           cache: true
 
       - name: Cache OpenCV 4.10.0
@@ -183,7 +183,7 @@ jobs:
           host: mac
           target: desktop
           arch: clang_64
-          modules: qtserialport qtmultimedia
+          modules: qtserialport qtmultimedia qtshadertools
           cache: true
 
       - name: Configure & build

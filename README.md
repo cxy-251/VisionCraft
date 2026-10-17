@@ -112,3 +112,7 @@ openocd -f interface/stlink.cfg -f target/stm32f4x.cfg \
 ## 许可证
 
 [MIT](LICENSE)
+
+## 新专题：音视频与GPU绘制
+
+应用手册“Qt → 音视频”“Qt → GPU绘制”各六节，系统卷另有综合练习。独立教学目标为`example_media_lessons`与`example_gpu_lessons`，程序位于`build/examples/qml/media/`和`build/examples/qml/gpu/`。GPU示例额外需要Qt ShaderTools/qsb及支持ShaderEffect的Qt Quick图形后端。两者复用已提交的生成素材，不需要相机或开发板；只有重新生成素材才需要Python与FFmpeg。默认不播放，音频静音；GPU读回仅由读者手动触发，不写图片文件。

@@ -7,7 +7,7 @@ Section {
     CodeRef { file: "examples/qml/interaction/MotionPage.qml"; region: "behavior" }
     Para { text: qsTr("Behavior附着在属性上。x的目标因right改变时，动画负责过渡显示；本例没有写固定from，快速改变目标可以观察它朝最新目标继续移动。它不承诺保持瞬时速度，也不意味着程序要逐帧修改业务目标。") }
     CodeRef { file: "examples/qml/interaction/MotionPage.qml"; region: "transition" }
-    Para { text: qsTr("Transition与状态切换关联。State给出目标属性，Transition定义如何从一种状态过渡到另一种。它与Behavior的触发依据不同；若同一个属性同时配置两者，应理解状态过渡的优先关系，不把两套动画当作互不影响的叠加。示例故意把它们放在不同对象上。") }
+    Para { text: qsTr("Transition与状态切换关联。State给出目标属性，Transition定义如何从一种状态过渡到另一种。它与Behavior的触发依据不同；状态切换时，若匹配的Transition为同一属性提供动画，会覆盖该次变化的Behavior动画，不是两套过渡同时叠加。示例故意把它们放在不同对象上。") }
     CodeRef { file: "examples/qml/interaction/MotionPage.qml"; region: "explicit" }
     KeyPoints {
         label: qsTr("显式动画由调用方管理")

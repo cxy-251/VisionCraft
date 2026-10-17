@@ -329,6 +329,12 @@ HandbookIndex {
             Entry { title: qsTr("步骤顺序与中间图：相同算子为什么不同结果"); file: "handbook/system/integration/OperationOrder.qml" }
         }
         Chapter {
+            title: qsTr("综合课程")
+            Entry { title: qsTr("综合解剖：一次检测操作如何走完"); file: "handbook/system/course/InteractionTrace.qml" }
+            Entry { title: qsTr("综合案例：从问题定义到方法选择"); file: "handbook/system/course/CaseStudy.qml" }
+            Entry { title: qsTr("综合练习：解释选择、结果与失败"); file: "handbook/system/course/Exercises.qml" }
+        }
+        Chapter {
             title: qsTr("通信")
             Entry { title: qsTr("二进制协议：帧、校验与重同步"); file: "handbook/system/communication/Protocol.qml" }
             Entry { title: qsTr("DeviceLink 与模拟器"); file: "handbook/system/communication/DeviceLink.qml" }

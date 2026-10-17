@@ -10,7 +10,7 @@ Section {
         points: [
             qsTr("state为空字符串表示默认状态。本例用复选框派生状态名，State里的PropertyChanges覆盖目标bar的宽度与颜色；一个状态可以协调多个对象的外观。"),
             qsTr("默认width绑定level×3。restoreEntryValues=true让离开状态时恢复进入前的值或绑定，所以在强调态调整level，退出后仍可按新的level计算默认宽度。"),
-            qsTr("PropertyChanges里的width表达式可以继续依赖容器宽度，不必把每次resize写成手动赋值。若使用explicit等选项改变绑定求值方式，应单独理解它的语义，本例保留普通动态表达式。"),
+            qsTr("PropertyChanges默认explicit=false，width表达式持续依赖容器宽度。explicit=true则在进入状态时把表达式求成一次值，适合有意保存入态值；本例保留持续绑定。"),
             qsTr("把state绑定到外部事实时，不应又在其他函数随意给state赋常量；那也可能替换状态绑定，导致数据已变化而外观仍停在旧态。")
         ]
     }

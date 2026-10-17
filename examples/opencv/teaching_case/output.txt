@@ -1,0 +1,7 @@
+truth pixels=2395; intended objects=2; hole=1
+global130: selected=3889 inside=1404 outside=2485 missed=991 objects=3 childContours=0
+adaptive31: selected=2396 inside=2395 outside=1 missed=0 objects=3 childContours=1
+referenceDiff: selected=2396 inside=2395 outside=1 missed=0 objects=3 childContours=1
+referenceDiff+opening: selected=2395 inside=2395 outside=0 missed=0 objects=2 childContours=1
+referenceDiff+area100: selected=2395 inside=2395 outside=0 missed=0 objects=2 childContours=1
+Canny boundary pixels=336; not scored as filled region

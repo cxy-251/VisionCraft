@@ -3,7 +3,7 @@ import VisionCraft
 
 Section {
     title: qsTr("Qt与OpenCV：学习内容盘点与路线")
-    lead: qsTr("2026-10-17盘点：Qt现有38节，OpenCV现有45节，共83节，均配有练习。已有内容覆盖面较广，本批已补齐五个基础衔接单元，不以增加工具按钮衡量学习进度。")
+    lead: qsTr("2026-10-17盘点：Qt现有41节，OpenCV现有51节，共92节，均配有练习。已有内容覆盖面较广，已完成基础衔接与十二项进阶教学任务，不以增加工具按钮衡量学习进度。")
     Why { text: qsTr("VisionCraft的主线是学习Qt/QML和OpenCV。工位是综合案例，F407提供通信与FreeRTOS学习材料；它们不是全部课程的边界。一个算法有正文、真实源码、已有结果与练习，就已经是教学内容，不必再做一个独立工具才算完成。") }
     KeyPoints {
         label: qsTr("Qt：哪些已经有")
@@ -11,7 +11,7 @@ Section {
             qsTr("对象模型3节、事件与定时2节、线程并发4节：信号槽、对象树、事件过滤、定时、防抖、QThread、Concurrent、环形队列与日志均已有。信号/死锁与并发还有应用内演示。"),
             qsTr("Widgets界面7节、Model/View 4节：布局、样式、绘图、控件、动画、拖放，模型、委托、代理和图形视图已有独立示例。旧Widgets窗口保留作为实际代码材料。"),
             qsTr("通信与进程6节、工程化6节：串口、TCP/UDP、HTTP、共享内存、子进程，以及配置、文件监视、国际化、插件、状态机和崩溃转储均已有。无需为了学习这些概念再接新硬件或重写一套业务功能。"),
-            qsTr("QML目前6节：绑定、布局、组件与生命周期、列表与模型、C++接入、应用外壳。前三个新单元分别配有layouts、components、models独立窗口，先解释机制，再回到本项目源码。")
+            qsTr("QML目前9节：绑定、布局、组件与生命周期、列表与模型、输入、状态、动画、C++接入、外壳。interaction窗口把新增的交互三课放在三个教学页中。")
         ]
     }
     KeyPoints {
@@ -39,6 +39,15 @@ Section {
             qsTr("系统卷新增Qt与OpenCV协作三节。先读图像交付：格式、步长、像素所有权怎样落实到QImage属性和QML查看器；配套example_image_bridge复用实际转换函数。"),
             qsTr("再读后台结果发布：按值快照、请求版本、完成回调和属性通知分别管什么；配套example_latest_result用两个连续请求演示旧结果为何不采用。"),
             qsTr("最后读步骤顺序与中间图：固定输入下对比模糊/阈值、掩膜/模糊、模糊/Canny的顺序；配套example_operation_order解释相同数据类型可能承载不同含义。")
+        ]
+    }
+    KeyPoints {
+        label: qsTr("十二项进阶任务：已完成的阅读路线")
+        points: [
+            qsTr("第一阶段：Qt Quick输入归属、状态恢复绑定、动画与中途操作，位于Qt/QML。配套example_qml_interaction，只演示交互机制。"),
+            qsTr("第二阶段：区域与边缘、滤波与形态学、连通域与轮廓，位于OpenCV/方法对照。配套example_method_choices，用同一输入解释方法差别。"),
+            qsTr("第三阶段：像素与插值误差、标样与对齐、模板与特征匹配，位于OpenCV/测量与匹配选择。复用measure、geometry、features已有代码与结果，明确评价与成立条件。"),
+            qsTr("第四阶段：完整交互解剖、固定综合案例、综合练习与答案，位于系统/综合课程。配套example_teaching_case，连接前面几条学习线。")
         ]
     }
     KeyPoints {

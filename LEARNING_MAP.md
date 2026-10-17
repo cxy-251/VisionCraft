@@ -4,7 +4,7 @@
 
 ## 结论
 
-盘点时Qt有35节、OpenCV有43节；本批补齐五个教学单元后，Qt为38节、OpenCV为45节，共83节，均有练习。原先主要问题是QML基础教学不成体系、OpenCV的数值与空间运算基础分散；本批已针对这些断点补课。已有章节不能因为没有单独的工具按钮或交互控件，就被判为未实现。
+盘点时Qt有35节、OpenCV有43节；基础五节与本轮进阶课程补齐后，Qt为41节、OpenCV为51节，共92节，均有练习。原先主要问题是QML基础教学不成体系、OpenCV的数值与空间运算基础分散；本批已针对这些断点补课。已有章节不能因为没有单独的工具按钮或交互控件，就被判为未实现。
 
 下表“已有”表示正文、示例或真实源码等材料已经存在，不等于已逐句评审完教学质量。应用内路线见 `handbook/bridge/LearningMap.qml`。
 
@@ -16,7 +16,7 @@
 | 事件与定时 | 2 | 派发/过滤、定时/防抖/节流；`examples/qt/events`、`timers` | 已有，不需要重做事件工具 |
 | 线程与并发 | 4 | QThread、Concurrent、SPSC环形队列、异步日志；`examples/qt/qthread`、`ringbuffer`及并发演示 | 已有，队列和日志适合进阶，不能反过来作为初学门槛 |
 | Widgets界面 | 7 | 布局、QSS、无边框、绘图、控件、动画、拖放；对应独立示例和结果图 | 覆盖较齐，旧窗口也是可读的学习材料，保留 |
-| QML界面 | 6 | 绑定、布局、组件/生命周期、列表/模型、C++接入、外壳；`examples/qml/{bindings,layouts,components,models}` | 本批已补齐布局、组件、模型三节 |
+| QML界面 | 9 | 绑定、布局、组件/生命周期、列表/模型、输入、状态、动画、C++接入、外壳；`examples/qml/` | 已配齐基础与交互机制路线 |
 | Model / View | 4 | 模型、委托、代理、GraphicsView；`examples/qt/modelview`、`graphicsview` | 已有，主要按Widgets讲，不能视为已经教完QML列表 |
 | 通信与进程 | 6 | 串口、TCP、UDP、HTTP、共享内存、子进程；对应示例及DeviceLink/RTT源码 | 已有，不需要新接硬件补课 |
 | 工程化 | 6 | 配置、文件监视、国际化、插件、状态机、崩溃转储；对应独立示例 | 已有，按兴趣选读，不必全部移植到主程序 |
@@ -34,6 +34,8 @@
 | 轮廓与几何 | 5 | 轮廓、连通域、拟合、凸包、分水岭；`contours` / `components` / `fit_hull` / `measure` | 已有，包含中间图与失败边界 |
 | 几何变换 | 3 | 仿射、透视、单应性；`geometry` / `features` | 已有，已经讨论插值误差，不另起重复的变换工具 |
 | 特征与匹配 | 3 | Harris、ORB、模板匹配；`features` | 已有，包含匹配误差和多尺度示例；主工具只做单尺度不代表教学缺失 |
+| 方法对照 | 3 | 区域/边缘、滤波/形态学、连通域/轮廓；`method_choices` | 本轮新增，解释不同输出语义 |
+| 测量与匹配选择 | 3 | 测量误差、参照对齐、模板/特征选择；复用`measure` / `geometry` / `features` | 本轮新增，不重做已有算法 |
 | 工业检测 | 4 | 卡尺、标样差分、码识别、评价；`measure` / `freq_codes`及评价交互 | 已有，工位只作为综合案例，不是教学的全部目标 |
 | 视频与运动 | 3 | 视频读写、背景建模、光流；`video` | 已有，使用生成视频，无需采购摄像头 |
 | 三维与标定 | 3 | 标定、PnP、双目；`calib3d` | 已有，虚拟相机/已知真值足以支持现阶段教学 |
@@ -78,7 +80,7 @@
 
 ## Qt与OpenCV协作：基础之后的三节（已完成）
 
-入口：应用手册“系统 → Qt与OpenCV协作”。这三节属于系统卷，Qt38节/OpenCV45节的分卷统计不变。
+入口：应用手册“系统 → Qt与OpenCV协作”。这三节属于系统卷，不计入Qt/OpenCV分卷；当前分卷统计为Qt41节、OpenCV51节。
 
 | 课程 | 学习问题 | 示例与已有代码 |
 |---|---|---|
@@ -89,3 +91,15 @@
 三个示例位于`examples/integration/`，对应目录中的`output.txt`由本批运行生成，是课堂数值材料。没有增加业务工具、采集设备画面或改动下位机。
 
 构建：`cmake --build build --target example_image_bridge example_latest_result example_operation_order -j2`。运行程序分别位于`build/examples/integration/image_bridge/`、`latest_result/`、`operation_order/`。
+
+
+## 十二项进阶课程（整轮完成）
+
+维护清单见[TEACHING_ROUND.md](TEACHING_ROUND.md)。已完成四阶段十二项任务，按阶段本地提交；课程不是新增工具功能清单。
+
+- Qt/QML：Input、States、Motion；`example_qml_interaction`共用一个三页教学窗口。
+- OpenCV/方法对照：RegionOrEdge、FilterOrMorphology、ComponentOrContour；`example_method_choices`固定数据对读。
+- OpenCV/测量与匹配选择：MeasurementError、ReferenceAlignment、MatchingChoice；复用已有输出，不重新运行历史图像生成程序。同步澄清卡尺半径/直径与数值位数/准确度。
+- 系统/综合课程：InteractionTrace、CaseStudy、Exercises；`example_teaching_case`连接区域提取、清理、计数与孔洞，综合练习附八组答案。
+
+构建新增示例：`cmake --build build --target example_qml_interaction example_method_choices example_teaching_case -j2`。QML示例只在读者主动运行时打开；两个OpenCV例附本轮生成的数值输出。不新增业务工具或硬件待办。

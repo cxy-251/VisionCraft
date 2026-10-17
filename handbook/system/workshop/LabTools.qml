@@ -54,7 +54,7 @@ Section {
     CodeRef { file: "src/app/VisionRunner.h" }
     CodeRef { file: "src/vision/LabAlgorithms.cpp"; region: "node" }
     Para { text: qsTr("开发工具箱沿用nlohmann-json，支持JSON对象、数组和标量的校验、美化、压缩与复制；错误保留上次输出。系统面板显示实际Qt/OpenCV、编译器、架构、逻辑线程数和主屏信息，可手动刷新。输入限制约100万字符，避免无界展开。") }
-    Pitfall { text: qsTr("Wayland不能用QScreen::grabWindow(0)可靠读取桌面，即使返回非空图像也可能只是黑色背景。新版取图使用Qt Multimedia的QScreenCapture与QVideoSink，经系统portal/PipeWire获得共享画面。需要Qt Multimedia及FFmpeg后端；取消授权、共享结束或首帧等待超时都会显示原因，已有图片保留。Wayland无法可靠映射全局鼠标到共享屏幕，因此不提供鼠标跟随。代码编译不代表已完成当前桌面的授权与画面交互确认。") }
+    Pitfall { text: qsTr("Wayland不能用QScreen::grabWindow(0)可靠读取桌面，即使返回非空图像也可能只是黑色背景。新版取图使用Qt Multimedia的QScreenCapture与QVideoSink，经系统portal/PipeWire获得共享画面。需要Qt Multimedia及FFmpeg后端；取消授权、共享结束或首帧等待超时都会显示原因，已有图片保留。系统状态栏红色标记表示共享会话：单帧取完或停止连续处理时，应用既停止视频流，也显式关闭自己创建的portal会话。仅停止Qt 6.9.1的视频流会遗留系统共享标记；每次采集结束后还会销毁后端，避免重复取图累积会话。Wayland无法可靠映射全局鼠标到共享屏幕，因此不提供鼠标跟随。代码编译不代表已完成当前桌面的授权与画面交互确认。") }
     CodeRef { file: "src/core/DesktopCapture.h" }
     InSystem { text: qsTr("页面位于qml/tools，复用Theme、ToolPage/ToolAction/ToolNote/ToolNumber、SourcePicker和ImageViewer。路由保留原有前五项索引，以稳定字符串标识页面；调整侧栏分组不会改变设备或手册入口身份。") }
 }

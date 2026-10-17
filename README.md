@@ -76,6 +76,7 @@ VC_DEV=1 ./run.sh     # 开发模式：手册正文从源码目录读取，保�
 
 需要 Qt 6.7+（Core、Gui、Widgets、Concurrent、SerialPort、Network、Qml、Quick、QuickControls2、Multimedia）、
 OpenCV 4、fmt、nlohmann-json、CMake 3.21+。
+Linux另需Qt DBus，用于显式关闭应用创建的屏幕共享会话。
 
 新版屏幕输入需要 Qt Multimedia 的 FFmpeg 后端；Wayland 会话还需要桌面的 ScreenCast portal 与 PipeWire，点击取图后由系统选择共享屏幕。应用内说明见“系统 → 视觉实验工具与新版导航”。Steam Deck 脚本仅在系统与本地 Qt Core 精确版本相同时补充系统插件路径。
 

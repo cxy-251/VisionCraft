@@ -17,6 +17,9 @@ if(WIN32 AND EXISTS "C:/02Programmer/Qt/6.7.3/msvc2019_64")
     list(APPEND CMAKE_PREFIX_PATH "C:/02Programmer/Qt/6.7.3/msvc2019_64")
 endif()
 find_package(Qt6 6.7 REQUIRED COMPONENTS Core Gui Widgets Concurrent SerialPort Network Qml Quick QuickControls2 Multimedia)
+if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
+    find_package(Qt6 REQUIRED COMPONENTS DBus)
+endif()
 qt_standard_project_setup(REQUIRES 6.7)
 
 # 2. OpenCV 4
@@ -288,6 +291,9 @@ target_link_libraries(VisionCraft PRIVATE
     fmt::fmt
     nlohmann_json::nlohmann_json
 )
+if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
+    target_link_libraries(VisionCraft PRIVATE Qt6::DBus)
+endif()
 
 # 确保 Windows 下 Qt6Concurrent 动态链接库始终自动部署到可执行文件同级目录
 if(WIN32 AND EXISTS "C:/02Programmer/Qt/6.7.3/msvc2019_64/bin/Qt6Concurrent.dll")

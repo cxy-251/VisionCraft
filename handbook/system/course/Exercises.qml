@@ -19,5 +19,13 @@ Section {
     Try { task: qsTr("⑥ 重复纹理中很多特征匹配都支持一个变换；模板相似度也超过阈值。还缺什么证据？"); answerNote: qsTr("需要检查模型适用性、空间分布、目标身份和歧义。几何内点或模板分数表达各自模型下的条件，不是自动获得外部真值或唯一正确位置。") }
     Try { task: qsTr("⑦ 综合案例中，理想背景差分与局部阈值恰好选出相同区域，能否认定二者拥有相同信息条件，换一张图仍会相同？"); answerNote: qsTr("不能，差分获得了额外参照，相同输出不代表信息条件相同。应说明参照如何得到、是否对齐、光照变化怎样处理，以及目标/噪声尺度先验。不能把本例一致外推成普遍等价。") }
     Try { task: qsTr("⑧ 最后写一页自己的解题说明：输入、目标输出、候选方法、选择依据、中间结果、已知失败条件，各列一项。若没有图像真值，哪些数字不能称为准确率？"); answerNote: qsTr("相似度、内点率、合格率、非零点数、算法之间的一致率都不能直接改名为准确率。可以报告它们各自的定义与分母，但真实正确性需要独立答案或可信评价依据。") }
-    InSystem { text: qsTr("本轮十二项课程至此形成闭环。学习材料包括example_qml_interaction、example_method_choices、example_teaching_case及原有measure/geometry/features示例。先解释，再观察，再按需要修改小例子；不要求增加业务功能或连接开发板。") }
+    KeyPoints {
+        label: qsTr("延伸练习：输入语义与结果解释")
+        points: [qsTr("先修为Qt/QML的焦点、文本提交、无障碍三节，以及OpenCV/聚类与结果评价三节。以下题目连接本轮六课，不要求扩展主应用工具。")]
+    }
+    Try { task: qsTr("⑨ 一个页面隐藏后，窗口快捷键仍修改其参数；另一个字段输入到一半就把阈值变成0。分别缺少哪条边界？"); answerNote: qsTr("前者需要把快捷键启用范围与页面可用状态关联；后者需要分开输入草稿与已提交数值，在明确提交时按一致的格式与业务范围检查。不要用连续textChanged代替提交。") }
+    Try { task: qsTr("⑩ 自绘按钮可点击，也加了Accessible.name，但Tab无法到达，辅助技术调用press没有效果。只改标签文字能解决吗？"); answerNote: qsTr("不能。语义名称、键盘焦点、键操作和Accessible动作分别要落实；各入口调用同一动作函数。需要完整按钮时优先使用标准Button。") }
+    Try { task: qsTr("⑪ K-means返回label=0且SSE很小，能直接计入工位的合格品吗？若label编号交换，应如何解释？"); answerNote: qsTr("不能，簇编号没有合格语义，SSE只描述样本到中心的距离。编号交换而成员和中心对应关系未变时，聚类本身可以等价；需要独立的问题定义和真值才能评价业务正确性。") }
+    Try { task: qsTr("⑫ 方法A的像素准确率99%，前景IoU为0；方法B的PSNR为34.15 dB。能比较谁更会检测缺陷吗？"); answerNote: qsTr("不能直接比较。A可能只是把占比1%的前景全部漏掉；B是在已约定参照、范围和峰值下的图像误差，缺少缺陷检测的真值与评价。先统一任务、数据和指标口径，不能把不同分母和含义的数值排列成性能榜。") }
+    InSystem { text: qsTr("前一轮十二项课程与本轮六节延伸课程在此对读。学习材料包括example_qml_interaction、example_method_choices、example_teaching_case、本轮example_qml_forms与example_result_interpretation，以及原有measure/geometry/features示例。先解释，再观察，再按需要修改小例子；不要求增加业务功能或连接开发板。") }
 }

@@ -4,7 +4,7 @@
 
 ## 教学接续
 
-Qt / OpenCV教学盘点见[LEARNING_MAP.md](LEARNING_MAP.md)，读者入口是手册“衔接 → 学习路线”。本批已完成Qt Quick布局、组件/生命周期、列表/模型，以及OpenCV数组与邻域运算五节，配套五个独立教学示例；本轮另已补齐十二项进阶任务，当前Qt41节、OpenCV51节。已有内容不重新列为工具功能待办。工具服务教学，不再围绕管线存档等能力扩展成实用产品。系统卷已补齐“Qt与OpenCV协作”三节：图像交付、后台结果发布、步骤顺序与中间图；配套examples/integration三个固定数据示例，直接复用ScreenCapture/ImageOperations及已有查看器说明。
+Qt / OpenCV教学盘点见[LEARNING_MAP.md](LEARNING_MAP.md)，读者入口是手册“衔接 → 学习路线”。本批已完成Qt Quick布局、组件/生命周期、列表/模型，以及OpenCV数组与邻域运算五节，配套五个独立教学示例；本轮另已补齐十二项进阶任务，当前Qt44节、OpenCV54节。已有内容不重新列为工具功能待办。工具服务教学，不再围绕管线存档等能力扩展成实用产品。系统卷已补齐“Qt与OpenCV协作”三节：图像交付、后台结果发布、步骤顺序与中间图；配套examples/integration三个固定数据示例，直接复用ScreenCapture/ImageOperations及已有查看器说明。
 
 十二项进阶课程入口：Qt/QML三节交互，OpenCV/方法对照三节与测量匹配三节，系统/综合课程三节。清单见[TEACHING_ROUND.md](TEACHING_ROUND.md)，本轮只增加课程与教学示例。
 
@@ -106,3 +106,7 @@ flowchart TD
 用户报告单帧取图后系统红色共享标记逐次累积。核对Qt 6.9.1上游PipeWire实现，stop只销毁流而未调用portal Session.Close。DesktopCapture现在记录本进程创建的session_handle，在单帧、停止、取消及错误收尾时显式Close，并延迟销毁QScreenCapture后端，避免旧后端继续接收portal响应。同一时刻只允许一个共享请求，按本进程D-Bus请求和会话路径筛选，不关闭其他程序的共享。Linux增加Qt DBus依赖。之前已累积的旧进程会话需要完全退出旧应用后释放。
 
 本补正主应用构建通过；未自动发起桌面共享，红色标记的实际消失与连续取图表现待用户重启后确认。
+
+## 本轮教学补充：输入语义与结果解释
+
+排除已有ROI/坐标/掩膜/直方图内容后，补齐Qt Quick焦点、文本提交、Accessible三节，以及OpenCV K-means、IoU/Dice、MSE/PSNR三节。现Qt44节、OpenCV54节；此前41/51为上一阶段数量。新示例example_qml_forms和example_result_interpretation独立于主程序，后者output.txt为固定数据课堂材料。系统综合练习与应用内学习路线已关联这六课。任务清单见TEACHING_EXTENSION.md；本轮不扩展业务工具或设备功能。

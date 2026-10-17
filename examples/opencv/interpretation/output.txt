@@ -1,0 +1,15 @@
+=== color samples and cluster compactness ===
+K=1 SSE=265022.000000
+  center=[120, 115.5, 110] count=8
+K=2 SSE=22.000000
+  center=[10, 10.5, 10] count=4
+  center=[230, 220.5, 210] count=4
+=== foreground overlap, 10000 pixels ===
+empty prediction TP=0 FP=0 FN=100 pixelAccuracy=0.990000 IoU=0.000000 Dice=0.000000
+shifted one pixel TP=90 FP=10 FN=10 pixelAccuracy=0.998000 IoU=0.818182 Dice=0.900000
+perfect TP=100 FP=0 FN=0 pixelAccuracy=1.000000 IoU=1.000000 Dice=1.000000
+both empty TP=0 FP=0 FN=0 pixelAccuracy=1.000000 IoU=N/A Dice=N/A (both empty)
+=== equal MSE, different spatial errors ===
+identical MSE=0.000000 PSNR=inf dB
+all 64 pixels +5 MSE=25.000000 PSNR=34.151404 dB
+one pixel +40 MSE=25.000000 PSNR=34.151404 dB

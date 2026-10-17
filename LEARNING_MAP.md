@@ -4,7 +4,7 @@
 
 ## 结论
 
-盘点时Qt有35节、OpenCV有43节；基础五节与本轮进阶课程补齐后，Qt为41节、OpenCV为51节，共92节，均有练习。原先主要问题是QML基础教学不成体系、OpenCV的数值与空间运算基础分散；本批已针对这些断点补课。已有章节不能因为没有单独的工具按钮或交互控件，就被判为未实现。
+盘点时Qt有35节、OpenCV有43节；基础五节、十二项进阶及六节补充完成后，Qt为44节、OpenCV为54节，共98节，均有练习。原先主要问题是QML基础教学不成体系、OpenCV的数值与空间运算基础分散；本批已针对这些断点补课。已有章节不能因为没有单独的工具按钮或交互控件，就被判为未实现。
 
 下表“已有”表示正文、示例或真实源码等材料已经存在，不等于已逐句评审完教学质量。应用内路线见 `handbook/bridge/LearningMap.qml`。
 
@@ -16,7 +16,7 @@
 | 事件与定时 | 2 | 派发/过滤、定时/防抖/节流；`examples/qt/events`、`timers` | 已有，不需要重做事件工具 |
 | 线程与并发 | 4 | QThread、Concurrent、SPSC环形队列、异步日志；`examples/qt/qthread`、`ringbuffer`及并发演示 | 已有，队列和日志适合进阶，不能反过来作为初学门槛 |
 | Widgets界面 | 7 | 布局、QSS、无边框、绘图、控件、动画、拖放；对应独立示例和结果图 | 覆盖较齐，旧窗口也是可读的学习材料，保留 |
-| QML界面 | 9 | 绑定、布局、组件/生命周期、列表/模型、输入、状态、动画、C++接入、外壳；`examples/qml/` | 已配齐基础与交互机制路线 |
+| QML界面 | 12 | 绑定、布局、组件/生命周期、列表/模型、输入、焦点、校验提交、无障碍、状态、动画、C++接入、外壳；`examples/qml/` | 已配齐基础与交互机制路线 |
 | Model / View | 4 | 模型、委托、代理、GraphicsView；`examples/qt/modelview`、`graphicsview` | 已有，主要按Widgets讲，不能视为已经教完QML列表 |
 | 通信与进程 | 6 | 串口、TCP、UDP、HTTP、共享内存、子进程；对应示例及DeviceLink/RTT源码 | 已有，不需要新接硬件补课 |
 | 工程化 | 6 | 配置、文件监视、国际化、插件、状态机、崩溃转储；对应独立示例 | 已有，按兴趣选读，不必全部移植到主程序 |
@@ -39,6 +39,7 @@
 | 工业检测 | 4 | 卡尺、标样差分、码识别、评价；`measure` / `freq_codes`及评价交互 | 已有，工位只作为综合案例，不是教学的全部目标 |
 | 视频与运动 | 3 | 视频读写、背景建模、光流；`video` | 已有，使用生成视频，无需采购摄像头 |
 | 三维与标定 | 3 | 标定、PnP、双目；`calib3d` | 已有，虚拟相机/已知真值足以支持现阶段教学 |
+| 聚类与结果评价 | 3 | K-means、前景IoU/Dice、MSE/PSNR；`interpretation`固定数据与输出 | 本轮新增，区分簇编号、像素重叠与图像误差 |
 | 深度学习 | 1 | 最小Sobel卷积网络、blob、前向计算与错误预处理；`dnn` | 已有推理入门，不是完整的训练课程，也不必接入真实商用模型 |
 
 ## 本批已补齐的教学单元
@@ -103,3 +104,11 @@
 - 系统/综合课程：InteractionTrace、CaseStudy、Exercises；`example_teaching_case`连接区域提取、清理、计数与孔洞，综合练习附八组答案。
 
 构建新增示例：`cmake --build build --target example_qml_interaction example_method_choices example_teaching_case -j2`。QML示例只在读者主动运行时打开；两个OpenCV例附本轮生成的数值输出。不新增业务工具或硬件待办。
+
+## 非重复补充：输入语义与结果解释
+
+本轮盘点先排除ROI共享/clone/步长、坐标变换、掩膜/均值/copyTo、直方图，以及金字塔和波形中已有的混叠。QPainter已对照Canvas/QQuickPaintedItem，也不把这些名字重新当作完整新课。
+
+确定六个缺口：FocusScope/activeFocus与窗口快捷键、TextInput编辑中间态与明确提交、Accessible语义与自绘操作，以及K-means、前景IoU/Dice、MSE/PSNR。事件课仅提及焦点和QShortcut，未系统讲Qt Quick焦点作用域；已有Evaluation按件评价，未讲前景重叠度。
+
+六节均登记到应用目录，Qt现为44节（QML12节），OpenCV54节。example_qml_forms提供三个独立教学页；example_result_interpretation提供固定颜色/掩膜/误差数据，并保留一次实际运行生成的output.txt。综合练习追加四题与答案，学习路线同步。主应用业务工具、旧Widgets和下位机不扩展。

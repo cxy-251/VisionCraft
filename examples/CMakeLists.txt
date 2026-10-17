@@ -64,3 +64,6 @@ add_subdirectory(integration/operation_order)
 add_subdirectory(qml/interaction)
 add_subdirectory(opencv/method_choices)
 add_subdirectory(opencv/teaching_case)
+
+add_subdirectory(qml/forms)
+add_subdirectory(opencv/interpretation)

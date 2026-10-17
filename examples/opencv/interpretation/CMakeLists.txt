@@ -1,0 +1,3 @@
+qt_add_executable(example_result_interpretation main.cpp)
+target_include_directories(example_result_interpretation PRIVATE ${OpenCV_INCLUDE_DIRS})
+target_link_libraries(example_result_interpretation PRIVATE ${OpenCV_LIBS})

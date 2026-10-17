@@ -79,6 +79,9 @@ HandbookIndex {
             Entry { title: qsTr("组件接口、作用域与生命周期"); file: "handbook/qt/qml/Components.qml" }
             Entry { title: qsTr("QML列表、角色与模型更新"); file: "handbook/qt/qml/Models.qml" }
             Entry { title: qsTr("输入事件：点击、拖动与事件归属"); file: "handbook/qt/qml/Input.qml" }
+            Entry { title: qsTr("键盘焦点：作用域、导航与快捷键"); file: "handbook/qt/qml/Focus.qml" }
+            Entry { title: qsTr("文本输入：编辑状态、校验与明确提交"); file: "handbook/qt/qml/Validation.qml" }
+            Entry { title: qsTr("自绘交互的无障碍语义与键盘操作"); file: "handbook/qt/qml/Accessibility.qml" }
             Entry { title: qsTr("界面状态：覆盖属性与恢复绑定"); file: "handbook/qt/qml/States.qml" }
             Entry { title: qsTr("动画机制：目标变化与中途操作"); file: "handbook/qt/qml/Motion.qml" }
             Entry { title: qsTr("把 C++ 类型交给 QML"); file: "handbook/qt/qml/CppToQml.qml" }
@@ -207,6 +210,12 @@ HandbookIndex {
             Entry { title: qsTr("相机标定"); file: "handbook/opencv/calib/Calibration.qml"; from: "工业相机张正友标定法与畸变矫正" }
             Entry { title: qsTr("位姿估计 solvePnP"); file: "handbook/opencv/calib/Pnp.qml"; from: "PnP 空间 6 自由度位姿估计" }
             Entry { title: qsTr("双目深度"); file: "handbook/opencv/calib/Stereo.qml"; from: "双目立体视觉与深度测量" }
+        }
+        Chapter {
+            title: qsTr("聚类与结果评价")
+            Entry { title: qsTr("K-means：颜色分组、特征尺度与标签含义"); file: "handbook/opencv/interpretation/Clustering.qml" }
+            Entry { title: qsTr("分割评价：前景IoU、Dice与背景占比"); file: "handbook/opencv/interpretation/SegmentationMetrics.qml" }
+            Entry { title: qsTr("图像误差：MSE、PSNR与空间分布"); file: "handbook/opencv/interpretation/ImageError.qml" }
         }
         Chapter {
             title: qsTr("深度学习")

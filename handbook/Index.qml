@@ -184,6 +184,12 @@ HandbookIndex {
             Entry { title: qsTr("模板匹配"); file: "handbook/opencv/features/Template.qml"; from: "金字塔多尺度加速模板匹配" }
         }
         Chapter {
+            title: qsTr("测量与匹配选择")
+            Entry { title: qsTr("测量选择：像素、小数位与插值误差"); file: "handbook/opencv/comparisons/MeasurementError.qml" }
+            Entry { title: qsTr("测量选择：标样差分为何先要求对齐"); file: "handbook/opencv/comparisons/ReferenceAlignment.qml" }
+            Entry { title: qsTr("匹配选择：模板、局部特征与几何约束"); file: "handbook/opencv/comparisons/MatchingChoice.qml" }
+        }
+        Chapter {
             title: qsTr("工业检测")
             Entry { title: qsTr("卡尺测量"); file: "handbook/opencv/industrial/Caliper.qml"; from: "亚像素一维卡尺边缘测距" }
             Entry { title: qsTr("标准样差分"); file: "handbook/opencv/industrial/Golden.qml"; from: "黄金标样差分缺陷排查" }

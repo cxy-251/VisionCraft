@@ -26,7 +26,7 @@ static cv::Point2f washerCenter(const cv::Mat &gray)
     return cv::fitEllipse(hull).center;
 }
 
-// 画一个外径、内径已知（可以是小数）的理想垫圈：在 8 倍分辨率上画，再缩小，边缘是真实的部分覆盖灰度
+// 画一个外半径、内半径已知（可以是小数）的理想垫圈：在 8 倍分辨率上画，再缩小，边缘是真实的部分覆盖灰度
 static cv::Mat washer(double R, double r)
 {
     const int S = 8;
@@ -109,7 +109,7 @@ int main(int argc, char *argv[])
     }
     // [endregion]
 
-    std::printf("\n==== 2. 卡尺测量：环宽（外径 − 内径） ====\n");
+    std::printf("\n==== 2. 卡尺测量：环宽（外半径 − 内半径） ====\n");
     std::printf("  真实环宽     整数像素     亚像素\n");
     for (double width : {60.0, 60.25, 60.5, 60.75, 61.0}) {
         const double R = 110, r = R - width;
